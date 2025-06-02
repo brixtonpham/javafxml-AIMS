@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<BorderPane fx:id="orderSummaryPane" prefHeight="700.0" prefWidth="800.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.presentation.controllers.OrderSummaryController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+    <top>
+        <Label text="Order Summary & Confirmation" styleClass="screen-title-large" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="20.0" />
+            </BorderPane.margin>
+        </Label>
+    </top>
+    <center>
+        <ScrollPane fitToWidth="true">
+            <VBox spacing="15" styleClass="padding-10">
+                <GridPane hgap="10" vgap="8">
+                    <Label text="Order ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="orderIdLabel" text="N/A" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                    <Label text="Order Date:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="orderDateLabel" text="N/A" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <Separator/>
+
+                <Label text="Delivery Information:" styleClass="section-title-medium"/>
+                <GridPane fx:id="deliveryInfoGrid" hgap="10" vgap="5">
+                    <Label text="Recipient:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="recipientNameText" wrappingWidth="300.0" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                    <Label text="Phone:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="phoneText" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                    <Label text="Email:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="emailText" wrappingWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Address:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="addressText" wrappingWidth="300.0" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+                    <Label text="Province/City:" GridPane.rowIndex="4" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="provinceCityText" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+                    <Label text="Instructions:" GridPane.rowIndex="5" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="instructionsText" wrappingWidth="300.0" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+                    <Label text="Delivery Method:" GridPane.rowIndex="6" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="deliveryMethodText" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                    
+                     <Label fx:id="rushTimeLabel" text="Rush Delivery Time:" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Text fx:id="rushTimeText" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <Separator/>
+
+                <Label text="Order Items:" styleClass="section-title-medium"/>
+                <VBox fx:id="orderItemsVBox" spacing="8"/>
+
+                <Separator/>
+
+                <GridPane hgap="10" vgap="8" styleClass="totals-grid">
+                    <Label text="Subtotal (Products, excl. VAT):" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="subtotalExclVATLabel" text="0 VND" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="text-align-right"/>
+
+                    <Label text="VAT (10% on Products):" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="vatLabel" text="0 VND" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="text-align-right"/>
+                    
+                    <Label text="Total Product Price (incl. VAT):" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="subtotalInclVATLabel" text="0 VND" GridPane.rowIndex="2" GridPane.columnIndex="1" styleClass="text-align-right"/>
+
+                    <Label text="Shipping Fee:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="label-bold"/>
+                    <Label fx:id="shippingFeeLabel" text="0 VND" GridPane.rowIndex="3" GridPane.columnIndex="1" styleClass="text-align-right"/>
+                    
+                    <Separator GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+
+                    <Label text="TOTAL AMOUNT TO BE PAID:" GridPane.rowIndex="5" GridPane.columnIndex="0" styleClass="label-bold-large"/>
+                    <Label fx:id="totalAmountPaidLabel" text="0 VND" GridPane.rowIndex="5" GridPane.columnIndex="1" styleClass="label-bold-large text-align-right"/>
+                </GridPane>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="15" styleClass="padding-10" BorderPane.alignment="CENTER">
+            <Label fx:id="errorMessageLabel" styleClass="error-message" wrapText="true" HBox.hgrow="ALWAYS"/>
+            <Button text="Back to Delivery Info" onAction="#handleBackToDeliveryInfoAction" styleClass="button-secondary"/>
+            <Button fx:id="proceedToPaymentMethodButton" text="Proceed to Select Payment Method" onAction="#handleProceedToPaymentMethodAction" styleClass="button-primary" defaultButton="true"/>
+        </HBox>
+    </bottom>
+</BorderPane>

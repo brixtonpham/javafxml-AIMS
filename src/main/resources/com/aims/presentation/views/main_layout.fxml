@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Label?>
+
+<BorderPane fx:id="mainBorderPane" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.presentation.controllers.MainLayoutController">
+    <top>
+        <VBox>
+            <MenuBar fx:id="menuBar">
+                <menus>
+                    <Menu text="File">
+                        <items>
+                            <MenuItem text="Login" onAction="#handleLoginAction"/>
+                            <MenuItem text="Logout" onAction="#handleLogoutAction"/>
+                            <MenuItem text="Exit" onAction="#handleExitAction"/>
+                        </items>
+                    </Menu>
+                    <Menu text="View">
+                        <items>
+                            <MenuItem text="Home" onAction="#navigateToHome"/>
+                            <MenuItem text="View Cart" onAction="#navigateToCart"/>
+                        </items>
+                    </Menu>
+                    <Menu fx:id="adminMenu" text="Admin" visible="false">
+                        <items>
+                            <MenuItem text="User Management" onAction="#navigateToUserManagement"/>
+                            <MenuItem text="Product Management (Admin)" onAction="#navigateToAdminProductList"/>
+                        </items>
+                    </Menu>
+                    <Menu fx:id="pmMenu" text="Product Manager" visible="false">
+                        <items>
+                            <MenuItem text="Product Management" onAction="#navigateToPmProductList"/>
+                            <MenuItem text="Pending Orders" onAction="#navigateToPmPendingOrders"/>
+                        </items>
+                    </Menu>
+                </menus>
+            </MenuBar>
+            <Label fx:id="headerTitle" styleClass="header-title" text="AIMS - An Internet Media Store" alignment="CENTER" maxWidth="Infinity" VBox.vgrow="NEVER"/>
+        </VBox>
+    </top>
+    <center>
+        <BorderPane fx:id="contentPane" />
+    </center>
+    <bottom>
+        <Label fx:id="footerLabel" text="© 2025 AIMS Project" styleClass="footer" alignment="CENTER" maxWidth="Infinity"/>
+    </bottom>
+</BorderPane>

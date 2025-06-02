@@ -1,0 +1,2 @@
+-- Placeholder for SQL script to seed initial data
+-- Add INSERT statements here
