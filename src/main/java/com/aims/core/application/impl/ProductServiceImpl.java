@@ -253,13 +253,16 @@ public class ProductServiceImpl implements IProductService {
         int totalResults = productsWithVAT.size();
         int fromIndex = (pageNumber - 1) * pageSize;
         if (fromIndex >= totalResults) {
-            return new SearchResult<>(new ArrayList<>(), 0);
+            return new SearchResult<>(new ArrayList<>(), pageNumber, 0, 0);
         }
 
         int toIndex = Math.min(fromIndex + pageSize, totalResults);
         List<Product> pageResults = productsWithVAT.subList(fromIndex, toIndex);
+        
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
 
-        return new SearchResult<>(pageResults, totalResults);
+        return new SearchResult<>(pageResults, pageNumber, totalPages, totalResults);
     }
 
     @Override
@@ -296,12 +299,15 @@ public class ProductServiceImpl implements IProductService {
         int totalResults = productsWithVAT.size();
         int fromIndex = (pageNumber - 1) * pageSize;
         if (fromIndex >= totalResults) {
-            return new SearchResult<>(new ArrayList<>(), 0); // Return empty result if fromIndex is out of bounds
+            return new SearchResult<>(new ArrayList<>(), pageNumber, 0, 0); // Return empty result if fromIndex is out of bounds
         }
         int toIndex = Math.min(fromIndex + pageSize, totalResults);
         List<Product> pageResults = productsWithVAT.subList(fromIndex, toIndex);
+        
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
 
-        return new SearchResult<>(pageResults, totalResults);
+        return new SearchResult<>(pageResults, pageNumber, totalPages, totalResults);
     }
 
     @Override

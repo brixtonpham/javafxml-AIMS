@@ -1,6 +1,8 @@
 package com.aims.core.entities;
 
 import jakarta.persistence.*;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -51,6 +53,11 @@ public class Role {
 
     public void setUserAssignments(Set<UserRoleAssignment> userAssignments) {
         this.userAssignments = userAssignments;
+    }
+
+    // JavaFX Property method for UI binding
+    public StringProperty roleNameProperty() {
+        return new SimpleStringProperty(roleName);
     }
 
     @Override

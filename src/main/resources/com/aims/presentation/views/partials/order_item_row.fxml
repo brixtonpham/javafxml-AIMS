@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+
+<HBox fx:id="orderItemRowPane" alignment="CENTER_LEFT" spacing="10" styleClass="order-item-row" prefHeight="70.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.OrderItemRowController">
+    <padding>
+        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+    </padding>
+    <ImageView fx:id="productImageView" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true" />
+    <VBox HBox.hgrow="ALWAYS" spacing="2">
+        <Label fx:id="productTitleLabel" styleClass="item-title-medium" text="Product Title - Lorem Ipsum Dolor Sit Amet Consectetur"/>
+        <Label fx:id="productIdLabel" styleClass="item-id-small" text="ID: PRODUCT_ID_001"/>
+    </VBox>
+    <VBox alignment="CENTER_RIGHT" spacing="2" prefWidth="180.0">
+        <Label fx:id="quantityLabel" styleClass="item-detail-small" text="Qty: 1"/>
+        <Label fx:id="unitPriceLabel" styleClass="item-price-small" text="Unit: 100,000 VND"/>
+    </VBox>
+    <Label fx:id="totalItemPriceLabel" styleClass="item-total-price-medium" text="Total: 100,000 VND" prefWidth="150.0" alignment="CENTER_RIGHT"/>
+</HBox>

@@ -7,7 +7,7 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.Label?>
 
-<BorderPane fx:id="mainBorderPane" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.presentation.controllers.MainLayoutController">
+<BorderPane fx:id="mainBorderPane" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
     <top>
         <VBox>
             <MenuBar fx:id="menuBar">

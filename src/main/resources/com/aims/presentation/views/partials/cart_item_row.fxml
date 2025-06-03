@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<HBox fx:id="cartItemRowPane" alignment="CENTER_LEFT" spacing="10" styleClass="cart-item-row" prefHeight="80.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.CartItemRowController">
+    <padding>
+        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+    </padding>
+    <ImageView fx:id="productImageView" fitHeight="60.0" fitWidth="60.0" pickOnBounds="true" preserveRatio="true" />
+    <VBox HBox.hgrow="ALWAYS" spacing="2">
+        <Label fx:id="productTitleLabel" styleClass="item-title-small" text="Product Title"/>
+        <Label fx:id="unitPriceLabel" styleClass="item-price-small" text="Unit Price: 0 VND"/>
+    </VBox>
+    <Spinner fx:id="quantitySpinner" prefWidth="70.0" editable="true"/>
+    <Label fx:id="totalItemPriceLabel" styleClass="item-total-price" text="Total: 0 VND" prefWidth="120" alignment="CENTER_RIGHT"/>
+    <Button fx:id="removeButton" text="Remove" onAction="#handleRemoveItemAction" styleClass="button-danger-small"/>
+</HBox>

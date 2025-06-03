@@ -1,4 +1,4 @@
-package com.aims.presentation.controllers;
+package com.aims.core.presentation.controllers;
 
 import com.aims.core.application.dtos.CartItemDTO; // Giả sử có để hiển thị tóm tắt
 import com.aims.core.application.dtos.DeliveryInfoDTO;
@@ -7,10 +7,11 @@ import com.aims.core.application.services.IDeliveryCalculationService; // Để 
 import com.aims.core.entities.OrderEntity; // Service có thể trả về OrderEntity
 import com.aims.core.entities.DeliveryInfo; // Để tạo đối tượng gửi đi
 import com.aims.core.entities.OrderItem;
+import com.aims.core.entities.Product;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
-import com.aims.common.custom_exceptions.ValidationException;
-import com.aims.common.custom_exceptions.ResourceNotFoundException;
+import com.aims.core.shared.exceptions.ValidationException;
+import com.aims.core.shared.exceptions.ResourceNotFoundException;
 
 
 import javafx.collections.FXCollections;

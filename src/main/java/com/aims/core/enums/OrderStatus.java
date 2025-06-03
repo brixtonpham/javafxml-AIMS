@@ -10,5 +10,6 @@ public enum OrderStatus {
     SHIPPING,           // Đang giao hàng
     DELIVERED,          // Đã giao thành công
     CANCELLED,          // Đã hủy
-    REFUNDED            // Đã hoàn tiền
+    REFUNDED,           // Đã hoàn tiền
+    ERROR_STOCK_UPDATE_FAILED // Error occurred during stock update
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.input.MouseEvent?> <VBox fx:id="productCardVBox" alignment="CENTER" spacing="8.0" styleClass="product-card"
+      minHeight="280.0" maxHeight="280.0" minWidth="200.0" maxWidth="200.0"
+      onMouseClicked="#handleViewProductDetails" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.aims.core.presentation.controllers.ProductCardController">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+    </padding>
+    <ImageView fx:id="productImageView" fitHeight="140.0" fitWidth="140.0" pickOnBounds="true" preserveRatio="true">
+        <VBox.margin>
+            <Insets bottom="5.0"/>
+        </VBox.margin>
+    </ImageView>
+    <Label fx:id="productTitleLabel" styleClass="product-title-card" text="Product Title" wrapText="true" textAlignment="CENTER" minHeight="40.0"/> <Label fx:id="productPriceLabel" styleClass="product-price-card" text="0 VND"/>
+    <Label fx:id="productAvailabilityLabel" styleClass="product-availability-card" text="Available: 0"/>
+    <Button fx:id="addToCartButton" text="Add to Cart" onAction="#handleAddToCartAction" styleClass="button-success-small" maxWidth="Infinity"/>
+</VBox>

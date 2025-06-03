@@ -1,330 +1,265 @@
-package com.aims.presentation.controllers;
+package com.aims.core.presentation.controllers;
 
 import com.aims.core.application.dtos.CartItemDTO;
-import com.aims.core.application.dtos.CartViewDTO; // Để nhận dữ liệu từ service
+// import com.aims.core.application.dtos.CartViewDTO; // Could be used by service to return all cart data
 import com.aims.core.application.services.ICartService;
+import com.aims.core.entities.Product; // For creating DTOs if service returns entities
+import com.aims.core.entities.Cart; // If service returns Cart entity
+import com.aims.core.entities.CartItem; // If service returns CartItem entity
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.shared.exceptions.InventoryException;
+import com.aims.core.shared.exceptions.ResourceNotFoundException;
+import com.aims.core.shared.exceptions.ValidationException;
 
 
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 
-
+import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class CartScreenController {
+public class CartScreenController implements MainLayoutController.IChildController {
 
     @FXML
-    private TableView<CartItemDTO> cartTableView;
+    private ScrollPane cartScrollPane;
     @FXML
-    private TableColumn<CartItemDTO, ImageView> productImageColumn;
-    @FXML
-    private TableColumn<CartItemDTO, String> productTitleColumn;
-    @FXML
-    private TableColumn<CartItemDTO, Float> unitPriceColumn;
-    @FXML
-    private TableColumn<CartItemDTO, Integer> quantityColumn; // Sẽ custom cell
-    @FXML
-    private TableColumn<CartItemDTO, Float> totalItemPriceColumn;
-    @FXML
-    private TableColumn<CartItemDTO, Void> actionsColumn;
-
-
+    private VBox cartItemsContainerVBox; // Container for individual cart item cards
     @FXML
     private Label totalCartPriceLabel;
     @FXML
     private Button checkoutButton;
     @FXML
-    private VBox stockWarningVBox;
-
+    private Label stockWarningLabel; // General stock warnings for the cart
 
     // @Inject
     private ICartService cartService;
-    // private MainLayoutController mainLayoutController;
+    private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
 
-
-    private ObservableList<CartItemDTO> cartItemsList = FXCollections.observableArrayList();
-    private String currentCartSessionId = "guest_cart_session"; // TODO: Lấy session ID thực tế
-
+    // This list can hold the DTOs that are bound or represented by the loaded FXML cards
+    private ObservableList<CartItemDTO> currentCartItemDTOs = FXCollections.observableArrayList();
+    private String cartSessionId = "guest_cart_session_id_placeholder"; // TODO: Get this from session management
 
     public CartScreenController() {
-        // cartService = new CartServiceImpl(...); // DI
+        // cartService = new CartServiceImpl(...); // DI example
     }
 
+    @Override
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+        // this.sceneManager = mainLayoutController.getSceneManager();
+    }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setCartService(ICartService cartService) { this.cartService = cartService; }
+    public void setCartService(ICartService cartService) {
+        this.cartService = cartService;
+    }
 
+    // public void setCartSessionId(String cartSessionId) {
+    //     this.cartSessionId = cartSessionId;
+    //     loadCartDetails(); // Load details when session ID is set
+    // }
 
     public void initialize() {
-        // sceneManager = FXMLSceneManager.getInstance();
-        setupTableColumns();
-        loadCartDetails();
+        setStockWarning("", false);
+        // Load cart details when the screen is initialized
+        // cartSessionId should be set by the time this screen is shown
+        // For testing, you can call loadCartDetails directly or set a default session ID.
+        if (cartSessionId != null) {
+            loadCartDetails();
+        } else {
+            System.err.println("CartScreenController: cartSessionId is null on initialize. Cart will be empty.");
+            displayEmptyCart();
+        }
     }
-
-
-    private void setupTableColumns() {
-        productImageColumn.setCellValueFactory(param -> {
-            ImageView imageView = new ImageView();
-            imageView.setFitHeight(50);
-            imageView.setFitWidth(50);
-            imageView.setPreserveRatio(true);
-            if (param.getValue().getImageUrl() != null && !param.getValue().getImageUrl().isEmpty()) {
-                try {
-                    imageView.setImage(new Image(param.getValue().getImageUrl(), true));
-                } catch (Exception e) { /* placeholder or default image */ }
-            }
-            return new SimpleObjectProperty<>(imageView);
-        });
-
-
-        productTitleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
-        unitPriceColumn.setCellValueFactory(new PropertyValueFactory<>("unitPriceExclVAT"));
-        unitPriceColumn.setCellFactory(tc -> new TableCell<CartItemDTO, Float>() {
-            @Override
-            protected void updateItem(Float price, boolean empty) {
-                super.updateItem(price, empty);
-                if (empty || price == null) {
-                    setText(null);
-                } else {
-                    setText(String.format("%,.0f VND", price));
-                }
-            }
-        });
-
-
-        totalItemPriceColumn.setCellValueFactory(new PropertyValueFactory<>("totalPriceExclVAT"));
-        totalItemPriceColumn.setCellFactory(tc -> new TableCell<CartItemDTO, Float>() {
-            @Override
-            protected void updateItem(Float price, boolean empty) {
-                super.updateItem(price, empty);
-                if (empty || price == null) {
-                    setText(null);
-                } else {
-                    setText(String.format("%,.0f VND", price));
-                }
-            }
-        });
-
-
-        // Custom cell for quantity with Spinner
-        Callback<TableColumn<CartItemDTO, Integer>, TableCell<CartItemDTO, Integer>> quantityCellFactory =
-            param -> new QuantityCell();
-        quantityColumn.setCellFactory(quantityCellFactory);
-        quantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-
-
-        // Custom cell for action buttons
-        Callback<TableColumn<CartItemDTO, Void>, TableCell<CartItemDTO, Void>> actionCellFactory =
-            param -> new ActionCell();
-        actionsColumn.setCellFactory(actionCellFactory);
-    }
-
 
     private void loadCartDetails() {
         // if (cartService == null) {
-        //     AlertHelper.showErrorAlert("Error", "Cart service not available.");
+        //     AlertHelper.showErrorAlert("Service Error", "Cart service is unavailable.");
+        //     displayEmptyCart();
         //     return;
         // }
-        // try {
-        //     // Cart entity trả về từ service nên chứa danh sách CartItem entity
-        //     // Cần map sang CartItemDTO (hoặc CartViewDTO chứa list CartItemDTO)
-        //     com.aims.core.entities.Cart cartEntity = cartService.getCart(currentCartSessionId); // This returns entity
+        // if (cartSessionId == null || cartSessionId.isEmpty()) {
+        //     AlertHelper.showErrorAlert("Error", "Cart session is not identified.");
+        //     displayEmptyCart();
+        //     return;
+        // }
         //
-        //     if (cartEntity != null && cartEntity.getItems() != null) {
-        //         cartItemsList.clear();
-        //         float total = 0f;
-        //         stockWarningVBox.getChildren().clear();
+        // try {
+        //     Cart cartEntity = cartService.getCart(cartSessionId); // This service method should return the Cart with its items
+        //
+        //     cartItemsContainerVBox.getChildren().clear();
+        //     currentCartItemDTOs.clear();
+        //     setStockWarning("", false);
+        //
+        //     if (cartEntity != null && cartEntity.getItems() != null && !cartEntity.getItems().isEmpty()) {
+        //         float grandTotalExclVAT = 0f;
+        //         boolean hasStockIssues = false;
         //
         //         for (com.aims.core.entities.CartItem itemEntity : cartEntity.getItems()) {
-        //             Product product = itemEntity.getProduct(); // Assuming product is loaded
+        //             Product product = itemEntity.getProduct(); // Assuming product is eagerly loaded or accessible
+        //             if (product == null) continue; // Should not happen if data is consistent
+        //
         //             CartItemDTO dto = new CartItemDTO(
         //                     product.getProductId(),
         //                     product.getTitle(),
         //                     itemEntity.getQuantity(),
-        //                     product.getPrice(), // Price ex VAT
+        //                     product.getPrice(), // Price ex-VAT from Product entity
         //                     product.getImageUrl(),
         //                     product.getQuantityInStock()
         //             );
-        //             cartItemsList.add(dto);
-        //             total += dto.getTotalPriceExclVAT();
+        //             currentCartItemDTOs.add(dto);
+        //             grandTotalExclVAT += dto.getTotalPriceExclVAT();
         //
         //             if (!dto.isStockSufficient()) {
-        //                 Label warning = new Label("Warning: Product '" + dto.getTitle() + "' only has " + dto.getAvailableStock() + " available. You requested " + dto.getQuantity() + ".");
-        //                 warning.setStyle("-fx-text-fill: red;");
-        //                 stockWarningVBox.getChildren().add(warning);
+        //                 hasStockIssues = true;
+        //             }
+        //
+        //             // Load the FXML for each cart item row/card
+        //             try {
+        //                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/cart_item_row_card_style.fxml"));
+        //                 Node itemNode = loader.load();
+        //                 CartItemRowController rowController = loader.getController();
+        //                 rowController.setData(dto, this.cartService, this.cartSessionId, this);
+        //                 cartItemsContainerVBox.getChildren().add(itemNode);
+        //             } catch (IOException e) {
+        //                 e.printStackTrace();
+        //                 System.err.println("Error loading cart item row FXML: " + e.getMessage());
         //             }
         //         }
-        //         cartTableView.setItems(cartItemsList);
-        //         totalCartPriceLabel.setText(String.format("Total (excl. VAT): %,.0f VND", total));
-        //         checkoutButton.setDisable(cartItemsList.isEmpty() || !stockWarningVBox.getChildren().isEmpty());
+        //
+        //         totalCartPriceLabel.setText(String.format("Total (excl. VAT): %,.0f VND", grandTotalExclVAT));
+        //         checkoutButton.setDisable(hasStockIssues); // Disable checkout if any stock issue
+        //         if (hasStockIssues) {
+        //             setStockWarning("One or more items have insufficient stock. Please update quantities.", true);
+        //         }
         //
         //     } else {
-        //         cartTableView.getItems().clear();
-        //         totalCartPriceLabel.setText("Total (excl. VAT): 0 VND");
-        //         checkoutButton.setDisable(true);
-        //         cartTableView.setPlaceholder(new Label("Your cart is currently empty."));
+        //         displayEmptyCart();
         //     }
         // } catch (SQLException e) {
         //     e.printStackTrace();
-        //     AlertHelper.showErrorAlert("Database Error", "Could not load cart details: " + e.getMessage());
+        //     // AlertHelper.showErrorAlert("Database Error", "Could not load cart details: " + e.getMessage());
+        //     displayEmptyCart();
+        //     setStockWarning("Error loading cart: " + e.getMessage(), true);
         // }
-        // Dummy data for now as services are not injected
-        System.out.println("loadCartDetails called - implement with actual service call and DTO mapping");
+
+        System.out.println("loadCartDetails called - Implement with actual service call and DTO mapping.");
+        // Dummy display
+        displayEmptyCart();
+        // setStockWarning("This is a sample stock warning.", true);
     }
 
+    private void displayEmptyCart() {
+        cartItemsContainerVBox.getChildren().clear();
+        currentCartItemDTOs.clear();
+        Label emptyCartLabel = new Label("Your shopping cart is currently empty.");
+        emptyCartLabel.getStyleClass().add("text-normal");
+        cartItemsContainerVBox.getChildren().add(emptyCartLabel);
+        totalCartPriceLabel.setText("Total (excl. VAT): 0 VND");
+        checkoutButton.setDisable(true);
+        setStockWarning("", false);
+    }
 
-
+    private void setStockWarning(String message, boolean visible) {
+        stockWarningLabel.setText(message);
+        stockWarningLabel.setVisible(visible);
+        stockWarningLabel.setManaged(visible);
+    }
 
     @FXML
     void handleClearCartAction(ActionEvent event) {
         // if (cartService == null) { AlertHelper.showErrorAlert("Error", "Service unavailable."); return; }
-        // try {
-        //     cartService.clearCart(currentCartSessionId);
-        //     AlertHelper.showInfoAlert("Cart Cleared", "Your shopping cart has been emptied.");
-        //     loadCartDetails(); // Refresh view
-        // } catch (SQLException | ResourceNotFoundException e) {
-        //     AlertHelper.showErrorAlert("Error Clearing Cart", e.getMessage());
+        // if (cartSessionId == null || cartSessionId.isEmpty()) return;
+        //
+        // boolean confirmed = AlertHelper.showConfirmationDialog("Clear Cart", "Are you sure you want to empty your entire cart?");
+        // if (confirmed) {
+        //     try {
+        //         cartService.clearCart(cartSessionId);
+        //         AlertHelper.showInfoAlert("Cart Cleared", "Your shopping cart has been emptied.");
+        //         loadCartDetails(); // Refresh view
+        //     } catch (SQLException | ResourceNotFoundException e) {
+        //         AlertHelper.showErrorAlert("Error Clearing Cart", e.getMessage());
+        //     }
         // }
-         System.out.println("Clear Cart action - implement");
+        System.out.println("Clear Cart action - implement");
+        loadCartDetails(); // Simulate refresh
     }
-
 
     @FXML
     void handleProceedToCheckoutAction(ActionEvent event) {
-        // if (cartItemsList.isEmpty()) {
+        // if (currentCartItemDTOs.isEmpty()) {
         //     AlertHelper.showWarningAlert("Empty Cart", "Please add items to your cart before proceeding to checkout.");
         //     return;
         // }
-        // if (!stockWarningVBox.getChildren().isEmpty()){
-        //      AlertHelper.showErrorAlert("Stock Issue", "Please resolve stock issues before proceeding.");
+        // boolean hasStockIssues = currentCartItemDTOs.stream().anyMatch(item -> !item.isStockSufficient());
+        // if (hasStockIssues) {
+        //      AlertHelper.showErrorAlert("Stock Issue", "Please resolve stock issues in your cart before proceeding.");
         //      return;
         // }
         //
-        // System.out.println("Proceed to Checkout action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.DELIVERY_INFO_SCREEN);
+        // System.out.println("Proceed to Checkout action triggered for cart: " + cartSessionId);
+        // if (mainLayoutController != null && sceneManager != null) {
+        //     // The OrderService.initiateOrderFromCart will be called first.
+        //     // If successful, it will then navigate to DeliveryInfoScreen.
+        //     // This logic might be better placed in OrderService or a checkout orchestration service.
+        //     // For now, let's assume we navigate and DeliveryInfoScreen handles order initiation.
+        //
+        //     DeliveryInfoScreenController deliveryCtrl = (DeliveryInfoScreenController) sceneManager.loadFXMLIntoPane(
+        //         mainLayoutController.getContentPane(), FXMLSceneManager.DELIVERY_INFO_SCREEN
+        //     );
+        //     // DeliveryInfoScreenController needs the cartSessionId or the newly created OrderEntity shell
+        //     // from OrderService.initiateOrderFromCart()
+        //     // deliveryCtrl.setCartSessionForOrder(this.cartSessionId);
+        //     // deliveryCtrl.setMainLayoutController(mainLayoutController);
         //     mainLayoutController.setHeaderTitle("Delivery Information");
         // }
-         System.out.println("Proceed to Checkout action - implement navigation");
+        System.out.println("Proceed to Checkout action - implement navigation and order initiation.");
     }
 
-
-    // Inner class for Quantity Spinner in TableCell
-    private class QuantityCell extends TableCell<CartItemDTO, Integer> {
-        private final Spinner<Integer> quantitySpinner;
-
-
-        public QuantityCell() {
-            quantitySpinner = new Spinner<>();
-            SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, 1); // Min 0 to allow removal by setting to 0
-            quantitySpinner.setValueFactory(valueFactory);
-            quantitySpinner.setEditable(true);
-            quantitySpinner.valueProperty().addListener((obs, oldValue, newValue) -> {
-                if (newValue != null && getTableRow() != null && getTableRow().getItem() != null) {
-                    CartItemDTO item = getTableView().getItems().get(getIndex());
-                    if (item.getAvailableStock() < newValue && newValue > 0) { // Check against available stock for increase
-                        // AlertHelper.showWarningAlert("Stock Limit", "Cannot exceed available stock: " + item.getAvailableStock());
-                        quantitySpinner.getValueFactory().setValue(oldValue); // Revert
-                        return;
-                    }
-                    if (newValue == 0) { // Handle removal if quantity is 0
-                        handleRemoveItem(item);
-                    } else if (newValue != oldValue ) { // Only update if value actually changed and not 0
-                        handleUpdateQuantity(item, newValue);
-                    }
-                }
-            });
-            // Commit on focus lost - not ideal for immediate feedback, but simpler than custom editor
-             quantitySpinner.focusedProperty().addListener((observable, oldValue, newValue) -> {
-                if (!newValue) { // Lost focus
-                    // The listener on valueProperty should have already handled the change.
-                    // This can be a place for an explicit commit if needed for other spinner types.
-                }
-            });
-        }
-
-
-        @Override
-        protected void updateItem(Integer itemQuantity, boolean empty) {
-            super.updateItem(itemQuantity, empty);
-            if (empty || itemQuantity == null) {
-                setGraphic(null);
-            } else {
-                quantitySpinner.getValueFactory().setValue(itemQuantity);
-                setGraphic(quantitySpinner);
-            }
-        }
-    }
-
-
-    // Inner class for Action Buttons in TableCell
-    private class ActionCell extends TableCell<CartItemDTO, Void> {
-        private final Button removeButton = new Button("Remove");
-
-
-        public ActionCell() {
-            removeButton.getStyleClass().add("button-danger-small");
-            removeButton.setOnAction(event -> {
-                CartItemDTO item = getTableView().getItems().get(getIndex());
-                handleRemoveItem(item);
-            });
-        }
-
-
-        @Override
-        protected void updateItem(Void item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty) {
-                setGraphic(null);
-            } else {
-                HBox pane = new HBox(removeButton);
-                pane.setSpacing(5);
-                setGraphic(pane);
-            }
-        }
-    }
-
-
-    private void handleUpdateQuantity(CartItemDTO itemDto, int newQuantity) {
-        // if (cartService == null) { AlertHelper.showErrorAlert("Error", "Service unavailable."); return; }
+    /**
+     * Called by CartItemRowController when an item's quantity changes.
+     */
+    public void handleUpdateQuantityFromRow(CartItemDTO itemDto, int newQuantity) {
+        // if (cartService == null) { return; }
         // try {
-        //     cartService.updateItemQuantity(currentCartSessionId, itemDto.getProductId(), newQuantity);
+        //     System.out.println("Updating quantity for " + itemDto.getProductId() + " to " + newQuantity + " in cart " + cartSessionId);
+        //     cartService.updateItemQuantity(cartSessionId, itemDto.getProductId(), newQuantity);
         //     loadCartDetails(); // Refresh the whole cart view
         // } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
         //     AlertHelper.showErrorAlert("Update Failed", e.getMessage());
-        //     loadCartDetails(); // Revert UI by reloading
+        //     loadCartDetails(); // Revert UI by reloading if update fails
         // }
-        System.out.println("Update quantity for " + itemDto.getProductId() + " to " + newQuantity + " - implement");
+         System.out.println("Update quantity for " + itemDto.getProductId() + " to " + newQuantity + " - implement");
          loadCartDetails(); // Simulate refresh
     }
 
-
-    private void handleRemoveItem(CartItemDTO itemDto) {
-        // if (cartService == null) { AlertHelper.showErrorAlert("Error", "Service unavailable."); return; }
-        // boolean confirmed = AlertHelper.showConfirmationDialog("Remove Item", "Are you sure you want to remove " + itemDto.getTitle() + " from your cart?");
-        // if (confirmed) {
-        //     try {
-        //         cartService.removeItemFromCart(currentCartSessionId, itemDto.getProductId());
-        //         loadCartDetails(); // Refresh the whole cart view
-        //     } catch (SQLException | ResourceNotFoundException e) {
-        //         AlertHelper.showErrorAlert("Remove Failed", e.getMessage());
-        //         loadCartDetails(); // Revert UI by reloading
-        //     }
+    /**
+     * Called by CartItemRowController when an item is to be removed.
+     */
+    public void handleRemoveItemFromRow(CartItemDTO itemDto) {
+        // if (cartService == null) { return; }
+        // // Confirmation might be handled inside the row controller or here
+        // try {
+        //     System.out.println("Removing item " + itemDto.getProductId() + " from cart " + cartSessionId);
+        //     cartService.removeItemFromCart(cartSessionId, itemDto.getProductId());
+        //     loadCartDetails(); // Refresh the whole cart view
+        // } catch (SQLException | ResourceNotFoundException e) {
+        //     AlertHelper.showErrorAlert("Remove Failed", e.getMessage());
+        //     loadCartDetails(); // Revert UI by reloading
         // }
-         System.out.println("Remove item " + itemDto.getProductId() + " - implement");
-         loadCartDetails(); // Simulate refresh
+        System.out.println("Remove item " + itemDto.getProductId() + " - implement");
+        loadCartDetails(); // Simulate refresh
     }
 }

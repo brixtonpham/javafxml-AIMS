@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.web.WebView?> <BorderPane fx:id="paymentProcessingPane" prefHeight="400.0" prefWidth="600.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentProcessingScreenController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+    <top>
+        <Label text="Processing Payment..." styleClass="screen-title-large" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="30.0" />
+            </BorderPane.margin>
+        </Label>
+    </top>
+    <center>
+        <VBox fx:id="contentVBox" alignment="CENTER" spacing="20">
+            <ProgressIndicator fx:id="progressIndicator" prefHeight="80.0" prefWidth="80.0" />
+            <Label fx:id="statusLabel" text="Please wait while your payment is being processed with VNPay." styleClass="text-normal" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="instructionLabel" text="You might be redirected to VNPay's website. Do not close this window or navigate away unless instructed." styleClass="note-text" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="transactionRefLabel" text="Your AIMS Transaction ID: N/A" styleClass="text-small"/>
+
+            <Button fx:id="checkStatusButton" text="Check Payment Status Manually" onAction="#handleCheckStatusAction" visible="false" managed="false" styleClass="button-secondary">
+                <VBox.margin>
+                    <Insets top="20.0" />
+                </VBox.margin>
+            </Button>
+            <Button fx:id="cancelPaymentButton" text="Cancel Payment Attempt" onAction="#handleCancelPaymentAttemptAction" styleClass="button-danger">
+                 <VBox.margin>
+                    <Insets top="10.0" />
+                </VBox.margin>
+            </Button>
+        </VBox>
+    </center>
+</BorderPane>

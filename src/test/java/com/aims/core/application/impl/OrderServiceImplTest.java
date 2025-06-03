@@ -485,9 +485,9 @@ class OrderServiceImplTest {
 
         SearchResult<OrderEntity> result = orderService.getOrdersByStatusForManager(OrderStatus.PENDING_PROCESSING, 1, 10);
         assertNotNull(result);
-        assertEquals(1, result.getTotalCount());
-        assertEquals(1, result.getResults().size());
-        assertEquals(mockOrder, result.getResults().get(0));
+        assertEquals(1, result.totalResults());
+        assertEquals(1, result.results().size());
+        assertEquals(mockOrder, result.results().get(0));
     }
     
     @Test
@@ -502,14 +502,14 @@ class OrderServiceImplTest {
         when(orderDAO.getByStatus(OrderStatus.APPROVED)).thenReturn(orders);
 
         SearchResult<OrderEntity> result1 = orderService.getOrdersByStatusForManager(OrderStatus.APPROVED, 1, 10);
-        assertEquals(15, result1.getTotalCount());
-        assertEquals(10, result1.getResults().size());
-        assertEquals("order0", result1.getResults().get(0).getOrderId());
+        assertEquals(15, result1.totalResults());
+        assertEquals(10, result1.results().size());
+        assertEquals("order0", result1.results().get(0).getOrderId());
 
         SearchResult<OrderEntity> result2 = orderService.getOrdersByStatusForManager(OrderStatus.APPROVED, 2, 10);
-        assertEquals(15, result2.getTotalCount());
-        assertEquals(5, result2.getResults().size());
-        assertEquals("order10", result2.getResults().get(0).getOrderId());
+        assertEquals(15, result2.totalResults());
+        assertEquals(5, result2.results().size());
+        assertEquals("order10", result2.results().get(0).getOrderId());
     }
 
 

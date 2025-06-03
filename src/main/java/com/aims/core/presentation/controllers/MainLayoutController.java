@@ -1,4 +1,10 @@
-package com.aims.core.presentation.controllers; // Hoặc package controller của bạn
+package com.aims.core.presentation.controllers;
+
+import com.aims.core.application.services.IAuthenticationService; // For logout
+import com.aims.core.entities.UserAccount; // To store current user
+import com.aims.core.presentation.utils.FXMLSceneManager; // Your scene management utility
+import com.aims.core.shared.ServiceFactory;
+// import com.aims.shared.constants.FXMLPaths; // Your FXML paths constants
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -6,153 +12,290 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.BorderPane;
-// import com.aims.presentation.utils.FXMLSceneManager; // Giả sử bạn có lớp này
-// import com.aims.core.application.services.IAuthenticationService;
-// import com.aims.core.entities.UserAccount; // Để quản lý trạng thái đăng nhập
+import javafx.stage.Stage; // To close the application
 
 import java.io.IOException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class MainLayoutController { // Có thể kế thừa từ BaseScreenController nếu bạn có
+public class MainLayoutController { // This could be your BaseScreenController or a specific controller for the main layout
 
     @FXML
     private BorderPane mainBorderPane;
 
     @FXML
-    private BorderPane contentPane;
-
-    @FXML
-    private MenuBar menuBar;
+    private BorderPane contentPane; // This is where sub-screens will be loaded
 
     @FXML
     private Menu adminMenu;
 
     @FXML
-    private Menu pmMenu;
+    private Menu pmMenu; // Product Manager Menu
 
     @FXML
-    private Label headerTitle;
+    private MenuItem loginMenuItem;
 
     @FXML
-    private Label footerLabel;
+    private MenuItem logoutMenuItem;
 
-    // --- Service Dependencies (cần được inject) ---
-    // @Inject // Ví dụ
-    // private IAuthenticationService authService;
-    // private FXMLSceneManager sceneManager;
+    @FXML
+    private Label headerTitle; // Optional: For displaying current screen title
 
-    // private UserAccount currentUser; // Để lưu trạng thái người dùng đăng nhập
+    @FXML
+    private Label footerLabel; // Optional: For status messages
 
-    public void initialize() {
-        // sceneManager = FXMLSceneManager.getInstance(); // Khởi tạo scene manager
-        // Cập nhật trạng thái menu dựa trên người dùng đăng nhập (currentUser)
-        updateMenuVisibility();
-        navigateToHome(null); // Load màn hình home mặc định
+    // --- Service Dependencies (to be injected) ---
+    private IAuthenticationService authenticationService;
+    private FXMLSceneManager sceneManager; // Your utility for loading FXML
+    private ServiceFactory serviceFactory; // For dependency injection
+
+    private UserAccount currentUser;
+    private String currentSessionId; // If you manage sessions with IDs
+
+    public MainLayoutController() {
+        // Initialize services via DI in a real app
+        // For example:
+        // this.authenticationService = ServiceFactory.getAuthenticationService();
+        // this.sceneManager = FXMLSceneManager.getInstance(this); // Pass this controller to scene manager if needed
     }
 
-    private void loadContent(String fxmlPath) {
-        try {
-            // Parent newContent = sceneManager.loadFXML(fxmlPath); // Hoặc dùng FXMLLoader trực tiếp
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent newContent = loader.load();
-            contentPane.setCenter(newContent);
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Hiển thị lỗi cho người dùng (ví dụ: dùng AlertHelper)
-            System.err.println("Error loading FXML: " + fxmlPath);
+    public void initialize() {
+        // Set initial state
+        updateUserSpecificMenus();
+        navigateToHome(); // Load the home screen by default
+        setHeaderTitle("AIMS Home");
+    }
+
+    /**
+     * Injects the FXMLSceneManager.
+     * @param sceneManager The scene manager utility.
+     */
+    public void setSceneManager(FXMLSceneManager sceneManager) {
+        this.sceneManager = sceneManager;
+    }
+
+    /**
+     * Injects the ServiceFactory.
+     * @param serviceFactory The service factory for dependency injection.
+     */
+    public void setServiceFactory(ServiceFactory serviceFactory) {
+        this.serviceFactory = serviceFactory;
+    }
+
+    /**
+     * Injects the AuthenticationService.
+     * @param authenticationService The authentication service.
+     */
+    public void setAuthenticationService(IAuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
+
+
+    /**
+     * Sets the currently logged-in user and updates the UI accordingly.
+     * This method would be called by the LoginScreenController after a successful login.
+     * @param user The authenticated user account.
+     * @param sessionId The session identifier, if applicable.
+     */
+    public void setCurrentUser(UserAccount user, String sessionId) {
+        this.currentUser = user;
+        this.currentSessionId = sessionId;
+        updateUserSpecificMenus();
+        if (user != null) {
+            // Navigate to appropriate dashboard based on role
+            Set<String> roleIds = user.getRoleAssignments().stream()
+                                    .map(ura -> ura.getRole().getRoleId()) // Assuming UserRoleAssignment has getRole() -> Role -> getRoleId()
+                                    .collect(Collectors.toSet());
+            if (roleIds.contains("ADMIN")) {
+                navigateToAdminDashboard();
+            } else if (roleIds.contains("PRODUCT_MANAGER")) {
+                navigateToProductManagerDashboard();
+            } else {
+                navigateToHome(); // Fallback or regular user dashboard if exists
+            }
+            setFooterStatus("Logged in as: " + user.getUsername());
+        } else {
+            navigateToHome(); // If user is null (logout)
+            setFooterStatus("Not logged in.");
         }
     }
 
-    private void updateMenuVisibility() {
-        // if (currentUser != null) {
-        //     boolean isAdmin = currentUser.getRoles().stream().anyMatch(role -> role.getRoleId().equals("ADMIN"));
-        //     boolean isPm = currentUser.getRoles().stream().anyMatch(role -> role.getRoleId().equals("PRODUCT_MANAGER"));
-        //     adminMenu.setVisible(isAdmin);
-        //     pmMenu.setVisible(isPm || isAdmin); // Admin có thể thấy cả menu PM
-        // } else {
-        //     adminMenu.setVisible(false);
-        //     pmMenu.setVisible(false);
-        // }
-        // Tạm thời để test
-        adminMenu.setVisible(true);
-        pmMenu.setVisible(true);
+    public UserAccount getCurrentUser() {
+        return currentUser;
     }
+
+    public String getCurrentSessionId() {
+        return currentSessionId;
+    }
+
+
+    private void updateUserSpecificMenus() {
+        if (currentUser != null) {
+            loginMenuItem.setVisible(false);
+            logoutMenuItem.setVisible(true);
+
+            // Assuming UserAccount entity has a way to get roles (e.g., through UserRoleAssignment)
+            // This part needs to be adapted to how you retrieve roles for a UserAccount.
+            // For demonstration, assuming a method like currentUser.getRoles() returning Set<Role>
+            Set<String> roleIds = currentUser.getRoleAssignments().stream()
+                                       .map(ura -> ura.getRole().getRoleId())
+                                       .collect(Collectors.toSet());
+
+            adminMenu.setVisible(roleIds.contains("ADMIN")); // Assuming "ADMIN" is the roleId for Admin
+
+            pmMenu.setVisible(roleIds.contains("PRODUCT_MANAGER") || roleIds.contains("ADMIN")); // Admin can also see PM menu
+
+        } else {
+            loginMenuItem.setVisible(true);
+            logoutMenuItem.setVisible(false);
+            adminMenu.setVisible(false);
+            pmMenu.setVisible(false);
+        }
+    }
+
+    public void loadContent(String fxmlPath) {
+        if (sceneManager != null) {
+            // Use FXMLSceneManager for proper dependency injection
+            Object controller = sceneManager.loadFXMLIntoPane(contentPane, fxmlPath);
+            System.out.println("Content loaded successfully: " + fxmlPath + 
+                             (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
+        } else {
+            // Fallback to direct FXMLLoader usage if sceneManager is not set up
+            System.out.println("Attempting to load content: " + fxmlPath + " (Using direct FXMLLoader - SceneManager not available)");
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+                Parent newContent = loader.load();
+                Object childController = loader.getController();
+                
+                // Pass this MainLayoutController to child controllers if they need it
+                if (childController instanceof IChildController) {
+                    ((IChildController) childController).setMainLayoutController(this);
+                }
+                
+                // Manual service injection for known controllers
+                if (serviceFactory != null) {
+                    if (childController instanceof HomeScreenController) {
+                        HomeScreenController homeController = (HomeScreenController) childController;
+                        homeController.setProductService(serviceFactory.getProductService());
+                        homeController.setCartService(serviceFactory.getCartService());
+                    }
+                    else if (childController instanceof CartScreenController) {
+                        CartScreenController cartController = (CartScreenController) childController;
+                        cartController.setCartService(serviceFactory.getCartService());
+                    }
+                    // Add more controllers as needed
+                }
+
+                contentPane.setCenter(newContent);
+            } catch (IOException e) {
+                e.printStackTrace();
+                setFooterStatus("Error loading page: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1));
+            }
+        }
+    }
+
 
     @FXML
     void handleLoginAction(ActionEvent event) {
-        System.out.println("Login action triggered");
-        // loadContent(FXMLSceneManager.LOGIN_SCREEN); // Sử dụng FXMLPaths của bạn
+        // loadContent(FXMLPaths.LOGIN_SCREEN); // Use your FXML path constants
         loadContent("/com/aims/presentation/views/login_screen.fxml");
+        setHeaderTitle("User Login");
     }
 
     @FXML
     void handleLogoutAction(ActionEvent event) {
-        System.out.println("Logout action triggered");
-        // currentUser = null;
-        // authService.logout(sessionId_or_currentUser.getUserId());
-        updateMenuVisibility();
-        navigateToHome(null); // Quay về trang chủ
-        // Hiển thị thông báo đăng xuất thành công
+        if (authenticationService != null && currentSessionId != null) {
+            authenticationService.logout(currentSessionId);
+        }
+        setCurrentUser(null, null); // Clear current user and update UI
+        // AlertHelper.showInfoAlert("Logout", "You have been successfully logged out.");
+        setFooterStatus("Successfully logged out.");
     }
 
     @FXML
     void handleExitAction(ActionEvent event) {
-        System.out.println("Exit action triggered");
-        System.exit(0);
+        Stage stage = (Stage) mainBorderPane.getScene().getWindow();
+        // Optional: Show confirmation dialog before exiting
+        // boolean confirmed = AlertHelper.showConfirmationDialog("Exit Application", "Are you sure you want to exit AIMS?");
+        // if (confirmed) {
+        //     stage.close();
+        // }
+        stage.close();
     }
 
     @FXML
-    void navigateToHome(ActionEvent event) {
-        System.out.println("Navigate to Home triggered");
-        // loadContent(FXMLSceneManager.HOME_SCREEN);
+    void navigateToHome() { // Made public to be callable from initialize or other controllers
+        // loadContent(FXMLPaths.HOME_SCREEN);
         loadContent("/com/aims/presentation/views/home_screen.fxml");
+        setHeaderTitle("AIMS Home");
     }
 
     @FXML
     void navigateToCart(ActionEvent event) {
-        System.out.println("Navigate to Cart triggered");
-        // loadContent(FXMLSceneManager.CART_SCREEN);
+        // loadContent(FXMLPaths.CART_SCREEN);
         loadContent("/com/aims/presentation/views/cart_screen.fxml");
+        setHeaderTitle("Shopping Cart");
     }
 
     @FXML
     void navigateToUserManagement(ActionEvent event) {
-        System.out.println("Navigate to User Management triggered");
-        // loadContent(FXMLSceneManager.ADMIN_USER_MANAGEMENT_SCREEN);
+        // loadContent(FXMLPaths.ADMIN_USER_MANAGEMENT_SCREEN);
         loadContent("/com/aims/presentation/views/admin_user_management_screen.fxml");
+        setHeaderTitle("User Management");
     }
 
     @FXML
     void navigateToAdminProductList(ActionEvent event) {
-        System.out.println("Navigate to Admin Product List triggered");
-        // loadContent(FXMLSceneManager.ADMIN_PRODUCT_LIST_SCREEN);
-         loadContent("/com/aims/presentation/views/admin_product_list_screen.fxml");
+        // loadContent(FXMLPaths.ADMIN_PRODUCT_LIST_SCREEN);
+        loadContent("/com/aims/presentation/views/admin_product_list_screen.fxml");
+        setHeaderTitle("Product Management (Admin)");
     }
 
     @FXML
+    void navigateToProductManagerDashboard() {
+        // loadContent(FXMLPaths.PM_DASHBOARD_SCREEN);
+        loadContent("/com/aims/presentation/views/pm_dashboard_screen.fxml");
+        setHeaderTitle("Product Manager Dashboard");
+    }
+    
+    @FXML
+    void navigateToAdminDashboard() {
+        // loadContent(FXMLPaths.ADMIN_DASHBOARD_SCREEN);
+        loadContent("/com/aims/presentation/views/admin_dashboard_screen.fxml");
+        setHeaderTitle("Administrator Dashboard");
+    }
+
+
+    @FXML
     void navigateToPmProductList(ActionEvent event) {
-        System.out.println("Navigate to PM Product List triggered");
-        // loadContent(FXMLSceneManager.PM_PRODUCT_LIST_SCREEN); // Hoặc dùng chung admin_product_list
-         loadContent("/com/aims/presentation/views/admin_product_list_screen.fxml");
+        // loadContent(FXMLPaths.PM_PRODUCT_LIST_SCREEN); // Or use admin product list screen
+        loadContent("/com/aims/presentation/views/admin_product_list_screen.fxml"); // Assuming PM uses the same for now
+        setHeaderTitle("Product Management");
     }
 
     @FXML
     void navigateToPmPendingOrders(ActionEvent event) {
-        System.out.println("Navigate to PM Pending Orders triggered");
-        // loadContent(FXMLSceneManager.PM_PENDING_ORDERS_SCREEN);
-         loadContent("/com/aims/presentation/views/pm_pending_orders_list_screen.fxml");
+        // loadContent(FXMLPaths.PM_PENDING_ORDERS_LIST_SCREEN);
+        loadContent("/com/aims/presentation/views/pm_pending_orders_list_screen.fxml");
+        setHeaderTitle("Pending Orders Review");
     }
 
-    // Phương thức để các controller con có thể thay đổi contentPane
-    public BorderPane getContentPane() {
-        return contentPane;
-    }
-
-    // Phương thức để cập nhật header title (ví dụ khi chuyển màn hình)
     public void setHeaderTitle(String title) {
         if (headerTitle != null) {
             headerTitle.setText(title);
         }
+    }
+
+    public void setFooterStatus(String status) {
+        if (footerLabel != null) {
+            footerLabel.setText(status);
+        }
+    }
+
+    // Interface for child controllers to get a reference to this MainLayoutController
+    public interface IChildController {
+        void setMainLayoutController(MainLayoutController mainLayoutController);
     }
 }

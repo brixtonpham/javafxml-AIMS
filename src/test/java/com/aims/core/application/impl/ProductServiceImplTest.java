@@ -259,11 +259,11 @@ class ProductServiceImplTest {
         SearchResult<Product> result = productService.getProductsForDisplay(1, 10);
 
         assertNotNull(result);
-        assertEquals(2, result.getTotalCount());
-        assertEquals(2, result.getResults().size());
+        assertEquals(2, result.totalResults());
+        assertEquals(2, result.results().size());
         // Check VAT application (10%)
-        assertEquals(100.0f * 1.1f, result.getResults().get(0).getPrice(), 0.01f);
-        assertEquals(50.0f * 1.1f, result.getResults().get(1).getPrice(), 0.01f);
+        assertEquals(100.0f * 1.1f, result.results().get(0).getPrice(), 0.01f);
+        assertEquals(50.0f * 1.1f, result.results().get(1).getPrice(), 0.01f);
     }
 
     @Test
@@ -286,15 +286,15 @@ class ProductServiceImplTest {
         SearchResult<Product> result = productService.searchProducts("Alpha", "Book", 1, 10, "ASC");
 
         assertNotNull(result);
-        assertEquals(2, result.getTotalCount()); // Both "Alpha Book Search" and "Another Alpha Book"
-        assertEquals(2, result.getResults().size());
+        assertEquals(2, result.totalResults()); // Both "Alpha Book Search" and "Another Alpha Book"
+        assertEquals(2, result.results().size());
 
         // Check VAT and Sorting (sampleBook price 100, other book 120)
         // Prices with VAT: 110, 132
-        assertEquals(100.0f * 1.1f, result.getResults().get(0).getPrice(), 0.01f); // sampleBook first due to ASC sort
-        assertEquals(120.0f * 1.1f, result.getResults().get(1).getPrice(), 0.01f);
-        assertTrue(result.getResults().get(0).getTitle().contains("Alpha"));
-        assertTrue(result.getResults().get(1).getTitle().contains("Alpha"));
+        assertEquals(100.0f * 1.1f, result.results().get(0).getPrice(), 0.01f); // sampleBook first due to ASC sort
+        assertEquals(120.0f * 1.1f, result.results().get(1).getPrice(), 0.01f);
+        assertTrue(result.results().get(0).getTitle().contains("Alpha"));
+        assertTrue(result.results().get(1).getTitle().contains("Alpha"));
     }
 
     @Test

@@ -1,10 +1,10 @@
-package com.aims.presentation.controllers;
+package com.aims.core.presentation.controllers;
 
 import com.aims.core.entities.Product;
 import com.aims.core.application.services.ICartService;
-// import com.aims.presentation.utils.FXMLSceneManager;
 // import com.aims.presentation.utils.AlertHelper;
-
+// import com.aims.presentation.utils.FXMLSceneManager; // For navigation
+// import com.aims.MainLayoutController; // To navigate
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -15,111 +15,195 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 
-import java.sql.SQLException; // For cartService exceptions
+import java.sql.SQLException; // From ICartService
+import com.aims.core.shared.exceptions.ValidationException;
+import com.aims.core.shared.exceptions.ResourceNotFoundException;
+import com.aims.core.shared.exceptions.InventoryException;
+
 
 public class ProductCardController {
 
     @FXML
     private VBox productCardVBox;
-
     @FXML
     private ImageView productImageView;
-
     @FXML
     private Label productTitleLabel;
-
     @FXML
     private Label productPriceLabel;
-
     @FXML
     private Label productAvailabilityLabel;
-
     @FXML
     private Button addToCartButton;
 
     private Product product;
-    // @Inject
-    private ICartService cartService; // Sẽ được inject hoặc set từ HomeScreenController
+    private ICartService cartService; // Sẽ được inject hoặc set từ controller cha (HomeScreenController)
+    private MainLayoutController mainLayoutController; // Để điều hướng khi click vào card
     // private FXMLSceneManager sceneManager;
-    // private MainLayoutController mainLayoutController;
+
+    // Biến để tham chiếu đến controller cha nếu cần gọi lại (ví dụ: refresh home screen sau khi thêm vào giỏ)
+    private HomeScreenController homeScreenController;
+
 
     public ProductCardController() {
-         // Ví dụ khởi tạo service (Trong thực tế nên dùng DI)
-        // cartService = new CartServiceImpl(...);
+        // Constructor - services will be injected or set
     }
 
-    // public void setCartService(ICartService cartService) {
-    //     this.cartService = cartService;
-    // }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    /**
+     * Setter cho CartService, được gọi bởi controller cha (HomeScreenController).
+     */
+    public void setCartService(ICartService cartService) {
+        this.cartService = cartService;
+    }
 
+    /**
+     * Setter cho MainLayoutController, được gọi bởi controller cha.
+     */
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+    }
 
+    /**
+     * Setter cho HomeScreenController, để có thể gọi lại các phương thức của nó nếu cần.
+     */
+    public void setHomeScreenController(HomeScreenController homeScreenController) {
+        this.homeScreenController = homeScreenController;
+    }
+
+    /**
+     * Điền dữ liệu sản phẩm vào card.
+     * @param product Đối tượng Product (đã bao gồm giá có VAT nếu hiển thị cho khách hàng).
+     */
     public void setData(Product product) {
         this.product = product;
+        if (product == null) {
+            // Xử lý trường hợp product là null, ví dụ ẩn card hoặc hiển thị placeholder
+            productCardVBox.setVisible(false);
+            productCardVBox.setManaged(false);
+            return;
+        }
+        productCardVBox.setVisible(true);
+        productCardVBox.setManaged(true);
+
         productTitleLabel.setText(product.getTitle());
-        // Giá này đã bao gồm VAT từ ProductService.getProductDetailsForCustomer()
+        // Giá hiển thị trên card nên là giá đã bao gồm VAT.
+        // ProductService.getProductsForDisplay() nên trả về sản phẩm với giá đã tính VAT.
         productPriceLabel.setText(String.format("%,.0f VND", product.getPrice()));
         productAvailabilityLabel.setText("Available: " + product.getQuantityInStock());
-        addToCartButton.setDisable(product.getQuantityInStock() <= 0);
 
-        try {
-            if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
-                // Giả sử getImageUrl trả về URL hợp lệ hoặc đường dẫn file
-                 // Image image = new Image(getClass().getResourceAsStream(product.getImageUrl())); // Nếu là resource
+        updateAddToCartButtonState();
+
+        // Load image
+        if (product.getImageUrl() != null && !product.getImageUrl().trim().isEmpty()) {
+            try {
+                // Giả sử getImageUrl() trả về một URL hợp lệ hoặc đường dẫn file resource
+                // Nếu là URL từ web: new Image(product.getImageUrl(), true) // true for background loading
+                // Nếu là resource trong project: new Image(getClass().getResourceAsStream(product.getImageUrl()))
                 Image image = new Image(product.getImageUrl(), true); // true for background loading
                 productImageView.setImage(image);
-            } else {
-                // Load placeholder image
-                // Image placeholder = new Image(getClass().getResourceAsStream("/assets/images/product_placeholder.png"));
-                // productImageView.setImage(placeholder);
+            } catch (Exception e) {
+                System.err.println("Error loading image for product card (" + product.getTitle() + "): " + product.getImageUrl() + " - " + e.getMessage());
+                loadPlaceholderImage();
             }
-        } catch (Exception e) {
-            System.err.println("Error loading product image: " + product.getImageUrl() + " - " + e.getMessage());
-            // Load placeholder image on error
+        } else {
+            loadPlaceholderImage();
+        }
+    }
+
+    private void loadPlaceholderImage() {
+        try {
             // Image placeholder = new Image(getClass().getResourceAsStream("/assets/images/product_placeholder.png"));
             // productImageView.setImage(placeholder);
+            // System.out.println("Loaded placeholder image for product card.");
+        } catch (Exception e) {
+            System.err.println("Error loading placeholder image: " + e.getMessage());
+        }
+    }
+
+    private void updateAddToCartButtonState() {
+        if (product.getQuantityInStock() <= 0) {
+            addToCartButton.setText("Out of Stock");
+            addToCartButton.setDisable(true);
+            productAvailabilityLabel.setText("Out of Stock");
+            productAvailabilityLabel.setStyle("-fx-text-fill: red;");
+        } else {
+            addToCartButton.setText("Add to Cart");
+            addToCartButton.setDisable(false);
+            productAvailabilityLabel.setText("Available: " + product.getQuantityInStock());
+            productAvailabilityLabel.setStyle(""); // Reset style
         }
     }
 
     @FXML
     void handleAddToCartAction(ActionEvent event) {
         if (product == null) return;
-        System.out.println("Add to cart clicked for: " + product.getTitle());
+        System.out.println("Add to cart clicked for (Card): " + product.getTitle());
+
         if (cartService == null) {
-             System.err.println("CartService not available in ProductCardController.");
-             // AlertHelper.showErrorAlert("Error", "Could not add to cart. Service unavailable.");
-             return;
+            System.err.println("CartService not available in ProductCardController.");
+            // AlertHelper.showErrorAlert("Service Error", "Could not add to cart. Cart service is unavailable.");
+            return;
         }
 
         try {
-            // Giả sử có một cartSessionId đang hoạt động (cần cơ chế quản lý session ID này)
-            String currentCartSessionId = "guest_cart_session"; // TODO: Lấy session ID thực tế
-            cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1);
-            System.out.println(product.getTitle() + " added to cart.");
-            // AlertHelper.showInfoAlert("Success", product.getTitle() + " added to your cart!");
-            // Cập nhật số lượng hiển thị (nếu có) hoặc nút "Add to Cart"
-            product.setQuantityInStock(product.getQuantityInStock() - 1); // Cập nhật tạm thời trên UI
-            productAvailabilityLabel.setText("Available: " + product.getQuantityInStock());
-            addToCartButton.setDisable(product.getQuantityInStock() <= 0);
+            // TODO: Lấy cartSessionId thực tế từ một nguồn quản lý session chung
+            String currentCartSessionId = "guest_cart_session_id_placeholder"; // Placeholder
+            cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1); // Thêm 1 sản phẩm
+            // AlertHelper.showInfoAlert("Added to Cart", product.getTitle() + " has been added to your cart.");
+
+            // Cập nhật UI ngay lập tức (giả định thành công)
+            // Service nên trả về thông tin cập nhật nếu cần, hoặc HomeScreenController nên load lại
+            product.setQuantityInStock(product.getQuantityInStock() - 1); // Giảm tạm thời trên UI
+            setData(this.product); // Cập nhật lại card để thay đổi nút và số lượng
+
+            // Thông báo cho HomeScreenController để có thể cập nhật tổng giỏ hàng hoặc các thông tin khác nếu cần
+            if (homeScreenController != null) {
+                // homeScreenController.refreshCartSummary(); // Ví dụ
+            }
 
         } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
-            e.printStackTrace();
+            System.err.println("Failed to add product '" + product.getTitle() + "' to cart: " + e.getMessage());
             // AlertHelper.showErrorAlert("Add to Cart Failed", e.getMessage());
+            // Có thể cần load lại thông tin sản phẩm để đảm bảo stock chính xác nếu có lỗi
+             if(e instanceof InventoryException){
+                productAvailabilityLabel.setText("Out of Stock!");
+                productAvailabilityLabel.setStyle("-fx-text-fill: red;");
+                addToCartButton.setText("Out of Stock");
+                addToCartButton.setDisable(true);
+            }
         }
+        event.consume(); // Ngăn sự kiện click lan truyền lên VBox cha nếu không muốn
     }
 
     @FXML
     void handleViewProductDetails(MouseEvent event) {
+        // Chỉ xử lý nếu click không phải vào nút "Add to Cart" (nếu nút nằm trong VBox)
+        // Hoặc nếu muốn toàn bộ card là clickable để xem chi tiết
+        if (event.getTarget() == addToCartButton || (addToCartButton.getGraphic() != null && event.getTarget() == addToCartButton.getGraphic())) {
+            return; // Sự kiện đã được nút xử lý, không làm gì thêm
+        }
+
         if (product == null) return;
-        System.out.println("View details for: " + product.getTitle());
-        // if (sceneManager != null && mainLayoutController != null) {
-        //    ProductDetailScreenController detailController = (ProductDetailScreenController) sceneManager.loadFXMLIntoPane(
-        //            mainLayoutController.getContentPane(), FXMLSceneManager.PRODUCT_DETAIL_SCREEN
-        //    );
-        //    detailController.setProductId(product.getProductId());
-        //    detailController.setMainLayoutController(mainLayoutController);
-        //    mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
+        System.out.println("View details action for (Card): " + product.getTitle());
+
+        // if (mainLayoutController != null && FXMLSceneManager.getInstance() != null && product != null) {
+        //     try {
+        //         FXMLLoader loader = FXMLSceneManager.getInstance().getLoader(FXMLSceneManager.PRODUCT_DETAIL_SCREEN);
+        //         Parent productDetailNode = loader.load();
+        //         ProductDetailScreenController detailController = loader.getController();
+        //
+        //         detailController.setMainLayoutController(mainLayoutController);
+        //         detailController.setProductService(this.productService); // Assuming ProductCardController gets ProductService
+        //         detailController.setCartService(this.cartService);
+        //         detailController.setProductId(product.getProductId());
+        //
+        //         mainLayoutController.setContent(productDetailNode);
+        //         mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
+        //
+        //     } catch (IOException e) {
+        //         e.printStackTrace();
+        //         AlertHelper.showErrorAlert("Navigation Error", "Could not load product details screen.");
+        //     }
         // }
     }
 }

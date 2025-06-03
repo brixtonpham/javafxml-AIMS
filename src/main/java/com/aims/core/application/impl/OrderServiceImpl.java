@@ -361,17 +361,16 @@ public class OrderServiceImpl implements IOrderService {
         if (fromIndex >= totalResults && totalResults > 0) { // If fromIndex is out of bounds but there are results, return last page
              fromIndex = Math.max(0, totalResults - pageSize); // adjust to last page
         } else if (fromIndex >= totalResults && totalResults == 0) {
-             return new SearchResult<OrderEntity>(new ArrayList<>(), 0);
+             return new SearchResult<OrderEntity>(new ArrayList<>(), pageNumber, 0, 0);
         }
 
 
         int toIndex = Math.min(fromIndex + pageSize, totalResults);
         List<OrderEntity> pageResults = ordersByStatus.subList(fromIndex, toIndex);
-        // int totalPages = (int) Math.ceil((double) totalResults / pageSize); // This is not part of SearchResult constructor
-        // if (totalPages == 0 && totalResults > 0) totalPages = 1;
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
 
-
-        return new SearchResult<OrderEntity>(pageResults, totalResults);
+        return new SearchResult<OrderEntity>(pageResults, pageNumber, totalPages, totalResults);
     }
 
     @Override

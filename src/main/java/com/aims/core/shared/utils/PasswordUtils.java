@@ -1,62 +1,81 @@
 package com.aims.core.shared.utils;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.Base64;
 
+// WARNING: This is a basic hashing example.
+// For production, use a strong, well-vetted library like BCrypt or Argon2.
+// Spring Security's PasswordEncoder interface and implementations are excellent.
 public class PasswordUtils {
 
-    private static final int SALT_LENGTH = 16; // Salt length in bytes
+    private static final String HASH_ALGORITHM = "SHA-256"; // Consider SHA-512 for more strength
+    // For BCrypt or Argon2, you wouldn't manually manage salts like this.
+    // The library would handle salt generation and embedding it in the hash.
 
-    // Method to hash a password with a salt
-    public static String hashPassword(String password) {
+    private PasswordUtils() {}
+
+    /**
+     * Hashes a password using SHA-256.
+     * IMPORTANT: This basic example does NOT use salting, which is crucial for security.
+     * For a real application, use a library like BCrypt that handles salting automatically.
+     * @param plainPassword The password to hash.
+     * @return The hashed password as a hex string, or null if error.
+     */
+    public static String hashPassword(String plainPassword) {
+        if (plainPassword == null || plainPassword.isEmpty()) {
+            return null;
+        }
         try {
-            SecureRandom random = new SecureRandom();
-            byte[] salt = new byte[SALT_LENGTH];
-            random.nextBytes(salt);
-
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(salt);
-            byte[] hashedPassword = md.digest(password.getBytes());
-
-            // Combine salt and hashed password for storage
-            byte[] combined = new byte[salt.length + hashedPassword.length];
-            System.arraycopy(salt, 0, combined, 0, salt.length);
-            System.arraycopy(hashedPassword, 0, combined, salt.length, hashedPassword.length);
-
-            return Base64.getEncoder().encodeToString(combined);
+            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
+            byte[] encodedhash = digest.digest(plainPassword.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(encodedhash);
         } catch (NoSuchAlgorithmException e) {
-            // Handle the exception (e.g., log it, throw a custom exception)
-            throw new RuntimeException("Error hashing password: Algorithm not found", e);
+            System.err.println("Error hashing password: Algorithm not found - " + HASH_ALGORITHM);
+            e.printStackTrace(); // Log this critical error
+            return null; // Or throw a runtime exception
         }
     }
 
-    // Method to verify a password against a stored hash
-    public static boolean verifyPassword(String password, String storedHash) {
-        try {
-            byte[] combined = Base64.getDecoder().decode(storedHash);
-
-            // Extract salt and hashed password
-            byte[] salt = new byte[SALT_LENGTH];
-            System.arraycopy(combined, 0, salt, 0, SALT_LENGTH);
-
-            byte[] hashedPasswordFromStorage = new byte[combined.length - SALT_LENGTH];
-            System.arraycopy(combined, SALT_LENGTH, hashedPasswordFromStorage, 0, hashedPasswordFromStorage.length);
-
-            // Hash the input password with the extracted salt
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(salt);
-            byte[] hashedPasswordAttempt = md.digest(password.getBytes());
-
-            // Compare the hashes
-            return MessageDigest.isEqual(hashedPasswordFromStorage, hashedPasswordAttempt);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error verifying password: Algorithm not found", e);
-        } catch (IllegalArgumentException e) {
-            // Handle invalid Base64 string
-            System.err.println("Invalid stored hash format: " + e.getMessage());
+    /**
+     * Verifies a plain password against a stored hashed password.
+     * IMPORTANT: This assumes the storedHash was created using the same basic (unsalted) method.
+     * @param plainPassword The plain password to verify.
+     * @param storedHash The stored hashed password.
+     * @return true if the passwords match, false otherwise.
+     */
+    public static boolean verifyPassword(String plainPassword, String storedHash) {
+        if (plainPassword == null || storedHash == null) {
             return false;
         }
+        String hashedAttempt = hashPassword(plainPassword);
+        return storedHash.equals(hashedAttempt);
     }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    // Example of how to use a better library like BCrypt (if you add the dependency)
+    // import org.mindrot.jbcrypt.BCrypt;
+    // public static String hashPasswordWithBCrypt(String plainPassword) {
+    //     return BCrypt.hashpw(plainPassword, BCrypt.gensalt());
+    // }
+    // public static boolean verifyPasswordWithBCrypt(String plainPassword, String hashedPassword) {
+    //     try {
+    //         return BCrypt.checkpw(plainPassword, hashedPassword);
+    //     } catch (IllegalArgumentException e) {
+    //          // Handle cases where hashedPassword is not a valid BCrypt hash
+    //          System.err.println("Invalid BCrypt hash format: " + e.getMessage());
+    //          return false;
+    //     }
+    // }
 }
