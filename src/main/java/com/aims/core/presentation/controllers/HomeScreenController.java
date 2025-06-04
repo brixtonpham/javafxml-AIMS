@@ -22,6 +22,10 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List; // For example category list
@@ -123,61 +127,89 @@ public class HomeScreenController implements MainLayoutController.IChildControll
     }
 
     private void loadProducts() {
-        // if (productService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Product service is unavailable.");
-        //     productFlowPane.getChildren().clear();
-        //     productFlowPane.getChildren().add(new Label("Error: Could not load products. Service not available."));
-        //     updatePaginationControls(0, 0, 0);
-        //     return;
-        // }
-
-        // try {
-        //     SearchResult<Product> searchResult;
-        //     // If searchTerm is empty and category is null, call getProductsForDisplay
-        //     // Otherwise, call searchProducts
-        //     if ((currentSearchTerm == null || currentSearchTerm.isEmpty()) && currentCategoryFilter == null) {
-        //         searchResult = productService.getProductsForDisplay(currentPage, PAGE_SIZE);
-        //     } else {
-        //         searchResult = productService.searchProducts(currentSearchTerm, currentCategoryFilter, currentPage, PAGE_SIZE, currentSortBy);
-        //     }
-        //
-        //     totalPages = searchResult.totalPages();
-        //     List<Product> products = searchResult.results(); // Products should have VAT-inclusive prices
-        //
-        //     productFlowPane.getChildren().clear();
-        //     if (products.isEmpty() && currentPage == 1) {
-        //          productFlowPane.getChildren().add(new Label("No products found matching your criteria."));
-        //     } else {
-        //         for (Product product : products) {
-        //             try {
-        //                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
-        //                 Parent productCardNode = loader.load();
-        //                 ProductCardController cardController = loader.getController();
-        //
-        //                 // Inject dependencies into ProductCardController
-        //                 cardController.setCartService(this.cartService);
-        //                 cardController.setMainLayoutController(this.mainLayoutController);
-        //                 cardController.setHomeScreenController(this); // Pass this controller
-        //
-        //                 cardController.setData(product);
-        //                 productFlowPane.getChildren().add(productCardNode);
-        //             } catch (IOException e) {
-        //                 e.printStackTrace();
-        //                 System.err.println("Error loading product card: " + e.getMessage());
-        //             }
-        //         }
-        //     }
-        //     updatePaginationControls(searchResult.currentPage(), searchResult.totalPages(), searchResult.totalResults());
-        //
-        // } catch (SQLException e) {
-        //     e.printStackTrace();
-        //     // AlertHelper.showErrorAlert("Load Error", "Could not load products: " + e.getMessage());
-        //     productFlowPane.getChildren().clear();
-        //     productFlowPane.getChildren().add(new Label("Error loading products. Please try again."));
-        // }
-        System.out.println("loadProducts called - Implement with actual service call. Term: " + currentSearchTerm + ", Cat: " + currentCategoryFilter + ", Sort: " + currentSortBy + ", Page: " + currentPage);
-        // Dummy update
-        // updatePaginationControls(1,1, 0);
+        System.out.println("Loading products from database...");
+        
+        productFlowPane.getChildren().clear();
+        
+        try {
+            List<Product> products = loadProductsFromDatabase();
+            
+            if (products.isEmpty()) {
+                productFlowPane.getChildren().add(new Label("No products found."));
+                updatePaginationControls(0, 0, 0);
+                return;
+            }
+            
+            // Apply pagination
+            int start = (currentPage - 1) * PAGE_SIZE;
+            int end = Math.min(start + PAGE_SIZE, products.size());
+            List<Product> pageProducts = products.subList(start, end);
+            
+            // Calculate total pages
+            totalPages = (int) Math.ceil((double) products.size() / PAGE_SIZE);
+            
+            for (Product product : pageProducts) {
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
+                    Parent productCardNode = loader.load();
+                    ProductCardController cardController = loader.getController();
+                    
+                    // Set data for the product card
+                    cardController.setData(product);
+                    productFlowPane.getChildren().add(productCardNode);
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.err.println("Error loading product card: " + e.getMessage());
+                }
+            }
+            
+            updatePaginationControls(currentPage, totalPages, products.size());
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            productFlowPane.getChildren().add(new Label("Error loading products: " + e.getMessage()));
+            updatePaginationControls(0, 0, 0);
+        }
+    }
+    
+    private List<Product> loadProductsFromDatabase() throws SQLException {
+        List<Product> products = new ArrayList<>();
+        String dbPath = "src/main/resources/aims_database.db";
+        
+        String sql = "SELECT productID, title, category, price, quantityInStock, description, imageURL, productType " +
+                    "FROM PRODUCT " +
+                    "ORDER BY title";
+        
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Product product = new Product();
+                product.setProductId(rs.getString("productID"));
+                product.setTitle(rs.getString("title"));
+                product.setCategory(rs.getString("category"));
+                product.setPrice(rs.getFloat("price") * 1.1f); // Add 10% VAT for display
+                product.setQuantityInStock(rs.getInt("quantityInStock"));
+                product.setDescription(rs.getString("description"));
+                product.setImageUrl(rs.getString("imageURL"));
+                
+                // Set product type
+                String typeStr = rs.getString("productType");
+                if (typeStr != null) {
+                    try {
+                        product.setProductType(com.aims.core.enums.ProductType.valueOf(typeStr));
+                    } catch (IllegalArgumentException e) {
+                        product.setProductType(com.aims.core.enums.ProductType.BOOK); // Default
+                    }
+                }
+                
+                products.add(product);
+            }
+        }
+        
+        return products;
     }
 
     private void updatePaginationControls(int current, int total, long totalItems) {
