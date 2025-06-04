@@ -7,10 +7,10 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox fx:id="contentContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" spacing="20.0" style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.VNPayReturnController">
+<VBox fx:id="contentContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" spacing="20.0"  xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.VNPayReturnController">
    <children>
       <!-- Header -->
-      <VBox alignment="CENTER" style="-fx-background-color: #2c3e50; -fx-padding: 20;">
+      <VBox alignment="CENTER" >
          <children>
             <Label text="AIMS - Payment Result" textFill="WHITE">
                <font>
@@ -21,7 +21,7 @@
       </VBox>
       
       <!-- Content Area -->
-      <VBox alignment="CENTER" spacing="15.0" style="-fx-padding: 30;">
+      <VBox alignment="CENTER" spacing="15.0" >
          <children>
             <!-- Status Label -->
             <Label fx:id="statusLabel" text="Processing payment result..." textAlignment="CENTER" wrapText="true">
@@ -31,7 +31,7 @@
             </Label>
             
             <!-- Transaction Details -->
-            <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: white; -fx-border-color: #ddd; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 20;">
+            <VBox alignment="CENTER" spacing="10.0" >
                <children>
                   <Label fx:id="orderIdLabel" text="Order ID: " textAlignment="CENTER">
                      <font>
@@ -67,12 +67,12 @@
                   <Insets top="20.0" />
                </VBox.margin>
                <children>
-                  <Button fx:id="continueButton" mnemonicParsing="false" onAction="#handleContinue" prefWidth="120.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;" text="Continue" visible="false">
+                  <Button fx:id="continueButton" mnemonicParsing="false" onAction="#handleContinue" prefWidth="120.0"  text="Continue" visible="false">
                      <font>
                         <Font size="14.0" />
                      </font>
                   </Button>
-                  <Button fx:id="retryButton" mnemonicParsing="false" onAction="#handleRetry" prefWidth="120.0" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;" text="Try Again" visible="false">
+                  <Button fx:id="retryButton" mnemonicParsing="false" onAction="#handleRetry" prefWidth="120.0"  text="Try Again" visible="false">
                      <font>
                         <Font size="14.0" />
                      </font>
@@ -83,7 +83,7 @@
       </VBox>
       
       <!-- Footer -->
-      <VBox alignment="CENTER" style="-fx-background-color: #34495e; -fx-padding: 15;">
+      <VBox alignment="CENTER" >
          <children>
             <Label text="Powered by VNPay - Vietnam's Leading Payment Gateway" textFill="#bdc3c7">
                <font>

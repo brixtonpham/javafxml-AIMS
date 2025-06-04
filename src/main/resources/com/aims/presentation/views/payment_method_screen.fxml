@@ -10,12 +10,12 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:id="paymentMethodPane" prefHeight="500.0" prefWidth="600.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentMethodScreenController">
+<BorderPane fx:id="paymentMethodPane" prefHeight="500.0" prefWidth="600.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentMethodScreenController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <Label text="Select Payment Method" styleClass="screen-title-large" BorderPane.alignment="CENTER">
+        <Label text="Select Payment Method"  BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="30.0" />
             </BorderPane.margin>
@@ -23,19 +23,19 @@
     </top>
     <center>
         <VBox spacing="15" alignment="CENTER_LEFT">
-            <Label text="Choose how you'd like to pay:" styleClass="section-title-medium"/>
+            <Label text="Choose how you'd like to pay:" />
             <ToggleGroup fx:id="paymentMethodToggleGroup">
                 <RadioButton fx:id="vnpayCreditCardRadio" text="Credit Card / Debit Card (via VNPay)" selected="true" userData="VNPAY_CREDIT_CARD"/>
                 </ToggleGroup>
-            <Label fx:id="selectedMethodDescriptionLabel" styleClass="description-text" wrapText="true"
+            <Label fx:id="selectedMethodDescriptionLabel"  wrapText="true"
                    text="You will be redirected to VNPay gateway to complete your payment securely."/>
         </VBox>
     </center>
     <bottom>
-        <HBox alignment="CENTER_RIGHT" spacing="15" styleClass="padding-10" BorderPane.alignment="CENTER">
-            <Label fx:id="errorMessageLabel" styleClass="error-message" wrapText="true" HBox.hgrow="ALWAYS"/>
-            <Button text="Back to Order Summary" onAction="#handleBackToOrderSummaryAction" styleClass="button-secondary"/>
-            <Button fx:id="proceedButton" text="Proceed with VNPay" onAction="#handleProceedAction" styleClass="button-primary" defaultButton="true"/>
+        <HBox alignment="CENTER_RIGHT" spacing="15"  BorderPane.alignment="CENTER">
+            <Label fx:id="errorMessageLabel"  wrapText="true" HBox.hgrow="ALWAYS"/>
+            <Button text="Back to Order Summary" onAction="#handleBackToOrderSummaryAction" />
+            <Button fx:id="proceedButton" text="Proceed with VNPay" onAction="#handleProceedAction"  defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>

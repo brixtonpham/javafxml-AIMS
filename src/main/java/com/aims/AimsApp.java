@@ -98,6 +98,10 @@ public class AimsApp extends Application {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(MIN_WINDOW_WIDTH);
             primaryStage.setMinHeight(MIN_WINDOW_HEIGHT);
+            
+            // Set to maximized (fullscreen-like) state
+            primaryStage.setMaximized(true);
+            
             primaryStage.setOnCloseRequest(event -> {
                 // Xử lý dọn dẹp tài nguyên nếu cần trước khi đóng ứng dụng
                 System.out.println("AIMS Application is closing...");

@@ -6,8 +6,9 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.Label?>
+<?import javafx.geometry.Insets?>
 
-<BorderPane fx:id="mainBorderPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="600.0" minWidth="1000.0" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
+<BorderPane fx:id="mainBorderPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="720.0" minWidth="1200.0" prefHeight="900.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
     <top>
         <VBox>
             <MenuBar fx:id="menuBar">
@@ -39,13 +40,21 @@
                     </Menu>
                 </menus>
             </MenuBar>
-            <Label fx:id="headerTitle" styleClass="header-title" text="AIMS - An Internet Media Store" alignment="CENTER" maxWidth="Infinity" VBox.vgrow="NEVER"/>
+            <Label fx:id="headerTitle" text="AIMS - An Internet Media Store" alignment="CENTER" maxWidth="Infinity" VBox.vgrow="NEVER">
+                <padding>
+                    <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+                </padding>
+            </Label>
         </VBox>
     </top>
     <center>
-        <BorderPane fx:id="contentPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="400.0" minWidth="600.0" />
+        <BorderPane fx:id="contentPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="600.0" minWidth="1000.0" BorderPane.alignment="CENTER" />
     </center>
     <bottom>
-        <Label fx:id="footerLabel" text="© 2025 AIMS Project" styleClass="footer" alignment="CENTER" maxWidth="Infinity"/>
+        <Label fx:id="footerLabel" text="© 2025 AIMS Project" alignment="CENTER" maxWidth="Infinity">
+            <padding>
+                <Insets bottom="5.0" left="15.0" right="15.0" top="5.0" />
+            </padding>
+        </Label>
     </bottom>
 </BorderPane>

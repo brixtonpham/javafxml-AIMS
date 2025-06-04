@@ -8,35 +8,41 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:id="pmDashboardPane" prefHeight="600.0" prefWidth="800.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.ProductManagerDashboardController">
+<BorderPane fx:id="pmDashboardPane" prefHeight="600.0" prefWidth="800.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.ProductManagerDashboardController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <VBox alignment="CENTER" spacing="5.0">
-            <Label text="Product Manager Dashboard" styleClass="screen-title-large" BorderPane.alignment="CENTER">
+        <VBox alignment="CENTER" spacing="15.0">
+            <padding>
+                <Insets bottom="20.0" left="15.0" right="15.0" top="15.0" />
+            </padding>
+            <Label text="Product Manager Dashboard" alignment="CENTER" maxWidth="Infinity">
                 <VBox.margin>
                     <Insets bottom="5.0" />
                 </VBox.margin>
             </Label>
-            <Label fx:id="welcomeLabel" text="Welcome, Product Manager!" styleClass="text-normal"/>
-            <BorderPane.margin>
-                <Insets bottom="20.0" />
-            </BorderPane.margin>
+            <Label fx:id="welcomeLabel" text="Welcome, Product Manager!" alignment="CENTER"/>
         </VBox>
     </top>
     <center>
-        <FlowPane fx:id="dashboardActionsPane" alignment="CENTER" hgap="20" vgap="20" styleClass="padding-20" prefWrapLength="600.0">
-            <Button fx:id="productManagementButton" text="Manage Products" onAction="#handleProductManagementAction" styleClass="dashboard-button" prefHeight="80.0" prefWidth="200.0"/>
-            <Button fx:id="pendingOrdersButton" text="Review Pending Orders" onAction="#handlePendingOrdersAction" styleClass="dashboard-button" prefHeight="80.0" prefWidth="200.0"/>
-            <Button fx:id="viewAllOrdersButton" text="View All Orders (Read-Only)" onAction="#handleViewAllOrdersAction" styleClass="dashboard-button" prefHeight="80.0" prefWidth="200.0"/>
-            <Button fx:id="inventoryReportsButton" text="Inventory Reports (Future)" styleClass="dashboard-button" disable="true" prefHeight="80.0" prefWidth="200.0"/>
-            <Button fx:id="changeOwnPasswordButton" text="Change My Password" onAction="#handleChangeOwnPasswordAction" styleClass="dashboard-button" prefHeight="80.0" prefWidth="200.0"/>
+        <FlowPane fx:id="dashboardActionsPane" alignment="CENTER" hgap="25.0" vgap="25.0" prefWrapLength="700.0">
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+            </padding>
+            <Button fx:id="productManagementButton" text="Manage Products" onAction="#handleProductManagementAction" prefHeight="80.0" prefWidth="200.0"/>
+            <Button fx:id="pendingOrdersButton" text="Review Pending Orders" onAction="#handlePendingOrdersAction" prefHeight="80.0" prefWidth="200.0"/>
+            <Button fx:id="viewAllOrdersButton" text="View All Orders (Read-Only)" onAction="#handleViewAllOrdersAction" prefHeight="80.0" prefWidth="200.0"/>
+            <Button fx:id="inventoryReportsButton" text="Inventory Reports (Future)" disable="true" prefHeight="80.0" prefWidth="200.0"/>
+            <Button fx:id="changeOwnPasswordButton" text="Change My Password" onAction="#handleChangeOwnPasswordAction" prefHeight="80.0" prefWidth="200.0"/>
         </FlowPane>
     </center>
     <bottom>
-        <HBox alignment="CENTER_RIGHT" styleClass="padding-10" BorderPane.alignment="CENTER_RIGHT">
-             <Button text="Logout" onAction="#handleLogoutAction" styleClass="button-secondary"/>
+        <HBox alignment="CENTER_RIGHT" maxWidth="Infinity">
+            <padding>
+                <Insets bottom="15.0" left="15.0" right="15.0" top="10.0" />
+            </padding>
+            <Button text="Logout" onAction="#handleLogoutAction" minWidth="100.0"/>
         </HBox>
     </bottom>
 </BorderPane>

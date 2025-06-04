@@ -5,20 +5,21 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.input.MouseEvent?> <VBox fx:id="productCardVBox" alignment="CENTER" spacing="8.0" styleClass="product-card"
-      minHeight="320.0" maxHeight="350.0" minWidth="250.0" maxWidth="280.0" prefWidth="260.0" prefHeight="330.0"
+<?import javafx.scene.input.MouseEvent?> <VBox fx:id="productCardVBox" alignment="CENTER" spacing="12.0" 
+      minHeight="350.0" maxHeight="380.0" minWidth="280.0" maxWidth="320.0" prefWidth="300.0" prefHeight="360.0"
       onMouseClicked="#handleViewProductDetails" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.aims.core.presentation.controllers.ProductCardController">
+      fx:controller="com.aims.core.presentation.controllers.ProductCardController"
+      style="-fx-border-color: #e0e0e0; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 4, 0, 0, 2);">
     <padding>
-        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
     </padding>
-    <ImageView fx:id="productImageView" fitHeight="160.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true" styleClass="product-image">
+    <ImageView fx:id="productImageView" fitHeight="180.0" fitWidth="140.0" pickOnBounds="true" preserveRatio="true">
         <VBox.margin>
-            <Insets bottom="8.0"/>
+            <Insets bottom="12.0"/>
         </VBox.margin>
     </ImageView>
-    <Label fx:id="productTitleLabel" styleClass="product-title" text="Product Title" wrapText="true" textAlignment="CENTER" minHeight="40.0" maxWidth="220.0"/>
-    <Label fx:id="productPriceLabel" styleClass="product-price" text="0 VND"/>
-    <Label fx:id="productAvailabilityLabel" styleClass="product-category" text="Available: 0"/>
-    <Button fx:id="addToCartButton" text="Add to Cart" onAction="#handleAddToCartAction" styleClass="button-primary" maxWidth="Infinity" minWidth="200.0"/>
+    <Label fx:id="productTitleLabel" text="Product Title" wrapText="true" textAlignment="CENTER" minHeight="45.0" maxWidth="250.0" alignment="CENTER" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+    <Label fx:id="productPriceLabel" text="0 VND" alignment="CENTER" style="-fx-font-size: 16px; -fx-text-fill: #e74c3c; -fx-font-weight: bold;"/>
+    <Label fx:id="productAvailabilityLabel" text="Available: 0" alignment="CENTER" style="-fx-font-size: 12px; -fx-text-fill: #7f8c8d;"/>
+    <Button fx:id="addToCartButton" text="Add to Cart" onAction="#handleAddToCartAction" maxWidth="Infinity" minWidth="220.0" VBox.vgrow="NEVER" style="-fx-font-size: 14px; -fx-background-color: #27ae60; -fx-text-fill: white; -fx-background-radius: 6;"/>
 </VBox>
