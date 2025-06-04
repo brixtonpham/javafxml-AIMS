@@ -53,6 +53,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
 
     private UserAccount currentUser;
     private String currentSessionId; // If you manage sessions with IDs
+    private Object currentController; // Store the currently loaded controller
 
     public MainLayoutController() {
         // Initialize services via DI in a real app
@@ -64,6 +65,20 @@ public class MainLayoutController { // This could be your BaseScreenController o
     public void initialize() {
         // Set initial state
         updateUserSpecificMenus();
+        
+        // Load CSS stylesheets for layout fixes
+        try {
+            String cssPath = "/com/aims/presentation/styles/layout-fix.css";
+            if (getClass().getResource(cssPath) != null) {
+                mainBorderPane.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
+                System.out.println("MainLayoutController: Layout fix CSS loaded successfully");
+            } else {
+                System.out.println("MainLayoutController: Layout fix CSS not found at: " + cssPath);
+            }
+        } catch (Exception e) {
+            System.err.println("MainLayoutController: Error loading CSS: " + e.getMessage());
+        }
+        
         // Don't load home screen here - will be loaded after dependencies are injected
         setHeaderTitle("AIMS Home");
     }
@@ -138,6 +153,14 @@ public class MainLayoutController { // This could be your BaseScreenController o
         return currentSessionId;
     }
 
+    /**
+     * Returns the currently loaded controller.
+     * @return The current controller object or null if none is loaded.
+     */
+    public Object getCurrentController() {
+        return currentController;
+    }
+
 
     private void updateUserSpecificMenus() {
         if (currentUser != null) {
@@ -163,7 +186,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
         }
     }
 
-    public void loadContent(String fxmlPath) {
+    public Object loadContent(String fxmlPath) {
         System.out.println("MainLayoutController: Loading content: " + fxmlPath);
         System.out.println("MainLayoutController: SceneManager available: " + (sceneManager != null));
         System.out.println("MainLayoutController: ServiceFactory available: " + (serviceFactory != null));
@@ -171,8 +194,10 @@ public class MainLayoutController { // This could be your BaseScreenController o
         if (sceneManager != null) {
             // Use FXMLSceneManager for proper dependency injection
             Object controller = sceneManager.loadFXMLIntoPane(contentPane, fxmlPath);
+            this.currentController = controller; // Store the loaded controller
             System.out.println("Content loaded successfully: " + fxmlPath + 
                              (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
+            return controller;
         } else {
             // Fallback to direct FXMLLoader usage if sceneManager is not set up
             System.out.println("Attempting to load content: " + fxmlPath + " (Using direct FXMLLoader - SceneManager not available)");
@@ -180,6 +205,16 @@ public class MainLayoutController { // This could be your BaseScreenController o
                 FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
                 Parent newContent = loader.load();
                 Object childController = loader.getController();
+                this.currentController = childController; // Store the loaded controller
+                
+                // Ensure content fills the entire contentPane
+                if (newContent instanceof javafx.scene.layout.Region) {
+                    javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) newContent;
+                    regionContent.setPrefWidth(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+                    regionContent.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+                    regionContent.setMaxWidth(Double.MAX_VALUE);
+                    regionContent.setMaxHeight(Double.MAX_VALUE);
+                }
                 
                 // Pass this MainLayoutController to child controllers if they need it
                 if (childController instanceof IChildController) {
@@ -187,23 +222,83 @@ public class MainLayoutController { // This could be your BaseScreenController o
                 }
                 
                 // Manual service injection for known controllers
+                System.out.println("MainLayoutController.loadContent: Starting fallback service injection for " + childController.getClass().getSimpleName());
                 if (serviceFactory != null) {
+                    System.out.println("MainLayoutController.loadContent: ServiceFactory is available for injection");
+                    
                     if (childController instanceof HomeScreenController) {
+                        System.out.println("MainLayoutController.loadContent: Fallback injection for HomeScreenController");
                         HomeScreenController homeController = (HomeScreenController) childController;
-                        homeController.setProductService(serviceFactory.getProductService());
-                        homeController.setCartService(serviceFactory.getCartService());
+                        try {
+                            homeController.setProductService(serviceFactory.getProductService());
+                            System.out.println("MainLayoutController.loadContent: ProductService injected into HomeScreenController (fallback)");
+                            
+                            homeController.setCartService(serviceFactory.getCartService());
+                            System.out.println("MainLayoutController.loadContent: CartService injected into HomeScreenController (fallback)");
+                            
+                            homeController.completeInitialization(); // Call after services are injected
+                            System.out.println("MainLayoutController.loadContent: HomeScreenController initialization completed (fallback)");
+                        } catch (Exception e) {
+                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for HomeScreenController: " + e.getMessage());
+                            e.printStackTrace();
+                        }
                     }
                     else if (childController instanceof CartScreenController) {
+                        System.out.println("MainLayoutController.loadContent: Fallback injection for CartScreenController");
                         CartScreenController cartController = (CartScreenController) childController;
-                        cartController.setCartService(serviceFactory.getCartService());
+                        try {
+                            cartController.setCartService(serviceFactory.getCartService());
+                            System.out.println("MainLayoutController.loadContent: CartService injected into CartScreenController (fallback)");
+                        } catch (Exception e) {
+                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for CartScreenController: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    else if (childController instanceof ProductDetailScreenController) {
+                        System.out.println("MainLayoutController.loadContent: Fallback injection for ProductDetailScreenController");
+                        ProductDetailScreenController detailController = (ProductDetailScreenController) childController;
+                        try {
+                            System.out.println("MainLayoutController.loadContent: About to inject ProductService into ProductDetailScreenController");
+                            detailController.setProductService(serviceFactory.getProductService());
+                            System.out.println("MainLayoutController.loadContent: ProductService injected into ProductDetailScreenController (fallback)");
+                            
+                            System.out.println("MainLayoutController.loadContent: About to inject CartService into ProductDetailScreenController");
+                            detailController.setCartService(serviceFactory.getCartService());
+                            System.out.println("MainLayoutController.loadContent: CartService injected into ProductDetailScreenController (fallback)");
+                            
+                            System.out.println("MainLayoutController.loadContent: About to inject MainLayoutController into ProductDetailScreenController");
+                            detailController.setMainLayoutController(this);
+                            System.out.println("MainLayoutController.loadContent: MainLayoutController injected into ProductDetailScreenController (fallback)");
+                            
+                            if (sceneManager != null) {
+                                System.out.println("MainLayoutController.loadContent: About to inject SceneManager into ProductDetailScreenController");
+                                detailController.setSceneManager(sceneManager);
+                                System.out.println("MainLayoutController.loadContent: SceneManager injected into ProductDetailScreenController (fallback)");
+                            } else {
+                                System.out.println("MainLayoutController.loadContent: SceneManager is null, cannot inject into ProductDetailScreenController");
+                            }
+                        } catch (Exception e) {
+                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for ProductDetailScreenController: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    else {
+                        System.out.println("MainLayoutController.loadContent: No fallback injection logic for " + childController.getClass().getSimpleName());
                     }
                     // Add more controllers as needed
+                } else {
+                    System.err.println("MainLayoutController.loadContent: ServiceFactory is null, cannot perform fallback service injection");
                 }
 
+                // Use setCenter and ensure proper alignment
                 contentPane.setCenter(newContent);
+                BorderPane.setAlignment(newContent, javafx.geometry.Pos.CENTER);
+                
+                return childController;
             } catch (IOException e) {
                 e.printStackTrace();
                 setFooterStatus("Error loading page: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1));
+                return null;
             }
         }
     }

@@ -1,0 +1,40 @@
+/* Layout Fix CSS - Ensures components fill available space */
+.root {
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+}
+
+.main-border-pane {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+}
+
+.content-pane {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+}
+
+.home-screen-pane {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+}
+
+.product-flow-pane {
+    -fx-alignment: center;
+    -fx-pref-width: 100%;
+}
+
+/* Ensure ScrollPane properly fills its container */
+.scroll-pane {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+}
+
+/* Ensure FlowPane stretches to full width */
+.flow-pane {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-alignment: center;
+}

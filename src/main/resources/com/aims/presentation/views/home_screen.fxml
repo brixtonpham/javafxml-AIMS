@@ -11,7 +11,17 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="homeScreenPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="600.0" minWidth="1000.0" prefHeight="800.0" prefWidth="1400.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.HomeScreenController">
+<BorderPane fx:id="homeScreenPane" 
+            styleClass="home-screen-pane"
+            maxHeight="Infinity" 
+            maxWidth="Infinity" 
+            minHeight="600.0" 
+            minWidth="1000.0" 
+            prefHeight="800.0" 
+            prefWidth="1400.0"
+            xmlns="http://javafx.com/javafx/17" 
+            xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.aims.core.presentation.controllers.HomeScreenController">
     <top>
         <VBox spacing="20.0" alignment="CENTER" maxWidth="Infinity">
             <padding>
@@ -34,8 +44,23 @@
         </VBox>
     </top>
     <center>
-        <ScrollPane fx:id="scrollPane" fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="Infinity" maxWidth="Infinity">
-            <FlowPane fx:id="productFlowPane" hgap="30.0" vgap="30.0" alignment="CENTER" maxWidth="Infinity" columnHalignment="CENTER">
+        <ScrollPane fx:id="scrollPane" 
+                    styleClass="scroll-pane"
+                    fitToWidth="true" 
+                    fitToHeight="true" 
+                    hbarPolicy="NEVER" 
+                    vbarPolicy="AS_NEEDED" 
+                    maxHeight="Infinity" 
+                    maxWidth="Infinity"
+                    BorderPane.alignment="CENTER">
+            <FlowPane fx:id="productFlowPane" 
+                      styleClass="flow-pane"
+                      hgap="30.0" 
+                      vgap="30.0" 
+                      alignment="CENTER" 
+                      maxWidth="Infinity" 
+                      columnHalignment="CENTER"
+                      prefWrapLength="Infinity">
                 <padding>
                     <Insets bottom="30.0" left="50.0" right="50.0" top="30.0" />
                 </padding>

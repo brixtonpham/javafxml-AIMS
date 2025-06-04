@@ -49,8 +49,8 @@ public class ProductDetailScreenController {
     private IProductService productService;
     // @Inject
     private ICartService cartService;
-    // private MainLayoutController mainLayoutController; // For navigation and setting header
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController; // For navigation and setting header
+    private com.aims.core.presentation.utils.FXMLSceneManager sceneManager;
 
     private Product currentProduct;
     private String productIdToLoad;
@@ -62,17 +62,50 @@ public class ProductDetailScreenController {
         // cartService = new CartServiceImpl(...);    // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setProductService(IProductService productService) { this.productService = productService; }
-    // public void setCartService(ICartService cartService) { this.cartService = cartService; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { 
+        this.mainLayoutController = mainLayoutController; 
+        System.out.println("ProductDetailScreenController.setMainLayoutController: MainLayoutController injected successfully");
+    }
+    
+    public void setSceneManager(com.aims.core.presentation.utils.FXMLSceneManager sceneManager) { 
+        this.sceneManager = sceneManager; 
+        System.out.println("ProductDetailScreenController.setSceneManager: SceneManager injected successfully");
+    }
+    
+    public void setProductService(IProductService productService) { 
+        this.productService = productService; 
+        System.out.println("ProductDetailScreenController.setProductService: ProductService injected successfully - Available: " + (productService != null));
+    }
+    
+    public void setCartService(ICartService cartService) { 
+        this.cartService = cartService; 
+        System.out.println("ProductDetailScreenController.setCartService: CartService injected successfully - Available: " + (cartService != null));
+    }
 
     public void initialize() {
-        productDescriptionArea.setWrapText(true);
-        productDescriptionArea.setEditable(false);
-        SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1); // Min 1, Max 100, Initial 1
-        quantitySpinner.setValueFactory(valueFactory);
+        System.out.println("ProductDetailScreenController.initialize: Starting controller initialization");
+        
+        // Check if FXML components are injected
+        System.out.println("ProductDetailScreenController.initialize: productTitleLabel = " + (productTitleLabel != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productImageView = " + (productImageView != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productPriceLabel = " + (productPriceLabel != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productCategoryLabel = " + (productCategoryLabel != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productDescriptionArea = " + (productDescriptionArea != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productSpecificsGrid = " + (productSpecificsGrid != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: quantitySpinner = " + (quantitySpinner != null ? "INJECTED" : "NULL"));
+        
+        if (productDescriptionArea != null) {
+            productDescriptionArea.setWrapText(true);
+            productDescriptionArea.setEditable(false);
+        }
+        
+        if (quantitySpinner != null) {
+            SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1); // Min 1, Max 100, Initial 1
+            quantitySpinner.setValueFactory(valueFactory);
+        }
+        
         setErrorMessage("", false);
+        System.out.println("ProductDetailScreenController.initialize: Controller initialization completed");
     }
 
     /**
@@ -81,91 +114,116 @@ public class ProductDetailScreenController {
      * @param productId The ID of the product to display.
      */
     public void setProductId(String productId) {
+        System.out.println("ProductDetailScreenController.setProductId: Called with productId: " + productId);
+        System.out.println("ProductDetailScreenController.setProductId: ProductService available: " + (productService != null));
+        System.out.println("ProductDetailScreenController.setProductId: CartService available: " + (cartService != null));
+        System.out.println("ProductDetailScreenController.setProductId: MainLayoutController available: " + (mainLayoutController != null));
+        
         this.productIdToLoad = productId;
         if (productIdToLoad != null) {
+            System.out.println("ProductDetailScreenController.setProductId: About to call loadProductDetails()");
             loadProductDetails();
         } else {
+            System.out.println("ProductDetailScreenController.setProductId: Product ID is null, displaying error");
             displayError("Product ID not provided.");
         }
     }
 
     private void loadProductDetails() {
-        // if (productService == null) {
-        //     displayError("Product service is not available.");
-        //     return;
-        // }
-        // try {
-        //     // ProductService.getProductDetailsForCustomer should return product with VAT-inclusive price
-        //     currentProduct = productService.getProductDetailsForCustomer(productIdToLoad);
-        //     if (currentProduct != null) {
-        //         populateProductData();
-        //         if (mainLayoutController != null) {
-        //             mainLayoutController.setHeaderTitle(currentProduct.getTitle());
-        //         }
-        //     } else {
-        //         displayError("Product not found.");
-        //     }
-        // } catch (SQLException | ResourceNotFoundException e) {
-        //     e.printStackTrace();
-        //     displayError("Error loading product details: " + e.getMessage());
-        // }
-        System.out.println("loadProductDetails called for ID: " + productIdToLoad + " - Implement with actual service call.");
-        // Dummy Data for UI testing
-        if ("P001".equals(productIdToLoad)) { // Example
-            Book book = new Book();
-            book.setProductId("P001");
-            book.setTitle("The Hitchhiker's Guide to the Galaxy (Example)");
-            book.setPrice(150000f * 1.1f); // Assume service already added VAT
-            book.setCategory("Science Fiction Comedy");
-            book.setQuantityInStock(5);
-            book.setDescription("A hilarious and absurd journey through space with Arthur Dent, the last surviving man from Earth, after it is demolished to make way for a hyperspace bypass.");
-            book.setImageUrl("https://upload.wikimedia.org/wikipedia/en/b/bd/H2G2_UK_front_cover.jpg"); // Example URL
-            book.setAuthors("Douglas Adams");
-            book.setPublisher("Pan Books");
-            book.setPublicationDate(java.time.LocalDate.of(1979, 10, 12));
-            book.setNumPages(224);
-            book.setCoverType("Paperback");
-            book.setLanguage("English");
-            book.setBookGenre("Sci-Fi, Comedy");
-            this.currentProduct = book;
-            populateProductData();
-        } else {
-             displayError("Product with ID " + productIdToLoad + " not found (dummy).");
+        System.out.println("ProductDetailScreenController.loadProductDetails: Starting for product ID: " + productIdToLoad);
+        System.out.println("ProductDetailScreenController.loadProductDetails: ProductService status: " + (productService != null ? "Available" : "NULL"));
+        
+        if (productService == null) {
+            System.err.println("ProductDetailScreenController.loadProductDetails: ProductService is null, cannot load product");
+            displayError("Product service is not available.");
+            return;
+        }
+        
+        try {
+            System.out.println("ProductDetailScreenController.loadProductDetails: Calling productService.getProductDetailsForCustomer()");
+            // ProductService.getProductDetailsForCustomer should return product with VAT-inclusive price
+            currentProduct = productService.getProductDetailsForCustomer(productIdToLoad);
+            
+            if (currentProduct != null) {
+                System.out.println("ProductDetailScreenController.loadProductDetails: Product loaded successfully: " + currentProduct.getTitle());
+                populateProductData();
+                if (mainLayoutController != null) {
+                    System.out.println("ProductDetailScreenController.loadProductDetails: Setting header title to: " + currentProduct.getTitle());
+                    mainLayoutController.setHeaderTitle("Product Details: " + currentProduct.getTitle());
+                } else {
+                    System.out.println("ProductDetailScreenController.loadProductDetails: MainLayoutController is null, cannot set header");
+                }
+            } else {
+                System.err.println("ProductDetailScreenController.loadProductDetails: Product not found for ID: " + productIdToLoad);
+                displayError("Product not found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("ProductDetailScreenController.loadProductDetails: Error loading product details: " + e.getMessage());
+            displayError("Error loading product details: " + e.getMessage());
         }
     }
 
     private void populateProductData() {
-        productTitleLabel.setText(currentProduct.getTitle());
-        productPriceLabel.setText(String.format("%,.0f VND", currentProduct.getPrice())); // Price already includes VAT from service
-        productCategoryLabel.setText(currentProduct.getCategory() != null ? currentProduct.getCategory() : "N/A");
-        productDescriptionArea.setText(currentProduct.getDescription() != null ? currentProduct.getDescription() : "No description available.");
-
-        if (currentProduct.getQuantityInStock() > 0) {
-            productAvailabilityLabel.setText("Available: " + currentProduct.getQuantityInStock());
-            productAvailabilityLabel.setStyle("-fx-text-fill: green;");
-            quantitySpinner.setDisable(false);
-            addToCartButton.setDisable(false);
-            ((SpinnerValueFactory.IntegerSpinnerValueFactory) quantitySpinner.getValueFactory())
-                    .setMax(Math.min(100, currentProduct.getQuantityInStock())); // Limit spinner max to stock or 100
-        } else {
-            productAvailabilityLabel.setText("Out of Stock");
-            productAvailabilityLabel.setStyle("-fx-text-fill: red;");
-            quantitySpinner.setDisable(true);
-            addToCartButton.setDisable(true);
+        System.out.println("ProductDetailScreenController.populateProductData: Starting to populate UI with product data");
+        System.out.println("ProductDetailScreenController.populateProductData: Product title: " + (currentProduct != null ? currentProduct.getTitle() : "NULL"));
+        
+        if (currentProduct == null) {
+            System.err.println("ProductDetailScreenController.populateProductData: currentProduct is null, cannot populate data");
+            return;
         }
+        
+        try {
+            System.out.println("ProductDetailScreenController.populateProductData: Setting product title label");
+            productTitleLabel.setText(currentProduct.getTitle());
+            
+            System.out.println("ProductDetailScreenController.populateProductData: Setting product price label");
+            productPriceLabel.setText(String.format("%,.0f VND", currentProduct.getPrice())); // Price already includes VAT from service
+            
+            System.out.println("ProductDetailScreenController.populateProductData: Setting product category label");
+            productCategoryLabel.setText(currentProduct.getCategory() != null ? currentProduct.getCategory() : "N/A");
+            
+            System.out.println("ProductDetailScreenController.populateProductData: Setting product description");
+            productDescriptionArea.setText(currentProduct.getDescription() != null ? currentProduct.getDescription() : "No description available.");
 
-        if (currentProduct.getImageUrl() != null && !currentProduct.getImageUrl().isEmpty()) {
-            try {
-                Image image = new Image(currentProduct.getImageUrl(), true); // true for background loading
-                productImageView.setImage(image);
-            } catch (Exception e) {
-                System.err.println("Error loading product image for detail view: " + currentProduct.getImageUrl() + " - " + e.getMessage());
+            System.out.println("ProductDetailScreenController.populateProductData: Setting availability info");
+            if (currentProduct.getQuantityInStock() > 0) {
+                productAvailabilityLabel.setText("Available: " + currentProduct.getQuantityInStock());
+                productAvailabilityLabel.setStyle("-fx-text-fill: green;");
+                quantitySpinner.setDisable(false);
+                addToCartButton.setDisable(false);
+                ((SpinnerValueFactory.IntegerSpinnerValueFactory) quantitySpinner.getValueFactory())
+                        .setMax(Math.min(100, currentProduct.getQuantityInStock())); // Limit spinner max to stock or 100
+            } else {
+                productAvailabilityLabel.setText("Out of Stock");
+                productAvailabilityLabel.setStyle("-fx-text-fill: red;");
+                quantitySpinner.setDisable(true);
+                addToCartButton.setDisable(true);
+            }
+
+            System.out.println("ProductDetailScreenController.populateProductData: Setting product image");
+            if (currentProduct.getImageUrl() != null && !currentProduct.getImageUrl().isEmpty()) {
+                try {
+                    Image image = new Image(currentProduct.getImageUrl(), true); // true for background loading
+                    productImageView.setImage(image);
+                    System.out.println("ProductDetailScreenController.populateProductData: Product image set successfully");
+                } catch (Exception e) {
+                    System.err.println("Error loading product image for detail view: " + currentProduct.getImageUrl() + " - " + e.getMessage());
+                    // Load placeholder image
+                }
+            } else {
+                System.out.println("ProductDetailScreenController.populateProductData: No image URL available, skipping image");
                 // Load placeholder image
             }
-        } else {
-            // Load placeholder image
+            
+            System.out.println("ProductDetailScreenController.populateProductData: Calling populateSpecificDetails()");
+            populateSpecificDetails();
+            
+            System.out.println("ProductDetailScreenController.populateProductData: Successfully completed populating product data");
+        } catch (Exception e) {
+            System.err.println("ProductDetailScreenController.populateProductData: Error populating UI: " + e.getMessage());
+            e.printStackTrace();
         }
-        populateSpecificDetails();
     }
 
     private void populateSpecificDetails() {

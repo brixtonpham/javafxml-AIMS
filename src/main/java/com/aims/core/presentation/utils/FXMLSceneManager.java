@@ -58,20 +58,30 @@ public class FXMLSceneManager {
      * Use this if you need to interact with the controller before showing the scene.
      */
     public <T> LoadedFXML<T> loadFXMLWithController(String fxmlPath) throws IOException {
+        System.out.println("FXMLSceneManager.loadFXMLWithController: Loading FXML from " + fxmlPath);
+        
         FXMLLoader loader = getLoader(fxmlPath);
         Parent root = loader.load();
         T controller = loader.getController();
         
+        System.out.println("FXMLSceneManager.loadFXMLWithController: Loaded controller: " + 
+            (controller != null ? controller.getClass().getSimpleName() : "null"));
+        
         // Inject MainLayoutController for child controllers
         if (controller instanceof MainLayoutController.IChildController && mainLayoutController != null) {
-             ((MainLayoutController.IChildController) controller).setMainLayoutController(mainLayoutController);
+            System.out.println("FXMLSceneManager.loadFXMLWithController: Injecting MainLayoutController into IChildController");
+            ((MainLayoutController.IChildController) controller).setMainLayoutController(mainLayoutController);
         }
         
         // Inject services using ServiceFactory
         if (serviceFactory != null) {
+            System.out.println("FXMLSceneManager.loadFXMLWithController: ServiceFactory available, calling injectServices()");
             injectServices(controller);
+        } else {
+            System.out.println("FXMLSceneManager.loadFXMLWithController: ServiceFactory is null, skipping service injection");
         }
         
+        System.out.println("FXMLSceneManager.loadFXMLWithController: Completed loading FXML for " + fxmlPath);
         return new LoadedFXML<>(root, controller);
     }
     
@@ -81,34 +91,81 @@ public class FXMLSceneManager {
      */
     private void injectServices(Object controller) {
         if (controller == null) {
-            System.out.println("FXMLSceneManager: Controller is null, cannot inject services");
+            System.out.println("FXMLSceneManager.injectServices: Controller is null, cannot inject services");
             return;
         }
         
         if (serviceFactory == null) {
-            System.out.println("FXMLSceneManager: ServiceFactory is null, cannot inject services");
+            System.out.println("FXMLSceneManager.injectServices: ServiceFactory is null, cannot inject services");
             return;
         }
         
-        System.out.println("FXMLSceneManager: Injecting services into " + controller.getClass().getSimpleName());
+        System.out.println("FXMLSceneManager.injectServices: Starting service injection for " + controller.getClass().getSimpleName());
         
         // Check for controllers that have confirmed setter methods
         if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected HomeScreenController, injecting services...");
             com.aims.core.presentation.controllers.HomeScreenController homeController = 
                 (com.aims.core.presentation.controllers.HomeScreenController) controller;
-            homeController.setProductService(serviceFactory.getProductService());
-            homeController.setCartService(serviceFactory.getCartService());
-            homeController.completeInitialization(); // Complete initialization after services are injected
-            System.out.println("FXMLSceneManager: Services injected into HomeScreenController");
+            
+            try {
+                homeController.setProductService(serviceFactory.getProductService());
+                System.out.println("FXMLSceneManager.injectServices: ProductService injected into HomeScreenController");
+                
+                homeController.setCartService(serviceFactory.getCartService());
+                System.out.println("FXMLSceneManager.injectServices: CartService injected into HomeScreenController");
+                
+                homeController.completeInitialization(); // Complete initialization after services are injected
+                System.out.println("FXMLSceneManager.injectServices: HomeScreenController initialization completed");
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into HomeScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         else if (controller instanceof com.aims.core.presentation.controllers.CartScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected CartScreenController, injecting services...");
             com.aims.core.presentation.controllers.CartScreenController cartController = 
                 (com.aims.core.presentation.controllers.CartScreenController) controller;
-            cartController.setCartService(serviceFactory.getCartService());
-            System.out.println("FXMLSceneManager: Services injected into CartScreenController");
+            
+            try {
+                cartController.setCartService(serviceFactory.getCartService());
+                System.out.println("FXMLSceneManager.injectServices: CartService injected into CartScreenController");
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into CartScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
-        // TODO: Add other controllers as their setter methods are confirmed
-        // For now, we'll inject services manually in MainLayoutController.loadContent()
+        else if (controller instanceof com.aims.core.presentation.controllers.ProductDetailScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected ProductDetailScreenController, injecting services...");
+            com.aims.core.presentation.controllers.ProductDetailScreenController detailController = 
+                (com.aims.core.presentation.controllers.ProductDetailScreenController) controller;
+            
+            try {
+                detailController.setProductService(serviceFactory.getProductService());
+                System.out.println("FXMLSceneManager.injectServices: ProductService injected into ProductDetailScreenController");
+                
+                detailController.setCartService(serviceFactory.getCartService());
+                System.out.println("FXMLSceneManager.injectServices: CartService injected into ProductDetailScreenController");
+                
+                // Set additional dependencies if available
+                if (mainLayoutController != null) {
+                    detailController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into ProductDetailScreenController");
+                }
+                
+                detailController.setSceneManager(this);
+                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into ProductDetailScreenController");
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into ProductDetailScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else {
+            System.out.println("FXMLSceneManager.injectServices: No specific injection logic for " + controller.getClass().getSimpleName());
+        }
+        
+        System.out.println("FXMLSceneManager.injectServices: Service injection completed for " + controller.getClass().getSimpleName());
     }
     
     public static class LoadedFXML<T> {

@@ -8,7 +8,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane fx:id="mainBorderPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="720.0" minWidth="1200.0" prefHeight="900.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
+<BorderPane fx:id="mainBorderPane" styleClass="main-border-pane" maxHeight="Infinity" maxWidth="Infinity" minHeight="720.0" minWidth="1200.0" prefHeight="900.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
     <top>
         <VBox>
             <MenuBar fx:id="menuBar">
@@ -48,7 +48,15 @@
         </VBox>
     </top>
     <center>
-        <BorderPane fx:id="contentPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="600.0" minWidth="1000.0" BorderPane.alignment="CENTER" />
+        <BorderPane fx:id="contentPane" 
+                    styleClass="content-pane"
+                    maxHeight="Infinity" 
+                    maxWidth="Infinity" 
+                    minHeight="600.0" 
+                    minWidth="1000.0" 
+                    prefHeight="800.0" 
+                    prefWidth="1400.0"
+                    BorderPane.alignment="CENTER" />
     </center>
     <bottom>
         <Label fx:id="footerLabel" text="© 2025 AIMS Project" alignment="CENTER" maxWidth="Infinity">

@@ -287,26 +287,42 @@ public class ProductCardController {
         }
 
         if (product == null) return;
-        System.out.println("View details action for (Card): " + product.getTitle());
+        System.out.println("ProductCardController.handleViewProductDetails: View details action for product: " + product.getTitle());
+        System.out.println("ProductCardController.handleViewProductDetails: Product ID: " + product.getProductId());
+        System.out.println("ProductCardController.handleViewProductDetails: MainLayoutController available: " + (mainLayoutController != null));
 
-        // if (mainLayoutController != null && FXMLSceneManager.getInstance() != null && product != null) {
-        //     try {
-        //         FXMLLoader loader = FXMLSceneManager.getInstance().getLoader(FXMLSceneManager.PRODUCT_DETAIL_SCREEN);
-        //         Parent productDetailNode = loader.load();
-        //         ProductDetailScreenController detailController = loader.getController();
-        //
-        //         detailController.setMainLayoutController(mainLayoutController);
-        //         detailController.setProductService(this.productService); // Assuming ProductCardController gets ProductService
-        //         detailController.setCartService(this.cartService);
-        //         detailController.setProductId(product.getProductId());
-        //
-        //         mainLayoutController.setContent(productDetailNode);
-        //         mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
-        //
-        //     } catch (IOException e) {
-        //         e.printStackTrace();
-        //         AlertHelper.showErrorAlert("Navigation Error", "Could not load product details screen.");
-        //     }
-        // }
+        if (mainLayoutController != null && product != null) {
+            try {
+                System.out.println("ProductCardController.handleViewProductDetails: About to call loadContent for product_detail_screen.fxml");
+                
+                // Use MainLayoutController's loadContent method which handles service injection
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
+                
+                System.out.println("ProductCardController.handleViewProductDetails: LoadContent returned controller: " + 
+                    (controller != null ? controller.getClass().getSimpleName() : "null"));
+                
+                // Set the product ID on the ProductDetailScreenController
+                if (controller instanceof ProductDetailScreenController) {
+                    System.out.println("ProductCardController.handleViewProductDetails: Controller is ProductDetailScreenController, setting product ID");
+                    ProductDetailScreenController detailController = (ProductDetailScreenController) controller;
+                    detailController.setProductId(product.getProductId());
+                    System.out.println("ProductCardController.handleViewProductDetails: Product ID set on ProductDetailScreenController");
+                } else {
+                    System.err.println("ProductCardController.handleViewProductDetails: Controller is not ProductDetailScreenController, it's: " + 
+                        (controller != null ? controller.getClass().getSimpleName() : "null"));
+                }
+                
+                // Update header title
+                System.out.println("ProductCardController.handleViewProductDetails: Updating header title");
+                mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
+                System.out.println("ProductCardController.handleViewProductDetails: Navigation completed successfully");
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println("ProductCardController.handleViewProductDetails: Navigation Error: Could not load product details screen - " + e.getMessage());
+            }
+        } else {
+            System.err.println("ProductCardController.handleViewProductDetails: MainLayoutController or product is null - cannot navigate");
+        }
     }
 }

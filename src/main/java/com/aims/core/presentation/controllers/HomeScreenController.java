@@ -100,6 +100,21 @@ public class HomeScreenController implements MainLayoutController.IChildControll
         categoryComboBox.setOnAction(event -> handleFilterOrSortChange());
         sortByPriceComboBox.setOnAction(event -> handleFilterOrSortChange());
 
+        // Debug layout - Check sizes after UI is rendered
+        javafx.application.Platform.runLater(() -> {
+            if (productFlowPane != null && productFlowPane.getScene() != null) {
+                System.out.println("HomeScreen Scene size: " + 
+                                 productFlowPane.getScene().getWidth() + "x" + 
+                                 productFlowPane.getScene().getHeight());
+                System.out.println("ProductFlowPane size: " + 
+                                 productFlowPane.getWidth() + "x" + 
+                                 productFlowPane.getHeight());
+                System.out.println("ScrollPane size: " + 
+                                 scrollPane.getWidth() + "x" + 
+                                 scrollPane.getHeight());
+            }
+        });
+
         // Don't load products here - will be loaded after services are injected
     }
     
@@ -197,6 +212,10 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                     if (cartService != null) {
                         cardController.setCartService(cartService); // Pass cart service for add to cart functionality
                     }
+                    // Set MainLayoutController reference for navigation
+                    if (mainLayoutController != null) {
+                        cardController.setMainLayoutController(mainLayoutController);
+                    }
                     productFlowPane.getChildren().add(productCardNode);
                     
                 } catch (IOException e) {
@@ -243,6 +262,10 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                     
                     // Set data for the product card
                     cardController.setData(product);
+                    // Set MainLayoutController reference for navigation
+                    if (mainLayoutController != null) {
+                        cardController.setMainLayoutController(mainLayoutController);
+                    }
                     productFlowPane.getChildren().add(productCardNode);
                     
                 } catch (IOException e) {
