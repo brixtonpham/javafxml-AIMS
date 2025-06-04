@@ -14,8 +14,8 @@
                 <menus>
                     <Menu text="File">
                         <items>
-                            <MenuItem text="Login" onAction="#handleLoginAction"/>
-                            <MenuItem text="Logout" onAction="#handleLogoutAction"/>
+                            <MenuItem fx:id="loginMenuItem" text="Login" onAction="#handleLoginAction"/>
+                            <MenuItem fx:id="logoutMenuItem" text="Logout" onAction="#handleLogoutAction"/>
                             <MenuItem text="Exit" onAction="#handleExitAction"/>
                         </items>
                     </Menu>

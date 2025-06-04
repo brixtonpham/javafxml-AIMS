@@ -1,6 +1,0 @@
-{
-  "orders": [
-    { "id": 1, "customer": "John Doe", "total": 100.0 },
-    { "id": 2, "customer": "Jane Smith", "total": 150.0 }
-  ]
-}
