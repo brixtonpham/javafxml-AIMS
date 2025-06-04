@@ -92,20 +92,33 @@ public class HomeScreenController implements MainLayoutController.IChildControll
         sortByPriceComboBox.setItems(FXCollections.observableArrayList("Default Sort", "Price: Low to High", "Price: High to Low"));
         sortByPriceComboBox.setValue("Default Sort");
 
-        // TODO: Load categories into categoryComboBox dynamically from productService
-        // Example:
-        // List<String> categories = productService.getAllCategories(); // Needs method in IProductService
-        // categoryComboBox.setItems(FXCollections.observableArrayList(categories));
-        // categoryComboBox.getItems().add(0, "All Categories"); // Add an option for no filter
-        // categoryComboBox.setValue("All Categories");
-        // Dummy categories for now
+        // Set fallback categories initially
         categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Book", "CD", "DVD"));
         categoryComboBox.setValue("All Categories");
-
 
         // Add listeners to automatically search/filter when combo box values change
         categoryComboBox.setOnAction(event -> handleFilterOrSortChange());
         sortByPriceComboBox.setOnAction(event -> handleFilterOrSortChange());
+
+        // Don't load products here - will be loaded after services are injected
+    }
+    
+    /**
+     * Called after services are injected to complete initialization
+     */
+    public void completeInitialization() {
+        // Load categories dynamically from productService
+        try {
+            if (productService != null) {
+                List<String> categories = productService.getAllCategories();
+                categories.add(0, "All Categories"); // Add option for no filter
+                categoryComboBox.setItems(FXCollections.observableArrayList(categories));
+                categoryComboBox.setValue("All Categories");
+            }
+        } catch (SQLException e) {
+            // Keep fallback categories if service fails
+            System.err.println("Error loading categories: " + e.getMessage());
+        }
 
         loadProducts();
     }
@@ -127,9 +140,83 @@ public class HomeScreenController implements MainLayoutController.IChildControll
     }
 
     private void loadProducts() {
-        System.out.println("Loading products from database...");
-        
+        // Clear existing product cards
         productFlowPane.getChildren().clear();
+        
+        if (productService == null) {
+            // Fallback to direct database access if service not available
+            System.out.println("ProductService not available, using direct database access...");
+            loadProductsDirectly();
+            return;
+        }
+        
+        try {
+            // Use the advanced search method for comprehensive functionality
+            String keyword = currentSearchTerm.trim().isEmpty() ? null : currentSearchTerm;
+            String category = "All Categories".equals(currentCategoryFilter) ? null : currentCategoryFilter;
+            
+            // Convert sort selection to service parameters
+            String sortBy = null;
+            String sortOrder = null;
+            if (currentSortBy != null) {
+                switch (currentSortBy) {
+                    case "ASC":
+                        sortBy = "price";
+                        sortOrder = "ASC";
+                        break;
+                    case "DESC":
+                        sortBy = "price";
+                        sortOrder = "DESC";
+                        break;
+                    default:
+                        sortBy = "title";
+                        sortOrder = "ASC";
+                        break;
+                }
+            } else {
+                sortBy = "title";
+                sortOrder = "ASC";
+            }
+            
+            // Get search results using the enhanced service method
+            SearchResult<Product> searchResult = productService.advancedSearchProducts(
+                keyword, category, sortBy, sortOrder, currentPage, PAGE_SIZE);
+            
+            List<Product> products = searchResult.results();
+            totalPages = searchResult.totalPages();
+            
+            // Create product cards
+            for (Product product : products) {
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
+                    Parent productCardNode = loader.load();
+                    ProductCardController cardController = loader.getController();
+                    
+                    // Set data for the product card
+                    cardController.setData(product);
+                    if (cartService != null) {
+                        cardController.setCartService(cartService); // Pass cart service for add to cart functionality
+                    }
+                    productFlowPane.getChildren().add(productCardNode);
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.err.println("Error loading product card: " + e.getMessage());
+                }
+            }
+            
+            updatePaginationControls(currentPage, totalPages, (int) searchResult.totalResults());
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            productFlowPane.getChildren().add(new Label("Error loading products: " + e.getMessage()));
+            updatePaginationControls(0, 0, 0);
+        }
+    }
+    
+    // Fallback method for direct database access when service is not available
+    private void loadProductsDirectly() {
+        System.out.println("Loading products from database...");
         
         try {
             List<Product> products = loadProductsFromDatabase();

@@ -65,6 +65,9 @@ public class AimsApp extends Application {
             
             // Set the ServiceFactory in SceneManager so it can inject dependencies into child controllers
             sceneManager.setServiceFactory(serviceFactory);
+            
+            // Complete initialization after dependencies are injected
+            mainLayoutController.completeInitialization();
 
 
             Scene scene = new Scene(root, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);

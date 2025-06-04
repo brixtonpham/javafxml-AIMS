@@ -64,8 +64,15 @@ public class MainLayoutController { // This could be your BaseScreenController o
     public void initialize() {
         // Set initial state
         updateUserSpecificMenus();
-        navigateToHome(); // Load the home screen by default
+        // Don't load home screen here - will be loaded after dependencies are injected
         setHeaderTitle("AIMS Home");
+    }
+    
+    /**
+     * Called after all dependencies have been injected to complete initialization
+     */
+    public void completeInitialization() {
+        navigateToHome(); // Load the home screen after dependencies are ready
     }
 
     /**
@@ -74,6 +81,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
      */
     public void setSceneManager(FXMLSceneManager sceneManager) {
         this.sceneManager = sceneManager;
+        System.out.println("MainLayoutController: SceneManager injected successfully");
     }
 
     /**
@@ -156,6 +164,10 @@ public class MainLayoutController { // This could be your BaseScreenController o
     }
 
     public void loadContent(String fxmlPath) {
+        System.out.println("MainLayoutController: Loading content: " + fxmlPath);
+        System.out.println("MainLayoutController: SceneManager available: " + (sceneManager != null));
+        System.out.println("MainLayoutController: ServiceFactory available: " + (serviceFactory != null));
+        
         if (sceneManager != null) {
             // Use FXMLSceneManager for proper dependency injection
             Object controller = sceneManager.loadFXMLIntoPane(contentPane, fxmlPath);

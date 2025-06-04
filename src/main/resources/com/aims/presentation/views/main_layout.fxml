@@ -7,7 +7,7 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.Label?>
 
-<BorderPane fx:id="mainBorderPane" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
+<BorderPane fx:id="mainBorderPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="600.0" minWidth="1000.0" prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
     <top>
         <VBox>
             <MenuBar fx:id="menuBar">
@@ -43,7 +43,7 @@
         </VBox>
     </top>
     <center>
-        <BorderPane fx:id="contentPane" />
+        <BorderPane fx:id="contentPane" maxHeight="Infinity" maxWidth="Infinity" minHeight="400.0" minWidth="600.0" />
     </center>
     <bottom>
         <Label fx:id="footerLabel" text="© 2025 AIMS Project" styleClass="footer" alignment="CENTER" maxWidth="Infinity"/>

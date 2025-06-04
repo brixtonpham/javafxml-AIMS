@@ -129,4 +129,33 @@ public interface IProductDAO {
      */
     void updateStock(String productId, int newQuantity) throws SQLException;
 
+    /**
+     * Advanced search for products with filtering, sorting, and pagination.
+     * @param keyword The search keyword (searches across title, description, category, and subtype-specific fields)
+     * @param category The category filter (null or empty for all categories)
+     * @param sortBy The field to sort by (title, price, category, entryDate, quantity)
+     * @param sortOrder The sort order (ASC or DESC)
+     * @param page The page number (1-based)
+     * @param pageSize The number of items per page
+     * @return A list of matching Product objects with full subtype details
+     * @throws SQLException If a database access error occurs.
+     */
+    List<Product> searchProducts(String keyword, String category, String sortBy, String sortOrder, int page, int pageSize) throws SQLException;
+
+    /**
+     * Gets the total count of products matching the search criteria.
+     * @param keyword The search keyword
+     * @param category The category filter
+     * @return The total count of matching products
+     * @throws SQLException If a database access error occurs.
+     */
+    int getSearchResultsCount(String keyword, String category) throws SQLException;
+
+    /**
+     * Gets all distinct categories from the products.
+     * @return A list of all available categories
+     * @throws SQLException If a database access error occurs.
+     */
+    List<String> getAllCategories() throws SQLException;
+
 }

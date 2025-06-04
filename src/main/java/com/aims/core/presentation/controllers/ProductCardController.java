@@ -141,38 +141,141 @@ public class ProductCardController {
 
         if (cartService == null) {
             System.err.println("CartService not available in ProductCardController.");
-            // AlertHelper.showErrorAlert("Service Error", "Could not add to cart. Cart service is unavailable.");
+            showCartServiceUnavailableMessage();
             return;
         }
 
+        // Check stock availability before attempting to add
+        if (product.getQuantityInStock() <= 0) {
+            updateOutOfStockState();
+            return;
+        }
+
+        // Disable button temporarily to prevent double-clicks
+        addToCartButton.setDisable(true);
+        String originalButtonText = addToCartButton.getText();
+        addToCartButton.setText("Adding...");
+
         try {
-            // TODO: Lấy cartSessionId thực tế từ một nguồn quản lý session chung
-            String currentCartSessionId = "guest_cart_session_id_placeholder"; // Placeholder
-            cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1); // Thêm 1 sản phẩm
-            // AlertHelper.showInfoAlert("Added to Cart", product.getTitle() + " has been added to your cart.");
+            // Generate or get session ID - in a real app this would come from a session manager
+            String currentCartSessionId = generateGuestCartSessionId();
+            cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1);
+            
+            // Success feedback
+            System.out.println("Successfully added " + product.getTitle() + " to cart");
+            showSuccessFeedback();
 
-            // Cập nhật UI ngay lập tức (giả định thành công)
-            // Service nên trả về thông tin cập nhật nếu cần, hoặc HomeScreenController nên load lại
-            product.setQuantityInStock(product.getQuantityInStock() - 1); // Giảm tạm thời trên UI
-            setData(this.product); // Cập nhật lại card để thay đổi nút và số lượng
+            // Update product stock and UI
+            product.setQuantityInStock(product.getQuantityInStock() - 1);
+            updateAddToCartButtonState();
 
-            // Thông báo cho HomeScreenController để có thể cập nhật tổng giỏ hàng hoặc các thông tin khác nếu cần
+            // Notify parent controller if available
             if (homeScreenController != null) {
-                // homeScreenController.refreshCartSummary(); // Ví dụ
+                homeScreenController.refreshCartSummary();
             }
 
-        } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
-            System.err.println("Failed to add product '" + product.getTitle() + "' to cart: " + e.getMessage());
-            // AlertHelper.showErrorAlert("Add to Cart Failed", e.getMessage());
-            // Có thể cần load lại thông tin sản phẩm để đảm bảo stock chính xác nếu có lỗi
-             if(e instanceof InventoryException){
-                productAvailabilityLabel.setText("Out of Stock!");
-                productAvailabilityLabel.setStyle("-fx-text-fill: red;");
-                addToCartButton.setText("Out of Stock");
-                addToCartButton.setDisable(true);
+        } catch (SQLException e) {
+            System.err.println("Database error adding product to cart: " + e.getMessage());
+            showErrorFeedback("Database error occurred. Please try again.");
+        } catch (ResourceNotFoundException e) {
+            System.err.println("Product not found: " + e.getMessage());
+            showErrorFeedback("Product no longer available.");
+        } catch (ValidationException e) {
+            System.err.println("Validation error: " + e.getMessage());
+            showErrorFeedback("Invalid request. Please try again.");
+        } catch (InventoryException e) {
+            System.err.println("Inventory error: " + e.getMessage());
+            updateOutOfStockState();
+            showErrorFeedback("Product is out of stock.");
+        } catch (Exception e) {
+            System.err.println("Unexpected error adding to cart: " + e.getMessage());
+            showErrorFeedback("An error occurred. Please try again.");
+        } finally {
+            // Re-enable button
+            addToCartButton.setDisable(false);
+            if (product.getQuantityInStock() > 0) {
+                addToCartButton.setText(originalButtonText);
             }
         }
-        event.consume(); // Ngăn sự kiện click lan truyền lên VBox cha nếu không muốn
+        
+        event.consume();
+    }
+
+    private String generateGuestCartSessionId() {
+        // In a real application, this would be managed by a session service
+        return "guest_cart_" + System.currentTimeMillis();
+    }
+
+    private void updateOutOfStockState() {
+        addToCartButton.setText("Out of Stock");
+        addToCartButton.setDisable(true);
+        productAvailabilityLabel.setText("Out of Stock");
+        productAvailabilityLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+    }
+
+    private void showCartServiceUnavailableMessage() {
+        addToCartButton.setText("Service Unavailable");
+        addToCartButton.setDisable(true);
+        productAvailabilityLabel.setText("Cart service unavailable");
+        productAvailabilityLabel.setStyle("-fx-text-fill: orange; -fx-font-weight: bold;");
+    }
+
+    private void showSuccessFeedback() {
+        // Temporarily change button appearance to show success
+        String originalStyle = addToCartButton.getStyle();
+        addToCartButton.setStyle(originalStyle + "; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        addToCartButton.setText("Added!");
+        
+        // Reset after 1 second
+        javafx.concurrent.Task<Void> resetTask = new javafx.concurrent.Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                Thread.sleep(1000);
+                return null;
+            }
+            
+            @Override
+            protected void succeeded() {
+                javafx.application.Platform.runLater(() -> {
+                    addToCartButton.setStyle(originalStyle);
+                    updateAddToCartButtonState();
+                });
+            }
+        };
+        new Thread(resetTask).start();
+    }
+
+    private void showErrorFeedback(String message) {
+        // Temporarily show error state
+        String originalStyle = addToCartButton.getStyle();
+        addToCartButton.setStyle(originalStyle + "; -fx-background-color: #f44336; -fx-text-fill: white;");
+        addToCartButton.setText("Error");
+        
+        // Show error message in availability label temporarily
+        String originalAvailabilityText = productAvailabilityLabel.getText();
+        String originalAvailabilityStyle = productAvailabilityLabel.getStyle();
+        productAvailabilityLabel.setText(message);
+        productAvailabilityLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+        
+        // Reset after 2 seconds
+        javafx.concurrent.Task<Void> resetTask = new javafx.concurrent.Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                Thread.sleep(2000);
+                return null;
+            }
+            
+            @Override
+            protected void succeeded() {
+                javafx.application.Platform.runLater(() -> {
+                    addToCartButton.setStyle(originalStyle);
+                    productAvailabilityLabel.setText(originalAvailabilityText);
+                    productAvailabilityLabel.setStyle(originalAvailabilityStyle);
+                    updateAddToCartButtonState();
+                });
+            }
+        };
+        new Thread(resetTask).start();
     }
 
     @FXML

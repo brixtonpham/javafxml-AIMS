@@ -80,7 +80,17 @@ public class FXMLSceneManager {
      * Only injects services if the controller has the appropriate setter methods.
      */
     private void injectServices(Object controller) {
-        if (controller == null) return;
+        if (controller == null) {
+            System.out.println("FXMLSceneManager: Controller is null, cannot inject services");
+            return;
+        }
+        
+        if (serviceFactory == null) {
+            System.out.println("FXMLSceneManager: ServiceFactory is null, cannot inject services");
+            return;
+        }
+        
+        System.out.println("FXMLSceneManager: Injecting services into " + controller.getClass().getSimpleName());
         
         // Check for controllers that have confirmed setter methods
         if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController) {
@@ -88,11 +98,14 @@ public class FXMLSceneManager {
                 (com.aims.core.presentation.controllers.HomeScreenController) controller;
             homeController.setProductService(serviceFactory.getProductService());
             homeController.setCartService(serviceFactory.getCartService());
+            homeController.completeInitialization(); // Complete initialization after services are injected
+            System.out.println("FXMLSceneManager: Services injected into HomeScreenController");
         }
         else if (controller instanceof com.aims.core.presentation.controllers.CartScreenController) {
             com.aims.core.presentation.controllers.CartScreenController cartController = 
                 (com.aims.core.presentation.controllers.CartScreenController) controller;
             cartController.setCartService(serviceFactory.getCartService());
+            System.out.println("FXMLSceneManager: Services injected into CartScreenController");
         }
         // TODO: Add other controllers as their setter methods are confirmed
         // For now, we'll inject services manually in MainLayoutController.loadContent()

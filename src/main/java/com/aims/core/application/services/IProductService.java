@@ -188,6 +188,28 @@ public interface IProductService {
      */
     Product getProductDetailsForCustomer(String productId) throws SQLException, ResourceNotFoundException;
 
+    /**
+     * Advanced search for products with comprehensive filtering and sorting options.
+     * Prices returned should be inclusive of 10% VAT for customer display.
+     *
+     * @param keyword The search keyword (searches across title, description, category, and subtype-specific fields)
+     * @param category The category filter (null or empty for all categories)
+     * @param sortBy The field to sort by (title, price, category, entryDate, quantity)
+     * @param sortOrder The sort order (ASC or DESC)
+     * @param pageNumber The page number (1-based)
+     * @param pageSize The number of items per page
+     * @return A SearchResult containing matching products with VAT-inclusive prices and pagination info
+     * @throws SQLException If a database error occurs.
+     */
+    SearchResult<Product> advancedSearchProducts(String keyword, String category, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException;
+
+    /**
+     * Gets all available product categories.
+     * @return A list of all categories
+     * @throws SQLException If a database error occurs.
+     */
+    List<String> getAllCategories() throws SQLException;
+
     // --- Helper or Internal methods (if any, might not be in interface) ---
     // float calculatePriceWithVAT(float priceExclVAT);
 }

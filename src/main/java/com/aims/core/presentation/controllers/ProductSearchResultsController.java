@@ -1,12 +1,10 @@
+// filepath: /home/namu10x/Desktop/AIMS_Project/src/main/java/com/aims/core/presentation/controllers/ProductSearchResultsController.java
 package com.aims.core.presentation.controllers;
 
 import com.aims.core.application.services.IProductService;
 import com.aims.core.application.services.ICartService;
 import com.aims.core.entities.Product;
-import com.aims.core.shared.utils.SearchResult; // Your SearchResult utility class
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
-
+import com.aims.core.shared.utils.SearchResult;
 
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -48,38 +46,54 @@ public class ProductSearchResultsController {
     @FXML
     private Button nextPageButton;
 
-    // --- Service Dependencies (to be injected) ---
-    // @Inject
+    // --- Service Dependencies ---
     private IProductService productService;
-    // @Inject
-    private ICartService cartService; // For product cards
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private ICartService cartService;
 
+    // --- Pagination and State ---
     private int currentPage = 1;
-    private final int PAGE_SIZE = 20; // As per requirement
+    private final int PAGE_SIZE = 20;
     private int totalPages = 1;
 
     private String initialSearchTerm;
     private String initialCategory;
 
-
     public ProductSearchResultsController() {
-        // productService = new ProductServiceImpl(...); // DI
-        // cartService = new CartServiceImpl(...);    // DI
+        // Constructor for FXML loading
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setProductService(IProductService productService) { this.productService = productService; }
-    // public void setCartService(ICartService cartService) { this.cartService = cartService; }
+    public void setProductService(IProductService productService) {
+        this.productService = productService;
+    }
+
+    public void setCartService(ICartService cartService) {
+        this.cartService = cartService;
+    }
 
     public void initialize() {
-        // sceneManager = FXMLSceneManager.getInstance();
         sortByPriceComboBox.setItems(FXCollections.observableArrayList("Default", "Price: Low to High", "Price: High to Low"));
-        sortByPriceComboBox.setValue("Default"); // Default sort
-        // TODO: Load categories into categoryComboBox from productService or distinct values
-        // loadProducts(); // Will be called by setSearchCriteria
+        sortByPriceComboBox.setValue("Default");
+        
+        // Load categories dynamically from productService
+        try {
+            if (productService != null) {
+                List<String> categories = productService.getAllCategories();
+                categories.add(0, "All Categories");
+                categoryComboBox.setItems(FXCollections.observableArrayList(categories));
+                categoryComboBox.setValue("All Categories");
+            } else {
+                categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs"));
+                categoryComboBox.setValue("All Categories");
+            }
+        } catch (SQLException e) {
+            categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs"));
+            categoryComboBox.setValue("All Categories");
+            System.err.println("Error loading categories: " + e.getMessage());
+        }
+        
+        // Add listeners for filter changes
+        categoryComboBox.setOnAction(event -> handleFilterChange());
+        sortByPriceComboBox.setOnAction(event -> handleFilterChange());
     }
 
     /**
@@ -90,91 +104,108 @@ public class ProductSearchResultsController {
         this.initialCategory = category;
 
         if (searchField != null) searchField.setText(searchTerm != null ? searchTerm : "");
-        if (categoryComboBox != null) categoryComboBox.setValue(category); // Assuming category name is string
+        if (categoryComboBox != null && category != null) categoryComboBox.setValue(category);
 
-        if (searchTerm != null && !searchTerm.isEmpty()){
+        if (searchTerm != null && !searchTerm.isEmpty()) {
             searchResultsTitleLabel.setText("Search Results for: \"" + searchTerm + "\"");
-        } else if (category != null && !category.isEmpty()){
+        } else if (category != null && !category.isEmpty()) {
             searchResultsTitleLabel.setText("Products in Category: " + category);
         } else {
             searchResultsTitleLabel.setText("Search Results");
         }
         
-        this.currentPage = 1; // Reset to first page for new criteria
+        this.currentPage = 1;
         loadSearchedProducts();
     }
 
+    private void handleFilterChange() {
+        currentPage = 1; // Reset to first page when filters change
+        loadSearchedProducts();
+    }
 
     private void loadSearchedProducts() {
-        // if (productService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Product service is unavailable.");
-        //     productFlowPane.getChildren().clear();
-        //     productFlowPane.getChildren().add(new Label("Error: Could not load search results. Service not available."));
-        //     updatePaginationControls(0,0);
-        //     return;
-        // }
+        if (productService == null) {
+            productFlowPane.getChildren().clear();
+            productFlowPane.getChildren().add(new Label("Error: Product service not available."));
+            updatePaginationControls(0, 0);
+            return;
+        }
 
         String searchTerm = searchField.getText() != null ? searchField.getText().trim() : initialSearchTerm;
         String category = categoryComboBox.getValue() != null ? categoryComboBox.getValue() : initialCategory;
         if ("All Categories".equals(category)) category = null;
 
-        String sortBy = null;
-        String selectedSort = sortByPriceComboBox.getValue();
-        if ("Price: Low to High".equals(selectedSort)) {
-            sortBy = "ASC";
-        } else if ("Price: High to Low".equals(selectedSort)) {
-            sortBy = "DESC";
+        // Convert sort selection to service parameters
+        String sortBy = "title";
+        String sortOrder = "ASC";
+        if (sortByPriceComboBox.getValue() != null) {
+            switch (sortByPriceComboBox.getValue()) {
+                case "Price: Low to High":
+                    sortBy = "price";
+                    sortOrder = "ASC";
+                    break;
+                case "Price: High to Low":
+                    sortBy = "price";
+                    sortOrder = "DESC";
+                    break;
+                default:
+                    sortBy = "title";
+                    sortOrder = "ASC";
+                    break;
+            }
         }
 
-        // try {
-        //     SearchResult<Product> searchResult = productService.searchProducts(searchTerm, category, currentPage, PAGE_SIZE, sortBy);
-        //     totalPages = searchResult.totalPages();
-        //     List<Product> products = searchResult.results(); // Products should have VAT-inclusive prices from service
-        //
-        //     productFlowPane.getChildren().clear();
-        //     if (products.isEmpty() && currentPage == 1) {
-        //          productFlowPane.getChildren().add(new Label("No products found matching your search criteria."));
-        //     } else {
-        //         for (Product product : products) {
-        //             try {
-        //                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
-        //                 Parent productCardNode = loader.load();
-        //                 ProductCardController cardController = loader.getController();
-        //                 // cardController.setCartService(this.cartService);
-        //                 // cardController.setMainLayoutController(this.mainLayoutController);
-        //                 // cardController.setHomeScreenController(null); // Not the home screen controller
-        //                 cardController.setData(product);
-        //                 productFlowPane.getChildren().add(productCardNode);
-        //             } catch (IOException e) {
-        //                 e.printStackTrace();
-        //                 System.err.println("Error loading product card: " + e.getMessage());
-        //             }
-        //         }
-        //     }
-        //     updatePaginationControls(searchResult.currentPage(), searchResult.totalPages());
-        //
-        // } catch (SQLException e) {
-        //     e.printStackTrace();
-        //     // AlertHelper.showErrorAlert("Search Error", "Could not perform search: " + e.getMessage());
-        //     productFlowPane.getChildren().clear();
-        //     productFlowPane.getChildren().add(new Label("Error performing search."));
-        // }
-        System.out.println("loadSearchedProducts called - Implement with actual service call. Term: " + searchTerm + ", Cat: " + category + ", Sort: " + sortBy + ", Page: " + currentPage);
-        // Dummy update for UI
-        // updatePaginationControls(1,1);
+        productFlowPane.getChildren().clear();
+
+        try {
+            // Use the advanced search method
+            SearchResult<Product> searchResult = productService.advancedSearchProducts(
+                searchTerm, category, sortBy, sortOrder, currentPage, PAGE_SIZE);
+
+            List<Product> products = searchResult.results();
+            totalPages = searchResult.totalPages();
+
+            if (products.isEmpty()) {
+                productFlowPane.getChildren().add(new Label("No products found matching your criteria."));
+                updatePaginationControls(0, 0);
+                return;
+            }
+
+            // Create product cards
+            for (Product product : products) {
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
+                    Parent productCardNode = loader.load();
+                    ProductCardController cardController = loader.getController();
+
+                    // Set data for the product card
+                    cardController.setData(product);
+                    if (cartService != null) {
+                        cardController.setCartService(cartService);
+                    }
+                    productFlowPane.getChildren().add(productCardNode);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.err.println("Error loading product card: " + e.getMessage());
+                }
+            }
+
+            updatePaginationControls(searchResult.totalPages(), (int) searchResult.totalResults());
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            productFlowPane.getChildren().add(new Label("Error loading search results: " + e.getMessage()));
+            updatePaginationControls(0, 0);
+        }
     }
 
-    private void updatePaginationControls(int current, int total) {
-        currentPage = current;
-        totalPages = total;
-        if (total == 0 && current == 0) { // Special case for no results at all
+    private void updatePaginationControls(int total, int totalResults) {
+        this.totalPages = total;
+        if (totalResults == 0) {
             currentPageLabel.setText("No results");
             paginationControls.setVisible(false);
-        } else if (total == 0) { // No items but page might be 1
-            currentPageLabel.setText("Page 1/0");
-            paginationControls.setVisible(false);
-        }
-        else {
+        } else {
             currentPageLabel.setText("Page " + currentPage + "/" + totalPages);
             paginationControls.setVisible(true);
         }
@@ -184,19 +215,19 @@ public class ProductSearchResultsController {
 
     @FXML
     void handleSearchAction(ActionEvent event) {
-        currentPage = 1; // Reset to first page for new search from UI elements
-        this.initialSearchTerm = searchField.getText(); // Update initial term for subsequent pagination
-        this.initialCategory = categoryComboBox.getValue(); // Update initial category
+        currentPage = 1;
+        this.initialSearchTerm = searchField.getText();
+        this.initialCategory = categoryComboBox.getValue();
         if ("All Categories".equals(this.initialCategory)) this.initialCategory = null;
         
-        if (this.initialSearchTerm != null && !this.initialSearchTerm.isEmpty()){
+        if (this.initialSearchTerm != null && !this.initialSearchTerm.isEmpty()) {
             searchResultsTitleLabel.setText("Search Results for: \"" + this.initialSearchTerm + "\"");
-        } else if (this.initialCategory != null && !this.initialCategory.isEmpty()){
+        } else if (this.initialCategory != null && !this.initialCategory.isEmpty()) {
             searchResultsTitleLabel.setText("Products in Category: " + this.initialCategory);
         } else {
-             searchResultsTitleLabel.setText("All Products"); // Or some default if both are empty
+            searchResultsTitleLabel.setText("All Products");
         }
-
+        
         loadSearchedProducts();
     }
 

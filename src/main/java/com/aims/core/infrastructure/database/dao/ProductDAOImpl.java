@@ -435,4 +435,186 @@ public class ProductDAOImpl implements IProductDAO {
             throw e;
         }
     }
+
+    @Override
+    public List<Product> searchProducts(String keyword, String category, String sortBy, String sortOrder, int page, int pageSize) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        
+        // Build base query with proper joins for comprehensive search
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT DISTINCT p.* FROM PRODUCT p ");
+        sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        sql.append("WHERE p.quantityInStock > 0 ");
+        
+        List<String> conditions = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        
+        // Enhanced keyword search across multiple fields
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String keywordPattern = "%" + keyword.trim() + "%";
+            conditions.add("(p.title LIKE ? OR p.description LIKE ? OR p.category LIKE ? " +
+                          "OR b.authors LIKE ? OR b.publisher LIKE ? " +
+                          "OR c.artists LIKE ? OR c.recordLabel LIKE ? " +
+                          "OR d.director LIKE ? OR d.studio LIKE ?)");
+            // Add 9 parameters for the keyword search
+            for (int i = 0; i < 9; i++) {
+                parameters.add(keywordPattern);
+            }
+        }
+        
+        // Category filter
+        if (category != null && !category.trim().isEmpty() && !"All".equalsIgnoreCase(category)) {
+            conditions.add("p.category = ?");
+            parameters.add(category);
+        }
+        
+        // Apply conditions
+        for (String condition : conditions) {
+            sql.append(" AND ").append(condition);
+        }
+        
+        // Add sorting with validation
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            String validatedSortBy = validateSortColumn(sortBy);
+            sql.append(" ORDER BY ").append(validatedSortBy);
+            if (sortOrder != null && sortOrder.equalsIgnoreCase("DESC")) {
+                sql.append(" DESC");
+            } else {
+                sql.append(" ASC");
+            }
+        } else {
+            sql.append(" ORDER BY p.title ASC"); // Default sorting
+        }
+        
+        // Add pagination
+        sql.append(" LIMIT ? OFFSET ?");
+        parameters.add(pageSize);
+        parameters.add((page - 1) * pageSize);
+        
+        Connection conn = getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            ps = conn.prepareStatement(sql.toString());
+            
+            // Set parameters
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+            
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                // Get full product with subtype details
+                Product fullProduct = getById(rs.getString("productID"));
+                if (fullProduct != null) {
+                    products.add(fullProduct);
+                }
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+        }
+        
+        return products;
+    }
+    
+    // Helper method to validate sort columns and prevent SQL injection
+    private String validateSortColumn(String sortBy) {
+        switch (sortBy.toLowerCase()) {
+            case "title":
+                return "p.title";
+            case "price":
+                return "p.price";
+            case "category":
+                return "p.category";
+            case "entrydate":
+                return "p.entryDate";
+            case "quantity":
+                return "p.quantityInStock";
+            default:
+                return "p.title"; // Default safe sorting
+        }
+    }
+
+    @Override
+    public int getSearchResultsCount(String keyword, String category) throws SQLException {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT COUNT(DISTINCT p.productID) FROM PRODUCT p ");
+        sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        sql.append("WHERE p.quantityInStock > 0 ");
+        
+        List<String> conditions = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        
+        // Enhanced keyword search across multiple fields
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String keywordPattern = "%" + keyword.trim() + "%";
+            conditions.add("(p.title LIKE ? OR p.description LIKE ? OR p.category LIKE ? " +
+                          "OR b.authors LIKE ? OR b.publisher LIKE ? " +
+                          "OR c.artists LIKE ? OR c.recordLabel LIKE ? " +
+                          "OR d.director LIKE ? OR d.studio LIKE ?)");
+            // Add 9 parameters for the keyword search
+            for (int i = 0; i < 9; i++) {
+                parameters.add(keywordPattern);
+            }
+        }
+        
+        // Category filter
+        if (category != null && !category.trim().isEmpty() && !"All".equalsIgnoreCase(category)) {
+            conditions.add("p.category = ?");
+            parameters.add(category);
+        }
+        
+        // Apply conditions
+        for (String condition : conditions) {
+            sql.append(" AND ").append(condition);
+        }
+        
+        Connection conn = getConnection();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            ps = conn.prepareStatement(sql.toString());
+            
+            // Set parameters
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+            
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+        }
+        
+        return 0;
+    }
+
+    @Override
+    public List<String> getAllCategories() throws SQLException {
+        List<String> categories = new ArrayList<>();
+        String sql = "SELECT DISTINCT category FROM PRODUCT WHERE category IS NOT NULL AND category != '' ORDER BY category";
+        
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                categories.add(rs.getString("category"));
+            }
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+        
+        return categories;
+    }
 }

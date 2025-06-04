@@ -319,4 +319,27 @@ public class ProductServiceImpl implements IProductService {
         // Apply VAT for customer display
         return addVAT(product); // Modifies the price of the fetched product or a copy
     }
+
+    @Override
+    public SearchResult<Product> advancedSearchProducts(String keyword, String category, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
+        // Use the enhanced DAO method for database-level filtering, sorting, and pagination
+        List<Product> products = productDAO.searchProducts(keyword, category, sortBy, sortOrder, pageNumber, pageSize);
+        
+        // Apply VAT to all products for customer display
+        List<Product> productsWithVAT = products.stream()
+                .map(this::addVAT)
+                .collect(Collectors.toList());
+        
+        // Get total count for pagination
+        int totalResults = productDAO.getSearchResultsCount(keyword, category);
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
+        
+        return new SearchResult<>(productsWithVAT, pageNumber, totalPages, totalResults);
+    }
+
+    @Override
+    public List<String> getAllCategories() throws SQLException {
+        return productDAO.getAllCategories();
+    }
 }
