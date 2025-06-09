@@ -9,94 +9,93 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane fx:id="orderSummaryPane" prefHeight="700.0" prefWidth="800.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.OrderSummaryController">
+<BorderPane fx:id="orderSummaryPane" styleClass="main-layout" prefHeight="-1.0" prefWidth="-1.0" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.OrderSummaryController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <Label text="Order Summary & Confirmation"  BorderPane.alignment="CENTER">
+        <Label text="Order Summary & Confirmation" styleClass="header-title" BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="20.0" />
             </BorderPane.margin>
         </Label>
     </top>
     <center>
-        <ScrollPane fitToWidth="true">
-            <VBox spacing="15" >
+        <ScrollPane styleClass="scroll-pane" fitToWidth="true">
+            <VBox spacing="15" styleClass="content-area">
                 <GridPane hgap="10" vgap="8">
-                    <Label text="Order ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                    <Label fx:id="orderIdLabel" text="N/A" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <Label text="Order ID:" styleClass="text-bold" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Label fx:id="orderIdLabel" styleClass="text-muted" text="N/A" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-                    <Label text="Order Date:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                    <Label fx:id="orderDateLabel" text="N/A" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label text="Order Date:" styleClass="text-bold" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <Label fx:id="orderDateLabel" styleClass="text-muted" text="N/A" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
                 </GridPane>
 
                 <Separator/>
 
-                <Label text="Delivery Information:" />
+                <Label text="Delivery Information:" styleClass="section-title" />
                 <GridPane fx:id="deliveryInfoGrid" hgap="10" vgap="5">
-                    <Label text="Recipient:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                    <Text fx:id="recipientNameText" wrappingWidth="300.0" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <Label text="Recipient:" styleClass="text-bold" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Text fx:id="recipientNameText" styleClass="text-muted" wrappingWidth="300.0" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-                    <Label text="Phone:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                    <Text fx:id="phoneText" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label text="Phone:" styleClass="text-bold" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <Text fx:id="phoneText" styleClass="text-muted" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-                    <Label text="Email:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                    <Text fx:id="emailText" wrappingWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="Email:" styleClass="text-bold" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <Text fx:id="emailText" styleClass="text-muted" wrappingWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
                     
-                    <Label text="Address:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                    <Text fx:id="addressText" wrappingWidth="300.0" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <Label text="Address:" styleClass="text-bold" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <Text fx:id="addressText" styleClass="text-muted" wrappingWidth="300.0" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
 
-                    <Label text="Province/City:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                    <Text fx:id="provinceCityText" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    <Label text="Province/City:" styleClass="text-bold" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                    <Text fx:id="provinceCityText" styleClass="text-muted" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
 
-                    <Label text="Instructions:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                    <Text fx:id="instructionsText" wrappingWidth="300.0" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                    <Label text="Instructions:" styleClass="text-bold" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <Text fx:id="instructionsText" styleClass="text-muted" wrappingWidth="300.0" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
-                    <Label text="Delivery Method:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
-                    <Text fx:id="deliveryMethodText" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                    <Label text="Delivery Method:" styleClass="text-bold" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                    <Text fx:id="deliveryMethodText" styleClass="text-muted" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
                     
-                     <Label fx:id="rushTimeLabel" text="Rush Delivery Time:" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="0" />
-                    <Text fx:id="rushTimeText" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                     <Label fx:id="rushTimeLabel" styleClass="text-bold" text="Rush Delivery Time:" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                    <Text fx:id="rushTimeText" styleClass="text-muted" visible="false" managed="false" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
                 </GridPane>
 
                 <Separator/>
 
-                <Label text="Order Items:" />
+                <Label text="Order Items:" styleClass="section-title" />
                 <VBox fx:id="orderItemsVBox" spacing="8"/>
 
                 <Separator/>
 
                 <GridPane hgap="10" vgap="8" >
-                    <Label text="Subtotal (Products, excl. VAT):" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                    <Label fx:id="subtotalExclVATLabel" text="0 VND" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+                    <Label text="Subtotal (Products, excl. VAT):" styleClass="text-bold" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <Label fx:id="subtotalExclVATLabel" styleClass="text-muted" text="0 VND" GridPane.rowIndex="0" GridPane.columnIndex="1" />
 
-                    <Label text="VAT (10% on Products):" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                    <Label fx:id="vatLabel" text="0 VND" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                    <Label text="VAT (10% on Products):" styleClass="text-bold" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <Label fx:id="vatLabel" styleClass="text-muted" text="0 VND" GridPane.rowIndex="1" GridPane.columnIndex="1" />
                     
-                    <Label text="Total Product Price (incl. VAT):" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                    <Label fx:id="subtotalInclVATLabel" text="0 VND" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                    <Label text="Total Product Price (incl. VAT):" styleClass="text-bold" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <Label fx:id="subtotalInclVATLabel" styleClass="text-muted" text="0 VND" GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
-                    <Label text="Shipping Fee:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                    <Label fx:id="shippingFeeLabel" text="0 VND" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+                    <Label text="Shipping Fee:" styleClass="text-bold" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <Label fx:id="shippingFeeLabel" styleClass="text-muted" text="0 VND" GridPane.rowIndex="3" GridPane.columnIndex="1" />
                     
                     <Separator GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
 
-                    <Label text="TOTAL AMOUNT TO BE PAID:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                    <Label fx:id="totalAmountPaidLabel" text="0 VND" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+                    <Label text="TOTAL AMOUNT TO BE PAID:" styleClass="section-title" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <Label fx:id="totalAmountPaidLabel" styleClass="product-price" text="0 VND" GridPane.rowIndex="5" GridPane.columnIndex="1" />
                 </GridPane>
 
             </VBox>
         </ScrollPane>
     </center>
     <bottom>
-        <HBox alignment="CENTER_RIGHT" spacing="15"  BorderPane.alignment="CENTER">
-            <Label fx:id="errorMessageLabel"  wrapText="true" HBox.hgrow="ALWAYS"/>
-            <Button text="Back to Delivery Info" onAction="#handleBackToDeliveryInfoAction" />
-            <Button fx:id="proceedToPaymentMethodButton" text="Proceed to Select Payment Method" onAction="#handleProceedToPaymentMethodAction"  defaultButton="true"/>
+        <HBox alignment="CENTER_RIGHT" spacing="15" BorderPane.alignment="CENTER">
+            <Label fx:id="errorMessageLabel" styleClass="error-message" wrapText="true" HBox.hgrow="ALWAYS"/>
+            <Button text="Back to Delivery Info" styleClass="secondary-button" onAction="#handleBackToDeliveryInfoAction" />
+            <Button fx:id="proceedToPaymentMethodButton" styleClass="primary-button" text="Proceed to Select Payment Method" onAction="#handleProceedToPaymentMethodAction" defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>

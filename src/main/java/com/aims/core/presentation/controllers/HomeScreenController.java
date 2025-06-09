@@ -20,6 +20,11 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
+import javafx.scene.text.TextAlignment;
+import javafx.concurrent.Task;
+import javafx.application.Platform;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -155,82 +160,191 @@ public class HomeScreenController implements MainLayoutController.IChildControll
     }
 
     private void loadProducts() {
-        // Clear existing product cards
-        productFlowPane.getChildren().clear();
+        System.out.println("HomeScreenController.loadProducts: Starting with page=" + currentPage);
         
         if (productService == null) {
-            // Fallback to direct database access if service not available
-            System.out.println("ProductService not available, using direct database access...");
-            loadProductsDirectly();
-            return;
+            System.err.println("ProductService is null - attempting recovery");
+            validateAndInitializeServices();
+            if (productService == null) {
+                showError("Product service unavailable. Please refresh the page.");
+                return;
+            }
         }
         
         try {
-            // Use the advanced search method for comprehensive functionality
-            String keyword = currentSearchTerm.trim().isEmpty() ? null : currentSearchTerm;
-            String category = "All Categories".equals(currentCategoryFilter) ? null : currentCategoryFilter;
+            // Clear existing products and show loading
+            Platform.runLater(() -> {
+                productFlowPane.getChildren().clear();
+                showLoadingIndicator();
+            });
             
-            // Convert sort selection to service parameters
-            String sortBy = null;
-            String sortOrder = null;
-            if (currentSortBy != null) {
-                switch (currentSortBy) {
-                    case "ASC":
-                        sortBy = "price";
-                        sortOrder = "ASC";
-                        break;
-                    case "DESC":
-                        sortBy = "price";
-                        sortOrder = "DESC";
-                        break;
-                    default:
+            // Load products asynchronously
+            Task<SearchResult<Product>> loadTask = new Task<SearchResult<Product>>() {
+                @Override
+                protected SearchResult<Product> call() throws Exception {
+                    // Use the advanced search method for comprehensive functionality
+                    String keyword = currentSearchTerm.trim().isEmpty() ? null : currentSearchTerm;
+                    String category = "All Categories".equals(currentCategoryFilter) ? null : currentCategoryFilter;
+                    
+                    // Convert sort selection to service parameters
+                    String sortBy = null;
+                    String sortOrder = null;
+                    if (currentSortBy != null) {
+                        switch (currentSortBy) {
+                            case "ASC":
+                                sortBy = "price";
+                                sortOrder = "ASC";
+                                break;
+                            case "DESC":
+                                sortBy = "price";
+                                sortOrder = "DESC";
+                                break;
+                            default:
+                                sortBy = "title";
+                                sortOrder = "ASC";
+                                break;
+                        }
+                    } else {
                         sortBy = "title";
                         sortOrder = "ASC";
-                        break;
-                }
-            } else {
-                sortBy = "title";
-                sortOrder = "ASC";
-            }
-            
-            // Get search results using the enhanced service method
-            SearchResult<Product> searchResult = productService.advancedSearchProducts(
-                keyword, category, sortBy, sortOrder, currentPage, PAGE_SIZE);
-            
-            List<Product> products = searchResult.results();
-            totalPages = searchResult.totalPages();
-            
-            // Create product cards
-            for (Product product : products) {
-                try {
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
-                    Parent productCardNode = loader.load();
-                    ProductCardController cardController = loader.getController();
-                    
-                    // Set data for the product card
-                    cardController.setData(product);
-                    if (cartService != null) {
-                        cardController.setCartService(cartService); // Pass cart service for add to cart functionality
                     }
-                    // Set MainLayoutController reference for navigation
-                    if (mainLayoutController != null) {
-                        cardController.setMainLayoutController(mainLayoutController);
-                    }
-                    productFlowPane.getChildren().add(productCardNode);
                     
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.err.println("Error loading product card: " + e.getMessage());
+                    return productService.advancedSearchProducts(
+                        keyword, category, sortBy, sortOrder, currentPage, PAGE_SIZE);
                 }
-            }
+                
+                @Override
+                protected void succeeded() {
+                    Platform.runLater(() -> {
+                        SearchResult<Product> result = getValue();
+                        hideLoadingIndicator();
+                        populateProductCards(result.results());
+                        totalPages = result.totalPages();
+                        updatePaginationControls(currentPage, totalPages, (int) result.totalResults());
+                    });
+                }
+                
+                @Override
+                protected void failed() {
+                    Platform.runLater(() -> {
+                        hideLoadingIndicator();
+                        System.err.println("Task failed: " + getException().getMessage());
+                        getException().printStackTrace();
+                        // Fallback to direct database access
+                        loadProductsDirectly();
+                    });
+                }
+            };
             
-            updatePaginationControls(currentPage, totalPages, (int) searchResult.totalResults());
+            new Thread(loadTask).start();
             
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            System.err.println("Error in loadProducts: " + e.getMessage());
             e.printStackTrace();
-            productFlowPane.getChildren().add(new Label("Error loading products: " + e.getMessage()));
-            updatePaginationControls(0, 0, 0);
+            showError("Error loading products. Please try again.");
         }
+    }
+    
+    private void validateAndInitializeServices() {
+        // Attempt to recover services if they're null
+        try {
+            if (productService == null) {
+                // Attempt to get service from ServiceFactory or dependency injection
+                System.err.println("Attempting to recover ProductService...");
+                // productService = ServiceFactory.getProductService(); // Uncomment if available
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to recover services: " + e.getMessage());
+        }
+    }
+    
+    private void populateProductCards(List<Product> products) {
+        System.out.println("HomeScreenController.populateProductCards: Loading " + products.size() + " products");
+        
+        if (products.isEmpty()) {
+            showEmptyState();
+            return;
+        }
+        
+        for (Product product : products) {
+            try {
+                // Load product card FXML
+                FXMLLoader cardLoader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
+                Parent cardNode = cardLoader.load();
+                
+                // Get controller and set data
+                ProductCardController cardController = cardLoader.getController();
+                cardController.setData(product);
+                
+                if (cartService != null) {
+                    cardController.setCartService(cartService);
+                }
+                if (mainLayoutController != null) {
+                    cardController.setMainLayoutController(mainLayoutController);
+                }
+                
+                // Add to flow pane
+                productFlowPane.getChildren().add(cardNode);
+                
+            } catch (Exception e) {
+                System.err.println("Error loading product card for: " + product.getTitle() + " - " + e.getMessage());
+            }
+        }
+        
+        System.out.println("HomeScreenController.populateProductCards: Successfully loaded " + productFlowPane.getChildren().size() + " product cards");
+    }
+    
+    // Add visual feedback methods
+    private void showLoadingIndicator() {
+        Label loadingLabel = new Label("Loading products...");
+        loadingLabel.getStyleClass().add("loading-indicator");
+        productFlowPane.getChildren().clear();
+        productFlowPane.getChildren().add(loadingLabel);
+    }
+    
+    private void hideLoadingIndicator() {
+        // Loading indicator will be replaced by actual content
+    }
+    
+    private void showEmptyState() {
+        VBox emptyState = new VBox(20);
+        emptyState.setAlignment(Pos.CENTER);
+        emptyState.getStyleClass().add("empty-state");
+        
+        Label emptyLabel = new Label("No products found");
+        emptyLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #7f8c8d;");
+        
+        Label emptyDescription = new Label("Try adjusting your search criteria or browse all categories");
+        emptyDescription.setStyle("-fx-font-size: 14px; -fx-text-fill: #95a5a6;");
+        
+        javafx.scene.control.Button refreshButton = new javafx.scene.control.Button("Refresh");
+        refreshButton.getStyleClass().add("primary-button");
+        refreshButton.setOnAction(e -> loadProducts());
+        
+        emptyState.getChildren().addAll(emptyLabel, emptyDescription, refreshButton);
+        productFlowPane.getChildren().clear();
+        productFlowPane.getChildren().add(emptyState);
+    }
+    
+    private void showError(String message) {
+        VBox errorState = new VBox(15);
+        errorState.setAlignment(Pos.CENTER);
+        errorState.getStyleClass().add("error-state");
+        
+        Label errorLabel = new Label("Error Loading Products");
+        errorLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+        
+        Label errorDescription = new Label(message);
+        errorDescription.setStyle("-fx-font-size: 14px; -fx-text-fill: #c0392b; -fx-wrap-text: true; -fx-max-width: 400;");
+        errorDescription.setTextAlignment(TextAlignment.CENTER);
+        
+        javafx.scene.control.Button retryButton = new javafx.scene.control.Button("Try Again");
+        retryButton.getStyleClass().add("danger-button");
+        retryButton.setOnAction(e -> loadProducts());
+        
+        errorState.getChildren().addAll(errorLabel, errorDescription, retryButton);
+        productFlowPane.getChildren().clear();
+        productFlowPane.getChildren().add(errorState);
     }
     
     // Fallback method for direct database access when service is not available
@@ -384,26 +498,147 @@ public class HomeScreenController implements MainLayoutController.IChildControll
      * This would be called by ProductCardController.
      */
     public void navigateToProductDetail(String productId) {
-        if (mainLayoutController != null /*&& sceneManager != null*/) {
-            System.out.println("HomeScreenController: Navigating to product detail for ID: " + productId);
-            // FXMLLoader loader = sceneManager.getLoader(FXMLPaths.PRODUCT_DETAIL_SCREEN);
-            // try {
-            //     Parent detailNode = loader.load();
-            //     ProductDetailScreenController detailController = loader.getController();
-            //     detailController.setMainLayoutController(mainLayoutController);
-            //     detailController.setProductService(this.productService); // Pass services
-            //     detailController.setCartService(this.cartService);
-            //     detailController.setProductId(productId);
-            //
-            //     mainLayoutController.loadContent(FXMLPaths.PRODUCT_DETAIL_SCREEN); // Or use sceneManager to load into contentPane
-            //     // The above line might be redundant if sceneManager.loadFXMLIntoPane in ProductCardController already does this.
-            //     // This depends on how navigation is structured.
-            //     // For simplicity, ProductCardController might directly call mainLayoutController.loadContent()
-            //
-            // } catch (IOException e) {
-            //     e.printStackTrace();
-            //     AlertHelper.showErrorAlert("Navigation Error", "Could not load product details.");
-            // }
+        System.out.println("HomeScreenController.navigateToProductDetail: Called with productId: " + productId);
+        
+        if (mainLayoutController != null) {
+            try {
+                // Store current search context before navigating
+                storeNavigationContext();
+                
+                // Load the product detail screen using history-aware navigation
+                Object controller = null;
+                
+                // Check if MainLayoutController has loadContentWithHistory method
+                try {
+                    java.lang.reflect.Method loadWithHistoryMethod = mainLayoutController.getClass().getMethod("loadContentWithHistory", String.class, String.class);
+                    controller = loadWithHistoryMethod.invoke(mainLayoutController, "/com/aims/presentation/views/product_detail_screen.fxml", "Product Details");
+                    System.out.println("HomeScreenController.navigateToProductDetail: Used history-aware navigation");
+                } catch (NoSuchMethodException e) {
+                    // Fallback to regular navigation
+                    controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
+                    System.out.println("HomeScreenController.navigateToProductDetail: Used fallback navigation");
+                } catch (Exception e) {
+                    System.err.println("HomeScreenController.navigateToProductDetail: Error in history-aware navigation: " + e.getMessage());
+                    controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
+                }
+                
+                if (controller instanceof ProductDetailScreenController detailController) {
+                    // Inject dependencies
+                    detailController.setMainLayoutController(mainLayoutController);
+                    detailController.setProductService(this.productService);
+                    detailController.setCartService(this.cartService);
+                    
+                    // Set the product ID to load
+                    detailController.setProductId(productId);
+                    
+                    System.out.println("Navigation to product detail completed successfully");
+                } else {
+                    System.err.println("Failed to cast controller to ProductDetailScreenController");
+                }
+            } catch (Exception e) {
+                System.err.println("Error navigating to product detail: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("MainLayoutController is null, cannot navigate");
+        }
+    }
+
+    /**
+     * Stores the current search context for later restoration when returning from product details.
+     * This method is called before navigating to product detail screen.
+     */
+    private void storeNavigationContext() {
+        System.out.println("HomeScreenController.storeNavigationContext: Storing current search state");
+        System.out.println("HomeScreenController.storeNavigationContext: Search term: '" + currentSearchTerm + "'");
+        System.out.println("HomeScreenController.storeNavigationContext: Category filter: '" + currentCategoryFilter + "'");
+        System.out.println("HomeScreenController.storeNavigationContext: Sort by: '" + currentSortBy + "'");
+        System.out.println("HomeScreenController.storeNavigationContext: Current page: " + currentPage);
+        
+        // The actual context storage is handled by FXMLSceneManager when using loadContentWithHistory
+        // This method is mainly for logging and potential future extensions
+    }
+
+    /**
+     * Restores the search context from navigation history.
+     * This method is called by FXMLSceneManager when returning from product detail screen.
+     *
+     * @param searchTerm The search term to restore
+     * @param categoryFilter The category filter to restore
+     * @param sortBy The sort order to restore
+     * @param page The page number to restore
+     */
+    public void restoreSearchContext(String searchTerm, String categoryFilter, String sortBy, int page) {
+        System.out.println("HomeScreenController.restoreSearchContext: Restoring search context");
+        System.out.println("HomeScreenController.restoreSearchContext: Search term: '" + searchTerm + "'");
+        System.out.println("HomeScreenController.restoreSearchContext: Category filter: '" + categoryFilter + "'");
+        System.out.println("HomeScreenController.restoreSearchContext: Sort by: '" + sortBy + "'");
+        System.out.println("HomeScreenController.restoreSearchContext: Page: " + page);
+
+        try {
+            // Restore search term
+            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+                currentSearchTerm = searchTerm;
+                if (searchField != null) {
+                    searchField.setText(searchTerm);
+                }
+            } else {
+                currentSearchTerm = "";
+                if (searchField != null) {
+                    searchField.setText("");
+                }
+            }
+
+            // Restore category filter
+            if (categoryFilter != null && !categoryFilter.trim().isEmpty()) {
+                currentCategoryFilter = categoryFilter;
+                if (categoryComboBox != null) {
+                    categoryComboBox.setValue(categoryFilter);
+                }
+            } else {
+                currentCategoryFilter = null;
+                if (categoryComboBox != null) {
+                    categoryComboBox.setValue("All Categories");
+                }
+            }
+
+            // Restore sort order
+            if (sortBy != null && !sortBy.trim().isEmpty()) {
+                currentSortBy = sortBy;
+                if (sortByPriceComboBox != null) {
+                    switch (sortBy) {
+                        case "ASC":
+                            sortByPriceComboBox.setValue("Price: Low to High");
+                            break;
+                        case "DESC":
+                            sortByPriceComboBox.setValue("Price: High to Low");
+                            break;
+                        default:
+                            sortByPriceComboBox.setValue("Default Sort");
+                            break;
+                    }
+                }
+            } else {
+                currentSortBy = null;
+                if (sortByPriceComboBox != null) {
+                    sortByPriceComboBox.setValue("Default Sort");
+                }
+            }
+
+            // Restore page number
+            currentPage = Math.max(1, page);
+
+            // Reload products with restored context
+            loadProducts();
+            
+            System.out.println("HomeScreenController.restoreSearchContext: Successfully restored search context and reloaded products");
+            
+        } catch (Exception e) {
+            System.err.println("HomeScreenController.restoreSearchContext: Error restoring search context: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Fallback to loading products without restored context
+            loadProducts();
         }
     }
 }

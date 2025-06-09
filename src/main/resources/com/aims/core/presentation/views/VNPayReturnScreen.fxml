@@ -5,57 +5,33 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<VBox fx:id="contentContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="600.0" spacing="20.0"  xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.VNPayReturnController">
+<VBox fx:id="contentContainer" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="-1.0" prefWidth="-1.0" spacing="20.0" styleClass="payment-container" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.VNPayReturnController">
    <children>
       <!-- Header -->
-      <VBox alignment="CENTER" >
+      <VBox alignment="CENTER" styleClass="payment-header">
          <children>
-            <Label text="AIMS - Payment Result" textFill="WHITE">
-               <font>
-                  <Font name="System Bold" size="24.0" />
-               </font>
-            </Label>
+            <Label text="AIMS - Payment Result" styleClass="page-title"/>
          </children>
       </VBox>
       
       <!-- Content Area -->
-      <VBox alignment="CENTER" spacing="15.0" >
+      <VBox alignment="CENTER" spacing="15.0" styleClass="content-area">
          <children>
             <!-- Status Label -->
-            <Label fx:id="statusLabel" text="Processing payment result..." textAlignment="CENTER" wrapText="true">
-               <font>
-                  <Font name="System Bold" size="18.0" />
-               </font>
-            </Label>
+            <Label fx:id="statusLabel" text="Processing payment result..." textAlignment="CENTER" wrapText="true" styleClass="payment-status"/>
             
             <!-- Transaction Details -->
-            <VBox alignment="CENTER" spacing="10.0" >
+            <VBox alignment="CENTER" spacing="10.0" styleClass="transaction-details">
                <children>
-                  <Label fx:id="orderIdLabel" text="Order ID: " textAlignment="CENTER">
-                     <font>
-                        <Font size="14.0" />
-                     </font>
-                  </Label>
-                  <Label fx:id="transactionIdLabel" text="Transaction ID: " textAlignment="CENTER">
-                     <font>
-                        <Font size="14.0" />
-                     </font>
-                  </Label>
-                  <Label fx:id="amountLabel" text="Amount: " textAlignment="CENTER">
-                     <font>
-                        <Font name="System Bold" size="16.0" />
-                     </font>
-                  </Label>
+                  <Label fx:id="orderIdLabel" text="Order ID: " textAlignment="CENTER" styleClass="transaction-label"/>
+                  <Label fx:id="transactionIdLabel" text="Transaction ID: " textAlignment="CENTER" styleClass="transaction-label"/>
+                  <Label fx:id="amountLabel" text="Amount: " textAlignment="CENTER" styleClass="amount-label"/>
                </children>
             </VBox>
             
             <!-- Message Area -->
-            <Label fx:id="messageLabel" maxWidth="500.0" text="Please wait while we verify your payment." textAlignment="CENTER" wrapText="true">
-               <font>
-                  <Font size="14.0" />
-               </font>
+            <Label fx:id="messageLabel" maxWidth="500.0" text="Please wait while we verify your payment." textAlignment="CENTER" wrapText="true" styleClass="payment-message">
                <VBox.margin>
                   <Insets top="10.0" />
                </VBox.margin>
@@ -67,29 +43,17 @@
                   <Insets top="20.0" />
                </VBox.margin>
                <children>
-                  <Button fx:id="continueButton" mnemonicParsing="false" onAction="#handleContinue" prefWidth="120.0"  text="Continue" visible="false">
-                     <font>
-                        <Font size="14.0" />
-                     </font>
-                  </Button>
-                  <Button fx:id="retryButton" mnemonicParsing="false" onAction="#handleRetry" prefWidth="120.0"  text="Try Again" visible="false">
-                     <font>
-                        <Font size="14.0" />
-                     </font>
-                  </Button>
+                  <Button fx:id="continueButton" mnemonicParsing="false" onAction="#handleContinue" prefWidth="120.0" text="Continue" visible="false" styleClass="primary-button"/>
+                  <Button fx:id="retryButton" mnemonicParsing="false" onAction="#handleRetry" prefWidth="120.0" text="Try Again" visible="false" styleClass="secondary-button"/>
                </children>
             </HBox>
          </children>
       </VBox>
       
       <!-- Footer -->
-      <VBox alignment="CENTER" >
+      <VBox alignment="CENTER" styleClass="payment-footer">
          <children>
-            <Label text="Powered by VNPay - Vietnam's Leading Payment Gateway" textFill="#bdc3c7">
-               <font>
-                  <Font size="12.0" />
-               </font>
-            </Label>
+            <Label text="Powered by VNPay - Vietnam's Leading Payment Gateway" styleClass="footer-text"/>
          </children>
       </VBox>
    </children>

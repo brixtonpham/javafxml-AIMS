@@ -1,0 +1,596 @@
+/* =========================================================================
+   AIMS - Theme CSS Styles
+   Color schemes and theme-specific styling
+   ========================================================================= */
+
+/* =========================================================================
+   COLOR PALETTE VARIABLES (JavaFX CSS)
+   ========================================================================= */
+
+.root {
+    /* Primary Colors */
+    -primary-color: #3498db;
+    -primary-dark: #2980b9;
+    -primary-darker: #21618c;
+    
+    /* Secondary Colors */
+    -secondary-color: #34495e;
+    -secondary-dark: #2c3e50;
+    
+    /* Success Colors */
+    -success-color: #27ae60;
+    -success-dark: #229954;
+    -success-darker: #1e8449;
+    
+    /* Warning Colors */
+    -warning-color: #f39c12;
+    -warning-dark: #e67e22;
+    
+    /* Danger Colors */
+    -danger-color: #e74c3c;
+    -danger-dark: #c0392b;
+    
+    /* Neutral Colors */
+    -gray-100: #f8f9fa;
+    -gray-200: #ecf0f1;
+    -gray-300: #e0e0e0;
+    -gray-400: #bdc3c7;
+    -gray-500: #95a5a6;
+    -gray-600: #7f8c8d;
+    -gray-700: #2c3e50;
+    -gray-800: #1a252f;
+    
+    /* Text Colors */
+    -text-primary: #2c3e50;
+    -text-secondary: #7f8c8d;
+    -text-light: #95a5a6;
+    -text-white: #ffffff;
+    
+    /* Background Colors */
+    -bg-primary: #ffffff;
+    -bg-secondary: #f8f9fa;
+    -bg-tertiary: #ecf0f1;
+    
+    /* Border Colors */
+    -border-light: #e0e0e0;
+    -border-medium: #bdc3c7;
+    -border-dark: #95a5a6;
+    
+    /* Shadow Colors */
+    -shadow-light: rgba(0,0,0,0.1);
+    -shadow-medium: rgba(0,0,0,0.15);
+    -shadow-dark: rgba(0,0,0,0.2);
+}
+
+/* =========================================================================
+   THEME: DEFAULT (LIGHT)
+   ========================================================================= */
+
+.theme-default {
+    -fx-base: #ffffff;
+    -fx-background: #f8f9fa;
+    -fx-control-inner-background: #ffffff;
+    -fx-control-inner-background-alt: #f8f9fa;
+    -fx-accent: #3498db;
+    -fx-default-button: #3498db;
+    -fx-focus-color: #3498db;
+    -fx-faint-focus-color: rgba(52, 152, 219, 0.1);
+    -fx-focused-text-base-color: #2c3e50;
+    -fx-focused-mark-color: #3498db;
+    -fx-selection-bar: #3498db;
+    -fx-selection-bar-non-focused: #bdc3c7;
+    -fx-text-background-color: #ffffff;
+    -fx-text-fill: #2c3e50;
+}
+
+/* =========================================================================
+   APPLICATION HEADER THEME
+   ========================================================================= */
+
+.app-header {
+    -fx-background-color: linear-gradient(to bottom, #34495e 0%, #2c3e50 100%);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #1a252f;
+    -fx-border-width: 0 0 2 0;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 4, 0, 0, 2);
+}
+
+.app-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.3), 1, 0, 0, 1);
+}
+
+/* =========================================================================
+   NAVIGATION THEME
+   ========================================================================= */
+
+.nav-menu {
+    -fx-background-color: #34495e;
+    -fx-border-color: #2c3e50;
+}
+
+.nav-menu .menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-padding: 10 16;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.nav-menu .menu-button:hover {
+    -fx-background-color: rgba(255,255,255,0.1);
+}
+
+.nav-menu .menu-button:focused {
+    -fx-background-color: rgba(255,255,255,0.2);
+}
+
+.nav-menu .menu-button:showing {
+    -fx-background-color: #2c3e50;
+}
+
+/* =========================================================================
+   PRODUCT CARD THEME
+   ========================================================================= */
+
+.product-card-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 6, 0, 0, 2);
+    -fx-transition: all 0.3s ease;
+}
+
+.product-card-theme:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 12, 0, 0, 4);
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+    -fx-translate-y: -2;
+}
+
+.product-price-theme {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: linear-gradient(to right, #e74c3c 0%, #c0392b 100%);
+}
+
+.product-availability-theme {
+    -fx-font-size: 12px;
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: 500;
+}
+
+.product-availability-low {
+    -fx-text-fill: #f39c12;
+}
+
+.product-availability-out {
+    -fx-text-fill: #e74c3c;
+}
+
+/* =========================================================================
+   BUTTON THEMES
+   ========================================================================= */
+
+.button-primary-theme {
+    -fx-background-color: linear-gradient(to bottom, #3498db 0%, #2980b9 100%);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 600;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12 24;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.3), 4, 0, 0, 2);
+}
+
+.button-primary-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #2980b9 0%, #21618c 100%);
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.4), 6, 0, 0, 3);
+}
+
+.button-primary-theme:pressed {
+    -fx-background-color: #21618c;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 2, 0, 0, 1);
+}
+
+.button-success-theme {
+    -fx-background-color: linear-gradient(to bottom, #27ae60 0%, #229954 100%);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 600;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12 24;
+    -fx-effect: dropshadow(three-pass-box, rgba(39, 174, 96, 0.3), 4, 0, 0, 2);
+}
+
+.button-success-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #229954 0%, #1e8449 100%);
+    -fx-effect: dropshadow(three-pass-box, rgba(39, 174, 96, 0.4), 6, 0, 0, 3);
+}
+
+.button-danger-theme {
+    -fx-background-color: linear-gradient(to bottom, #e74c3c 0%, #c0392b 100%);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 600;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12 24;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.3), 4, 0, 0, 2);
+}
+
+.button-danger-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #c0392b 0%, #a93226 100%);
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.4), 6, 0, 0, 3);
+}
+
+.button-secondary-theme {
+    -fx-background-color: linear-gradient(to bottom, #95a5a6 0%, #7f8c8d 100%);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 600;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12 24;
+    -fx-effect: dropshadow(three-pass-box, rgba(149, 165, 166, 0.3), 4, 0, 0, 2);
+}
+
+.button-secondary-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #7f8c8d 0%, #6c7b7d 100%);
+}
+
+/* =========================================================================
+   FORM CONTROL THEMES
+   ========================================================================= */
+
+.text-field-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 12 16;
+    -fx-font-size: 14px;
+    -fx-text-fill: #2c3e50;
+    -fx-prompt-text-fill: #95a5a6;
+}
+
+.text-field-theme:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 4, 0, 0, 0);
+}
+
+.combo-box-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 14px;
+}
+
+.combo-box-theme:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+}
+
+.combo-box-theme .list-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 10 12;
+}
+
+.combo-box-theme .list-cell:hover {
+    -fx-background-color: #f8f9fa;
+}
+
+.combo-box-theme .list-cell:selected {
+    -fx-background-color: #3498db;
+    -fx-text-fill: #ffffff;
+}
+
+/* =========================================================================
+   CART AND ORDER THEMES
+   ========================================================================= */
+
+.cart-container-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 4, 0, 0, 2);
+}
+
+.cart-item-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #f0f0f0;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 20;
+}
+
+.cart-item-theme:hover {
+    -fx-background-color: #f8f9fa;
+}
+
+.cart-total-theme {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 20;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* =========================================================================
+   SEARCH AND FILTER THEMES
+   ========================================================================= */
+
+.search-container-theme {
+    -fx-background-color: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 25 30;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 2, 0, 0, 1);
+}
+
+.search-field-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 25;
+    -fx-background-radius: 25;
+    -fx-padding: 12 20;
+    -fx-font-size: 14px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 2, 0, 0, 1);
+}
+
+.search-field-theme:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 6, 0, 0, 0);
+}
+
+.search-button-theme {
+    -fx-background-color: linear-gradient(to bottom, #3498db 0%, #2980b9 100%);
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-border-radius: 25;
+    -fx-background-radius: 25;
+    -fx-padding: 12 30;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.3), 4, 0, 0, 2);
+}
+
+.search-button-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #2980b9 0%, #21618c 100%);
+}
+
+/* =========================================================================
+   PAGINATION THEME
+   ========================================================================= */
+
+.pagination-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 20;
+    -fx-spacing: 15;
+}
+
+.pagination-button-theme {
+    -fx-background-color: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 14px;
+    -fx-padding: 10 20;
+    -fx-min-width: 120;
+}
+
+.pagination-button-theme:hover {
+    -fx-background-color: linear-gradient(to bottom, #f8f9fa 0%, #ecf0f1 100%);
+    -fx-border-color: #95a5a6;
+}
+
+.pagination-button-theme:pressed {
+    -fx-background-color: #ecf0f1;
+}
+
+.pagination-button-theme:disabled {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e0e0e0;
+    -fx-text-fill: #bdc3c7;
+    -fx-opacity: 0.6;
+}
+
+.pagination-current-theme {
+    -fx-background-color: linear-gradient(to bottom, #3498db 0%, #2980b9 100%);
+    -fx-border-color: #2980b9;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* =========================================================================
+   MODAL AND DIALOG THEMES
+   ========================================================================= */
+
+.dialog-theme {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 12, 0, 0, 4);
+}
+
+.dialog-header-theme {
+    -fx-background-color: linear-gradient(to bottom, #f8f9fa 0%, #ecf0f1 100%);
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 20;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.dialog-content-theme {
+    -fx-background-color: #ffffff;
+    -fx-padding: 25;
+    -fx-font-size: 14px;
+    -fx-text-fill: #2c3e50;
+    -fx-line-spacing: 2;
+}
+
+/* =========================================================================
+   STATUS AND ALERT THEMES
+   ========================================================================= */
+
+.alert-success-theme {
+    -fx-background-color: #d5f4e6;
+    -fx-border-color: #27ae60;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #1e8449;
+    -fx-font-weight: 500;
+    -fx-padding: 15 20;
+}
+
+.alert-warning-theme {
+    -fx-background-color: #fdf2e9;
+    -fx-border-color: #f39c12;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #b7950b;
+    -fx-font-weight: 500;
+    -fx-padding: 15 20;
+}
+
+.alert-danger-theme {
+    -fx-background-color: #fadbd8;
+    -fx-border-color: #e74c3c;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #a93226;
+    -fx-font-weight: 500;
+    -fx-padding: 15 20;
+}
+
+.alert-info-theme {
+    -fx-background-color: #d6eaf8;
+    -fx-border-color: #3498db;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: #21618c;
+    -fx-font-weight: 500;
+    -fx-padding: 15 20;
+}
+
+/* =========================================================================
+   FOOTER THEME
+   ========================================================================= */
+
+.footer-theme {
+    -fx-background-color: linear-gradient(to bottom, #34495e 0%, #2c3e50 100%);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #1a252f;
+    -fx-border-width: 2 0 0 0;
+    -fx-padding: 15 20;
+    -fx-font-size: 12px;
+    -fx-alignment: center;
+}
+
+/* =========================================================================
+   LOADING AND PROGRESS THEMES
+   ========================================================================= */
+
+.loading-theme {
+    -fx-background-color: rgba(255,255,255,0.9);
+    -fx-text-fill: #3498db;
+    -fx-font-size: 16px;
+    -fx-font-weight: 500;
+    -fx-alignment: center;
+    -fx-padding: 40;
+}
+
+.progress-indicator-theme {
+    -fx-progress-color: #3498db;
+    -fx-background-color: #ecf0f1;
+}
+
+/* =========================================================================
+   RESPONSIVE THEME ADJUSTMENTS
+   ========================================================================= */
+
+.mobile-theme {
+    -fx-font-size: 16px;
+    -fx-padding: 15;
+    -fx-spacing: 15;
+}
+
+.tablet-theme {
+    -fx-font-size: 15px;
+    -fx-padding: 18;
+    -fx-spacing: 18;
+}
+
+.desktop-theme {
+    -fx-font-size: 14px;
+    -fx-padding: 20;
+    -fx-spacing: 20;
+}
+
+/* =========================================================================
+   ANIMATION AND TRANSITION HELPERS
+   ========================================================================= */
+
+.smooth-transition {
+    -fx-transition: all 0.3s ease-in-out;
+}
+
+.fast-transition {
+    -fx-transition: all 0.15s ease-in-out;
+}
+
+.slow-transition {
+    -fx-transition: all 0.5s ease-in-out;
+}
+
+/* =========================================================================
+   ACCESSIBILITY THEMES
+   ========================================================================= */
+
+.high-contrast {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+}
+
+.large-text {
+    -fx-font-size: 18px;
+}
+
+.extra-large-text {
+    -fx-font-size: 24px;
+}
+
+/* =========================================================================
+   PRINT THEME
+   ========================================================================= */
+
+.print-friendly {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #000000;
+    -fx-border-color: #000000;
+    -fx-effect: none;
+}

@@ -8,7 +8,17 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="cartScreenPane" prefHeight="600.0" prefWidth="800.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.CartScreenController">
+<BorderPane fx:id="cartScreenPane"
+            styleClass="main-border-pane"
+            maxHeight="Infinity"
+            maxWidth="Infinity"
+            minHeight="400.0"
+            minWidth="600.0"
+            prefHeight="-1.0"
+            prefWidth="-1.0"
+            xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.aims.core.presentation.controllers.CartScreenController">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
@@ -17,7 +27,9 @@
             <padding>
                 <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>
-            <Label text="Your Shopping Cart" alignment="CENTER" maxWidth="Infinity">
+            <Label text="Your Shopping Cart"
+                   styleClass="header-title"
+                   alignment="CENTER" maxWidth="Infinity">
                 <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
@@ -25,7 +37,16 @@
         </VBox>
     </top>
     <center>
-        <ScrollPane fx:id="cartScrollPane" fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" maxHeight="Infinity" maxWidth="Infinity">
+        <ScrollPane fx:id="cartScrollPane"
+                    styleClass="scroll-pane"
+                    fitToWidth="true"
+                    fitToHeight="false"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    maxHeight="Infinity"
+                    maxWidth="Infinity"
+                    prefHeight="-1.0"
+                    prefWidth="-1.0">
             <VBox fx:id="cartItemsContainerVBox" spacing="10.0" alignment="TOP_CENTER">
                 <padding>
                     <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
@@ -38,11 +59,22 @@
             <padding>
                 <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>
-            <Label fx:id="stockWarningLabel" wrapText="true" textAlignment="CENTER" managed="false" visible="false" maxWidth="Infinity"/>
+            <Label fx:id="stockWarningLabel"
+                   styleClass="warning-message"
+                   wrapText="true" textAlignment="CENTER"
+                   managed="false" visible="false" maxWidth="Infinity"/>
             <HBox alignment="CENTER_RIGHT" spacing="20.0" maxWidth="Infinity">
-                <Label fx:id="totalCartPriceLabel" text="Total (excl. VAT): 0 VND" alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS"/>
-                <Button text="Clear Cart" onAction="#handleClearCartAction" minWidth="100.0"/>
-                <Button fx:id="checkoutButton" text="Proceed to Checkout" onAction="#handleProceedToCheckoutAction" minWidth="150.0"/>
+                <Label fx:id="totalCartPriceLabel"
+                       text="Total (excl. VAT): 0 VND"
+                       styleClass="text-bold"
+                       alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS"/>
+                <Button text="Clear Cart"
+                        styleClass="secondary-button"
+                        onAction="#handleClearCartAction" minWidth="100.0"/>
+                <Button fx:id="checkoutButton"
+                        text="Proceed to Checkout"
+                        styleClass="primary-button"
+                        onAction="#handleProceedToCheckoutAction" minWidth="150.0"/>
             </HBox>
         </VBox>
     </bottom>

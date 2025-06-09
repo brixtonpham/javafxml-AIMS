@@ -8,18 +8,18 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<HBox fx:id="cartItemRowPane" alignment="CENTER_LEFT" spacing="15.0" minHeight="80.0" maxWidth="Infinity" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.CartItemRowController">
+<HBox fx:id="cartItemRowPane" alignment="CENTER_LEFT" spacing="15.0" minHeight="80.0" prefHeight="-1.0" prefWidth="-1.0" maxWidth="Infinity" styleClass="cart-item" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.CartItemRowController">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
-    <ImageView fx:id="productImageView" fitHeight="60.0" fitWidth="60.0" pickOnBounds="true" preserveRatio="true" />
+    <ImageView fx:id="productImageView" fitHeight="60.0" fitWidth="60.0" pickOnBounds="true" preserveRatio="true" styleClass="product-image"/>
     <VBox HBox.hgrow="ALWAYS" spacing="5.0" alignment="CENTER_LEFT">
-        <Label fx:id="productTitleLabel" text="Product Title" maxWidth="Infinity"/>
-        <Label fx:id="unitPriceLabel" text="Unit Price: 0 VND"/>
+        <Label fx:id="productTitleLabel" text="Product Title" maxWidth="Infinity" styleClass="product-title"/>
+        <Label fx:id="unitPriceLabel" text="Unit Price: 0 VND" styleClass="price-label"/>
     </VBox>
-    <HBox spacing="10.0" alignment="CENTER">
-        <Spinner fx:id="quantitySpinner" prefWidth="80.0" editable="true"/>
-        <Label fx:id="totalItemPriceLabel" text="Total: 0 VND" minWidth="120.0" alignment="CENTER_RIGHT"/>
+    <HBox spacing="10.0" alignment="CENTER" styleClass="quantity-controls">
+        <Spinner fx:id="quantitySpinner" prefWidth="80.0" editable="true" styleClass="quantity-spinner"/>
+        <Label fx:id="totalItemPriceLabel" text="Total: 0 VND" minWidth="120.0" alignment="CENTER_RIGHT" styleClass="total-price-label"/>
     </HBox>
-    <Button fx:id="removeButton" text="Remove" onAction="#handleRemoveItemAction" minWidth="80.0"/>
+    <Button fx:id="removeButton" text="Remove" onAction="#handleRemoveItemAction" minWidth="80.0" styleClass="danger-button"/>
 </HBox>

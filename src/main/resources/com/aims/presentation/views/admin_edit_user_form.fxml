@@ -7,34 +7,36 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.SelectionMode?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<VBox fx:id="editUserFormPane" spacing="15.0"  prefWidth="500.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.EditUserFormController">
+<VBox fx:id="editUserFormPane" spacing="15.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.EditUserFormController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
-    <Label fx:id="screenTitleLabel" text="Edit User Account" >
+    <Label fx:id="screenTitleLabel" text="Edit User Account" styleClass="header-title">
         <VBox.margin>
             <Insets bottom="15.0" />
         </VBox.margin>
     </Label>
 
-    <GridPane hgap="10" vgap="10">
-        <Label text="User ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-        <TextField fx:id="userIdField" promptText="User ID" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS" disable="true"/>
+    <GridPane hgap="10" vgap="10" styleClass="form-grid">
+        <Label text="User ID:" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+        <TextField fx:id="userIdField" promptText="User ID" styleClass="form-input" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS" disable="true"/>
 
-        <Label text="Username:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-        <TextField fx:id="usernameField" promptText="Username" GridPane.rowIndex="1" GridPane.columnIndex="1" disable="true"/> <Label text="Email*:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-        <TextField fx:id="emailField" promptText="Enter email address" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <Label text="Username:" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+        <TextField fx:id="usernameField" promptText="Username" styleClass="form-input" GridPane.rowIndex="1" GridPane.columnIndex="1" disable="true"/>
         
-        <Label text="Status*:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-        <ComboBox fx:id="statusComboBox" promptText="Select Status" GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="250.0"/>
+        <Label text="Email*:" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+        <TextField fx:id="emailField" promptText="Enter email address" styleClass="form-input" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
         
-        <Label text="Assigned Roles*:" GridPane.rowIndex="4" GridPane.columnIndex="0"  GridPane.valignment="TOP"/>
-        <ListView fx:id="rolesListView" prefHeight="120.0" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+        <Label text="Status*:" styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+        <ComboBox fx:id="statusComboBox" promptText="Select Status" styleClass="form-input" GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="-1.0"/>
+        
+        <Label text="Assigned Roles*:" styleClass="form-label" GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.valignment="TOP"/>
+        <ListView fx:id="rolesListView" prefHeight="-1.0" styleClass="form-input" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
 
         <columnConstraints>
             <ColumnConstraints halignment="RIGHT" minWidth="130.0" prefWidth="130.0"/>
@@ -42,10 +44,10 @@
         </columnConstraints>
     </GridPane>
 
-    <Label fx:id="errorMessageLabel"  wrapText="true" managed="false" visible="false"/>
+    <Label fx:id="errorMessageLabel" styleClass="error-label" wrapText="true" managed="false" visible="false"/>
 
     <HBox alignment="CENTER_RIGHT" spacing="15" >
-        <Button text="Cancel" onAction="#handleCancelAction"  cancelButton="true"/>
-        <Button fx:id="updateUserButton" text="Update User" onAction="#handleUpdateUserAction"  defaultButton="true"/>
+        <Button text="Cancel" styleClass="secondary-button" onAction="#handleCancelAction" cancelButton="true"/>
+        <Button fx:id="updateUserButton" text="Update User" styleClass="primary-button" onAction="#handleUpdateUserAction" defaultButton="true"/>
     </HBox>
 </VBox>

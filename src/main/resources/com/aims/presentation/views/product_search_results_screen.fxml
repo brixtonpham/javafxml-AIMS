@@ -11,35 +11,35 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="searchResultsPane" prefHeight="600.0" prefWidth="1000.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.ProductSearchResultsController">
+<BorderPane fx:id="searchResultsPane" prefHeight="-1.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.ProductSearchResultsController">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
     <top>
-        <VBox spacing="10" >
-            <Label fx:id="searchResultsTitleLabel" text="Search Results"  alignment="CENTER" maxWidth="Infinity">
+        <VBox spacing="10" styleClass="content-area">
+            <Label fx:id="searchResultsTitleLabel" text="Search Results" styleClass="header-title" alignment="CENTER" maxWidth="Infinity">
                  <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
             </Label>
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <TextField fx:id="searchField" promptText="Search products..." HBox.hgrow="ALWAYS" onAction="#handleSearchAction"/>
-                <ComboBox fx:id="categoryComboBox" promptText="All Categories"/>
-                <ComboBox fx:id="sortByPriceComboBox" promptText="Sort by Price"/>
-                <Button text="Search" onAction="#handleSearchAction" />
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="search-container">
+                <TextField fx:id="searchField" promptText="Search products..." styleClass="search-field" HBox.hgrow="ALWAYS" onAction="#handleSearchAction"/>
+                <ComboBox fx:id="categoryComboBox" promptText="All Categories" styleClass="filter-combo"/>
+                <ComboBox fx:id="sortByPriceComboBox" promptText="Sort by Price" styleClass="filter-combo"/>
+                <Button text="Search" styleClass="primary-button" onAction="#handleSearchAction" />
             </HBox>
         </VBox>
     </top>
     <center>
-        <ScrollPane fx:id="scrollPane" fitToWidth="true" fitToHeight="true">
-            <FlowPane fx:id="productFlowPane" hgap="15" vgap="15"  alignment="TOP_LEFT"/>
+        <ScrollPane fx:id="scrollPane" fitToWidth="true" fitToHeight="true" styleClass="content-area">
+            <FlowPane fx:id="productFlowPane" hgap="15" vgap="15" alignment="TOP_LEFT" styleClass="content-area"/>
         </ScrollPane>
     </center>
     <bottom>
-        <HBox fx:id="paginationControls" spacing="10" alignment="CENTER" >
-            <Button fx:id="prevPageButton" text="Previous" onAction="#handlePrevPageAction"/>
-            <Label fx:id="currentPageLabel" text="Page 1/X"/>
-            <Button fx:id="nextPageButton" text="Next" onAction="#handleNextPageAction"/>
+        <HBox fx:id="paginationControls" spacing="10" alignment="CENTER" styleClass="dashboard-actions">
+            <Button fx:id="prevPageButton" text="Previous" styleClass="secondary-button" onAction="#handlePrevPageAction"/>
+            <Label fx:id="currentPageLabel" text="Page 1/X" styleClass="pagination-label"/>
+            <Button fx:id="nextPageButton" text="Next" styleClass="secondary-button" onAction="#handleNextPageAction"/>
         </HBox>
     </bottom>
 </BorderPane>

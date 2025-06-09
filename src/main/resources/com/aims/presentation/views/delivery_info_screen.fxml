@@ -16,82 +16,80 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
-
-<BorderPane fx:id="deliveryInfoPane" prefHeight="700.0" prefWidth="900.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.DeliveryInfoScreenController">
+<BorderPane fx:id="deliveryInfoPane" styleClass="main-layout" prefHeight="-1.0" prefWidth="-1.0" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.DeliveryInfoScreenController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <Label text="Delivery Information"  BorderPane.alignment="CENTER">
+        <Label text="Delivery Information" styleClass="header-title" BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="20.0" />
             </BorderPane.margin>
         </Label>
     </top>
     <center>
-        <HBox spacing="20">
-            <VBox spacing="15" HBox.hgrow="ALWAYS" prefWidth="500">
-                <Label text="Recipient Details"  />
+        <HBox spacing="20" styleClass="spacing-large">
+            <VBox spacing="15" HBox.hgrow="ALWAYS" prefWidth="500" styleClass="content-area">
+                <Label text="Recipient Details" styleClass="section-title" />
                 <GridPane hgap="10" vgap="10">
-                    <Label text="Full Name*:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                    <TextField fx:id="nameField" promptText="Enter recipient's full name" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS"/>
+                    <Label text="Full Name*:" styleClass="text-bold" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <TextField fx:id="nameField" styleClass="text-field" promptText="Enter recipient's full name" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS"/>
 
-                    <Label text="Email*:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                    <TextField fx:id="emailField" promptText="Enter recipient's email" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                    <Label text="Email*:" styleClass="text-bold" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="emailField" styleClass="text-field" promptText="Enter recipient's email" GridPane.rowIndex="1" GridPane.columnIndex="1" />
 
-                    <Label text="Phone Number*:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                    <TextField fx:id="phoneField" promptText="Enter recipient's phone number" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                    <Label text="Phone Number*:" styleClass="text-bold" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <TextField fx:id="phoneField" styleClass="text-field" promptText="Enter recipient's phone number" GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
-                    <Label text="Province/City*:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                    <ComboBox fx:id="provinceCityComboBox" promptText="Select Province/City" GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="250.0" onAction="#handleProvinceCityChange"/>
+                    <Label text="Province/City*:" styleClass="text-bold" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <ComboBox fx:id="provinceCityComboBox" styleClass="combo-box" promptText="Select Province/City" GridPane.rowIndex="3" GridPane.columnIndex="1" prefWidth="250.0" onAction="#handleProvinceCityChange"/>
 
-                    <Label text="Delivery Address*:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                    <TextArea fx:id="addressArea" promptText="Enter detailed street address, house number, ward/commune, district" prefHeight="80.0" wrapText="true" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+                    <Label text="Delivery Address*:" styleClass="text-bold" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                    <TextArea fx:id="addressArea" styleClass="text-field" promptText="Enter detailed street address, house number, ward/commune, district" prefHeight="80.0" wrapText="true" GridPane.rowIndex="4" GridPane.columnIndex="1" />
                     
-                    <Label text="Delivery Instructions:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                    <TextArea fx:id="instructionsArea" promptText="(Optional) e.g., call before delivery, specific landmarks" prefHeight="60.0" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+                    <Label text="Delivery Instructions:" styleClass="text-bold" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <TextArea fx:id="instructionsArea" styleClass="text-field" promptText="(Optional) e.g., call before delivery, specific landmarks" prefHeight="60.0" wrapText="true" GridPane.rowIndex="5" GridPane.columnIndex="1" />
                     <columnConstraints>
                         <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="120.0" />
                         <ColumnConstraints hgrow="ALWAYS" />
                     </columnConstraints>
                 </GridPane>
 
-                <Label text="Shipping Options" >
+                <Label text="Shipping Options" styleClass="section-title">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
                 </Label>
                 <CheckBox fx:id="rushOrderCheckBox" text="Request Rush Order Delivery" onAction="#handleRushOrderToggle"/>
-                <VBox fx:id="rushOrderDetailsBox" spacing="10" visible="false" managed="false">
-                    <Label text="Note: Rush order is only available for eligible items and addresses in inner city Hanoi." />
-                    <Label text="Requested Delivery Time (for Rush Order):" />
+                <VBox fx:id="rushOrderDetailsBox" spacing="10" visible="false" managed="false" styleClass="info-message">
+                    <Label text="Note: Rush order is only available for eligible items and addresses in inner city Hanoi." styleClass="text-muted" />
+                    <Label text="Requested Delivery Time (for Rush Order):" styleClass="text-bold" />
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <DatePicker fx:id="rushDeliveryDatePicker" promptText="Date"/>
-                        <ComboBox fx:id="rushDeliveryTimeComboBox" promptText="Select Time Slot"/>
+                        <ComboBox fx:id="rushDeliveryTimeComboBox" styleClass="combo-box" promptText="Select Time Slot"/>
                          <Tooltip text="Select your preferred 2-hour window for rush delivery."/>
                     </HBox>
-                    <Label fx:id="rushOrderEligibilityLabel"  wrapText="true"/>
+                    <Label fx:id="rushOrderEligibilityLabel" styleClass="text-muted" wrapText="true"/>
                 </VBox>
             </VBox>
 
-            <VBox spacing="10" HBox.hgrow="NEVER" prefWidth="350" >
-                <Label text="Order Summary"  />
-                <ScrollPane fx:id="orderItemsScrollPane" fitToWidth="true" prefHeight="250.0">
+            <VBox spacing="10" HBox.hgrow="NEVER" prefWidth="350" styleClass="content-area">
+                <Label text="Order Summary" styleClass="section-title" />
+                <ScrollPane fx:id="orderItemsScrollPane" styleClass="scroll-pane" fitToWidth="true" prefHeight="250.0">
                     <VBox fx:id="orderItemsVBox" spacing="5"/>
                 </ScrollPane>
-                <Label fx:id="subtotalLabel" text="Subtotal (excl. VAT): 0 VND" />
-                <Label fx:id="shippingFeeLabel" text="Shipping Fee: Calculating..." />
-                <Label fx:id="vatLabel" text="VAT (10%): 0 VND" />
-                <Label fx:id="totalAmountLabel" text="TOTAL AMOUNT: 0 VND" />
+                <Label fx:id="subtotalLabel" styleClass="text-muted" text="Subtotal (excl. VAT): 0 VND" />
+                <Label fx:id="shippingFeeLabel" styleClass="text-muted" text="Shipping Fee: Calculating..." />
+                <Label fx:id="vatLabel" styleClass="text-muted" text="VAT (10%): 0 VND" />
+                <Label fx:id="totalAmountLabel" styleClass="text-bold" text="TOTAL AMOUNT: 0 VND" />
             </VBox>
         </HBox>
     </center>
     <bottom>
-        <HBox alignment="CENTER_RIGHT" spacing="15"  BorderPane.alignment="CENTER">
-            <Label fx:id="errorMessageLabel"  wrapText="true" HBox.hgrow="ALWAYS"/>
-            <Button text="Back to Cart" onAction="#handleBackToCartAction"  cancelButton="true"/>
-            <Button fx:id="proceedToPaymentButton" text="Proceed to Payment" onAction="#handleProceedToPaymentAction"  defaultButton="true"/>
+        <HBox alignment="CENTER_RIGHT" spacing="15" BorderPane.alignment="CENTER">
+            <Label fx:id="errorMessageLabel" styleClass="error-message" wrapText="true" HBox.hgrow="ALWAYS"/>
+            <Button text="Back to Cart" styleClass="secondary-button" onAction="#handleBackToCartAction" cancelButton="true"/>
+            <Button fx:id="proceedToPaymentButton" styleClass="primary-button" text="Proceed to Payment" onAction="#handleProceedToPaymentAction" defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>

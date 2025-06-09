@@ -13,61 +13,61 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="adminProductListPane" prefHeight="700.0" prefWidth="1000.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminProductListController">
+<BorderPane fx:id="adminProductListPane" prefHeight="-1.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminProductListController">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
     <top>
-        <VBox spacing="15.0" alignment="TOP_CENTER">
+        <VBox spacing="15.0" alignment="TOP_CENTER" styleClass="content-area">
             <padding>
                 <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>
-            <Label text="Product Management" alignment="CENTER" maxWidth="Infinity">
+            <Label text="Product Management" alignment="CENTER" maxWidth="Infinity" styleClass="header-title">
                 <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
             </Label>
-            <HBox spacing="15.0" alignment="CENTER" maxWidth="Infinity">
-                <TextField fx:id="searchField" promptText="Search by Title or Barcode..." HBox.hgrow="ALWAYS" minWidth="200.0" onAction="#handleSearchAction"/>
-                <ComboBox fx:id="categoryFilterComboBox" promptText="Filter by Category" minWidth="150.0"/>
-                <ComboBox fx:id="typeFilterComboBox" promptText="Filter by Type" minWidth="150.0"/>
-                <Button text="Search/Filter" onAction="#handleSearchAction" minWidth="100.0"/>
-                <Button text="Clear Filters" onAction="#handleClearFiltersAction" minWidth="100.0"/>
+            <HBox spacing="15.0" alignment="CENTER" maxWidth="Infinity" styleClass="search-container">
+                <TextField fx:id="searchField" promptText="Search by Title or Barcode..." HBox.hgrow="ALWAYS" minWidth="200.0" onAction="#handleSearchAction" styleClass="search-field"/>
+                <ComboBox fx:id="categoryFilterComboBox" promptText="Filter by Category" minWidth="150.0" styleClass="filter-combo"/>
+                <ComboBox fx:id="typeFilterComboBox" promptText="Filter by Type" minWidth="150.0" styleClass="filter-combo"/>
+                <Button text="Search/Filter" onAction="#handleSearchAction" minWidth="100.0" styleClass="search-button"/>
+                <Button text="Clear Filters" onAction="#handleClearFiltersAction" minWidth="100.0" styleClass="secondary-button"/>
             </HBox>
-            <HBox alignment="CENTER_RIGHT" spacing="15.0" maxWidth="Infinity">
-                <Button text="Add New Product" onAction="#handleAddNewProductAction" minWidth="150.0"/>
+            <HBox alignment="CENTER_RIGHT" spacing="15.0" maxWidth="Infinity" styleClass="padding-medium">
+                <Button text="Add New Product" onAction="#handleAddNewProductAction" minWidth="150.0" styleClass="success-button"/>
             </HBox>
         </VBox>
     </top>
     <center>
-        <TableView fx:id="productsTableView" maxHeight="Infinity" maxWidth="Infinity" BorderPane.alignment="CENTER">
+        <TableView fx:id="productsTableView" maxHeight="Infinity" maxWidth="Infinity" BorderPane.alignment="CENTER" styleClass="table-view">
             <padding>
                 <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
             </padding>
             <columns>
-                <TableColumn fx:id="idColumn" prefWidth="100.0" text="ID">
+                <TableColumn fx:id="idColumn" prefWidth="100.0" text="ID" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="productId" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="imageColumn" prefWidth="80.0" text="Image" />
-                <TableColumn fx:id="titleColumn" prefWidth="250.0" text="Title">
+                <TableColumn fx:id="imageColumn" prefWidth="80.0" text="Image" styleClass="table-cell" />
+                <TableColumn fx:id="titleColumn" prefWidth="250.0" text="Title" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="title" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="typeColumn" prefWidth="100.0" text="Type">
+                <TableColumn fx:id="typeColumn" prefWidth="100.0" text="Type" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="productType" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="categoryColumn" prefWidth="150.0" text="Category">
+                <TableColumn fx:id="categoryColumn" prefWidth="150.0" text="Category" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="category" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="priceColumn" prefWidth="120.0" text="Price (excl. VAT)">
+                <TableColumn fx:id="priceColumn" prefWidth="120.0" text="Price (excl. VAT)" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="price" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="stockColumn" prefWidth="80.0" text="Stock">
+                <TableColumn fx:id="stockColumn" prefWidth="80.0" text="Stock" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="quantityInStock" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="actionsColumn" prefWidth="150.0" text="Actions"/>
+                <TableColumn fx:id="actionsColumn" prefWidth="150.0" text="Actions" styleClass="table-cell"/>
             </columns>
             <placeholder>
-                <Label text="No products found matching your criteria."/>
+                <Label text="No products found matching your criteria." styleClass="text-muted"/>
             </placeholder>
             <BorderPane.margin>
                 <Insets top="10.0" bottom="10.0"/>
@@ -75,10 +75,10 @@
         </TableView>
     </center>
     <bottom>
-        <HBox fx:id="paginationControls" spacing="10" alignment="CENTER" >
-            <Button fx:id="prevPageButton" text="Previous" onAction="#handlePrevPageAction"/>
-            <Label fx:id="currentPageLabel" text="Page 1/X"/>
-            <Button fx:id="nextPageButton" text="Next" onAction="#handleNextPageAction"/>
+        <HBox fx:id="paginationControls" spacing="10" alignment="CENTER" styleClass="pagination-controls">
+            <Button fx:id="prevPageButton" text="Previous" onAction="#handlePrevPageAction" styleClass="pagination-button"/>
+            <Label fx:id="currentPageLabel" text="Page 1/X" styleClass="page-label"/>
+            <Button fx:id="nextPageButton" text="Next" onAction="#handleNextPageAction" styleClass="pagination-button"/>
         </HBox>
     </bottom>
 </BorderPane>

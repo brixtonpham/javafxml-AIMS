@@ -6,6 +6,7 @@
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.ImageView?>
@@ -15,58 +16,57 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="addEditProductPane" prefWidth="900.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminAddEditProductController">
+<BorderPane fx:id="addEditProductPane" prefWidth="-1.0" prefHeight="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminAddEditProductController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <Label fx:id="screenTitleLabel" text="Add New Product"  BorderPane.alignment="CENTER">
+        <Label fx:id="screenTitleLabel" text="Add New Product" styleClass="header-title" BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="20.0" />
             </BorderPane.margin>
         </Label>
     </top>
     <center>
-        <ScrollPane fitToWidth="true">
-            <VBox spacing="15"  alignment="TOP_CENTER">
-                <GridPane hgap="10" vgap="10" maxWidth="700">
-                    <Label text="Product ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                    <TextField fx:id="productIdField" promptText="Enter Product ID (leave blank if new)" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS"/>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox spacing="15" alignment="TOP_CENTER" styleClass="content-area">
+                <GridPane hgap="10" vgap="10" maxWidth="700" styleClass="form-grid">
+                    <Label text="Product ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="productIdField" promptText="Enter Product ID (leave blank if new)" GridPane.rowIndex="0" GridPane.columnIndex="1" HBox.hgrow="ALWAYS" styleClass="form-input"/>
 
-                    <Label text="Title*:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                    <TextField fx:id="titleField" promptText="Enter product title" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <Label text="Title*:" GridPane.rowIndex="1" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="titleField" promptText="Enter product title" GridPane.rowIndex="1" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Category:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                    <TextField fx:id="categoryField" promptText="Enter category (e.g., Fiction, Rock, Action)" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    <Label text="Category:" GridPane.rowIndex="2" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="categoryField" promptText="Enter category (e.g., Fiction, Rock, Action)" GridPane.rowIndex="2" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Value (excl. VAT)*:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                    <TextField fx:id="valueAmountField" promptText="Enter product value" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    <Label text="Value (excl. VAT)*:" GridPane.rowIndex="3" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="valueAmountField" promptText="Enter product value" GridPane.rowIndex="3" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Price (excl. VAT)*:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                    <TextField fx:id="priceField" promptText="Enter selling price" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    <Label text="Price (excl. VAT)*:" GridPane.rowIndex="4" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="priceField" promptText="Enter selling price" GridPane.rowIndex="4" GridPane.columnIndex="1" styleClass="form-input"/>
                     
-                    <Label text="Quantity in Stock*:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                    <TextField fx:id="quantityInStockField" promptText="Enter stock quantity" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                    <Label text="Quantity in Stock*:" GridPane.rowIndex="5" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="quantityInStockField" promptText="Enter stock quantity" GridPane.rowIndex="5" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Description:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
-                    <TextArea fx:id="descriptionArea" promptText="Enter product description" prefHeight="80.0" wrapText="true" GridPane.rowIndex="6" GridPane.columnIndex="1" GridPane.rowSpan="2"/>
+                    <Label text="Description:" GridPane.rowIndex="6" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextArea fx:id="descriptionArea" promptText="Enter product description" prefHeight="80.0" wrapText="true" GridPane.rowIndex="6" GridPane.columnIndex="1" GridPane.rowSpan="2" styleClass="form-input"/>
 
-                    <Label text="Image URL:" GridPane.rowIndex="8" GridPane.columnIndex="0" />
-                    <TextField fx:id="imageUrlField" promptText="Enter image URL" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
+                    <Label text="Image URL:" GridPane.rowIndex="8" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="imageUrlField" promptText="Enter image URL" GridPane.rowIndex="8" GridPane.columnIndex="1" styleClass="form-input"/>
                     <ImageView fx:id="previewImageView" fitHeight="100.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true" GridPane.rowIndex="8" GridPane.columnIndex="2" GridPane.rowSpan="2"/>
 
+                    <Label text="Barcode:" GridPane.rowIndex="9" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="barcodeField" promptText="Enter barcode" GridPane.rowIndex="9" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Barcode:" GridPane.rowIndex="9" GridPane.columnIndex="0" />
-                    <TextField fx:id="barcodeField" promptText="Enter barcode" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+                    <Label text="Dimensions (cm):" GridPane.rowIndex="10" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="dimensionsField" promptText="e.g., 20x15x2" GridPane.rowIndex="10" GridPane.columnIndex="1" styleClass="form-input"/>
 
-                    <Label text="Dimensions (cm):" GridPane.rowIndex="10" GridPane.columnIndex="0" />
-                    <TextField fx:id="dimensionsField" promptText="e.g., 20x15x2" GridPane.rowIndex="10" GridPane.columnIndex="1"/>
-
-                    <Label text="Weight (kg):" GridPane.rowIndex="11" GridPane.columnIndex="0" />
-                    <TextField fx:id="weightField" promptText="e.g., 0.5" GridPane.rowIndex="11" GridPane.columnIndex="1"/>
+                    <Label text="Weight (kg):" GridPane.rowIndex="11" GridPane.columnIndex="0" styleClass="form-label" />
+                    <TextField fx:id="weightField" promptText="e.g., 0.5" GridPane.rowIndex="11" GridPane.columnIndex="1" styleClass="form-input"/>
                     
-                    <Label text="Product Type*:" GridPane.rowIndex="12" GridPane.columnIndex="0" />
-                    <ComboBox fx:id="productTypeComboBox" promptText="Select Product Type" onAction="#handleProductTypeChange" GridPane.rowIndex="12" GridPane.columnIndex="1" prefWidth="250.0"/>
+                    <Label text="Product Type*:" GridPane.rowIndex="12" GridPane.columnIndex="0" styleClass="form-label" />
+                    <ComboBox fx:id="productTypeComboBox" promptText="Select Product Type" onAction="#handleProductTypeChange" GridPane.rowIndex="12" GridPane.columnIndex="1" prefWidth="250.0" styleClass="combo-box"/>
                     <columnConstraints>
                         <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="150.0"/>
                         <ColumnConstraints hgrow="ALWAYS" minWidth="250.0"/>
@@ -75,8 +75,8 @@
                 </GridPane>
 
                 <Separator fx:id="specificFieldsSeparator" visible="false"/>
-                <Label fx:id="specificFieldsTitleLabel"  visible="false"/>
-                <GridPane fx:id="specificFieldsGridPane" hgap="10" vgap="10" maxWidth="700" visible="false" managed="false">
+                <Label fx:id="specificFieldsTitleLabel" visible="false" styleClass="section-title"/>
+                <GridPane fx:id="specificFieldsGridPane" hgap="10" vgap="10" maxWidth="700" visible="false" managed="false" styleClass="form-grid">
                      <columnConstraints>
                         <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="150.0"/>
                         <ColumnConstraints hgrow="ALWAYS" minWidth="250.0"/>
@@ -87,11 +87,11 @@
         </ScrollPane>
     </center>
     <bottom>
-        <VBox alignment="CENTER" spacing="10">
-            <Label fx:id="errorMessageLabel"  wrapText="true" managed="false" visible="false"/>
-            <HBox alignment="CENTER_RIGHT" spacing="15"  BorderPane.alignment="CENTER">
-                <Button text="Back to Product List" onAction="#handleBackToListAction" />
-                <Button fx:id="saveProductButton" text="Save Product" onAction="#handleSaveProductAction"  defaultButton="true"/>
+        <VBox alignment="CENTER" spacing="10" styleClass="padding-medium">
+            <Label fx:id="errorMessageLabel" wrapText="true" managed="false" visible="false" styleClass="error-message"/>
+            <HBox alignment="CENTER_RIGHT" spacing="15" BorderPane.alignment="CENTER">
+                <Button text="Back to Product List" onAction="#handleBackToListAction" styleClass="secondary-button" />
+                <Button fx:id="saveProductButton" text="Save Product" onAction="#handleSaveProductAction" defaultButton="true" styleClass="success-button"/>
             </HBox>
         </VBox>
     </bottom>

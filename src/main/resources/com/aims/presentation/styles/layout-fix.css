@@ -1,40 +1,369 @@
-/* Layout Fix CSS - Ensures components fill available space */
+/* Layout Fix CSS - Enhanced for better visibility and space utilization */
+
+/* =========================================================================
+   ROOT AND CONTAINER FIXES
+   ========================================================================= */
 .root {
     -fx-fill-width: true;
     -fx-fill-height: true;
+    -fx-min-width: 1200;
+    -fx-min-height: 720;
 }
 
 .main-border-pane {
     -fx-pref-width: 100%;
     -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1200;
+    -fx-min-height: 720;
 }
 
 .content-pane {
     -fx-pref-width: 100%;
     -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
 }
 
 .home-screen-pane {
     -fx-pref-width: 100%;
     -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
 }
 
+/* =========================================================================
+   PRODUCT DISPLAY OPTIMIZATION
+   ========================================================================= */
 .product-flow-pane {
     -fx-alignment: center;
     -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-hgap: 30;
+    -fx-vgap: 30;
+    -fx-padding: 30 50 30 50;
+    -fx-column-halignment: center;
+    -fx-pref-wrap-length: infinity;
 }
 
-/* Ensure ScrollPane properly fills its container */
+/* Ensure ScrollPane properly fills its container and shows content */
 .scroll-pane {
     -fx-fit-to-width: true;
     -fx-fit-to-height: true;
     -fx-pref-width: 100%;
     -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: as-needed;
+    -fx-background-color: transparent;
 }
 
-/* Ensure FlowPane stretches to full width */
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .content {
+    -fx-background-color: transparent;
+}
+
+/* Ensure FlowPane stretches to full width and displays products properly */
 .flow-pane {
     -fx-pref-width: 100%;
     -fx-max-width: infinity;
     -fx-alignment: center;
+    -fx-hgap: 30;
+    -fx-vgap: 30;
+    -fx-padding: 30;
+    -fx-background-color: transparent;
+}
+
+/* =========================================================================
+   SEARCH AND FILTER AREA FIXES
+   ========================================================================= */
+.search-container-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-width: 800;
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-padding: 20 50 20 50;
+}
+
+.search-field-fix {
+    -fx-pref-width: 500;
+    -fx-min-width: 400;
+    -fx-max-width: 600;
+}
+
+.filter-combo-fix {
+    -fx-pref-width: 180;
+    -fx-min-width: 150;
+    -fx-max-width: 200;
+}
+
+/* =========================================================================
+   PRODUCT CARD SIZE OPTIMIZATION
+   ========================================================================= */
+.product-card-fix {
+    -fx-min-width: 280;
+    -fx-max-width: 320;
+    -fx-pref-width: 300;
+    -fx-min-height: 350;
+    -fx-max-height: 400;
+    -fx-pref-height: 370;
+    -fx-spacing: 12;
+    -fx-alignment: center;
+    -fx-padding: 15;
+}
+
+.product-image-fix {
+    -fx-fit-height: 180;
+    -fx-fit-width: 160;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+.product-title-fix {
+    -fx-min-height: 50;
+    -fx-max-height: 60;
+    -fx-pref-height: 55;
+    -fx-max-width: 270;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+/* =========================================================================
+   PAGINATION AREA FIXES
+   ========================================================================= */
+.pagination-controls-fix {
+    -fx-min-height: 80;
+    -fx-pref-height: 80;
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-padding: 20 30 20 30;
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+}
+
+.pagination-button-fix {
+    -fx-min-width: 120;
+    -fx-pref-width: 120;
+    -fx-max-width: 150;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+}
+
+.page-label-fix {
+    -fx-min-width: 120;
+    -fx-pref-width: 120;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* =========================================================================
+   CART SCREEN FIXES
+   ========================================================================= */
+.cart-screen-fix {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+}
+
+.cart-items-container-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-spacing: 10;
+    -fx-padding: 20;
+}
+
+.cart-item-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-height: 80;
+    -fx-pref-height: 100;
+    -fx-spacing: 15;
+    -fx-padding: 15 20 15 20;
+}
+
+/* =========================================================================
+   ADMIN SCREEN FIXES
+   ========================================================================= */
+.admin-dashboard-fix {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+}
+
+.admin-content-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-spacing: 20;
+    -fx-padding: 20;
+}
+
+/* =========================================================================
+   PRODUCT DETAIL SCREEN FIXES
+   ========================================================================= */
+.product-detail-fix {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-spacing: 30;
+    -fx-padding: 30;
+}
+
+.product-detail-image-fix {
+    -fx-fit-height: 400;
+    -fx-fit-width: 300;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+.product-detail-info-fix {
+    -fx-spacing: 20;
+    -fx-padding: 20;
+    -fx-pref-width: 500;
+    -fx-max-width: 600;
+}
+
+/* =========================================================================
+   BUTTON FIXES
+   ========================================================================= */
+.button-fix {
+    -fx-min-width: 100;
+    -fx-pref-width: 120;
+    -fx-min-height: 35;
+    -fx-pref-height: 40;
+    -fx-font-size: 14px;
+}
+
+.add-to-cart-button-fix {
+    -fx-min-width: 200;
+    -fx-pref-width: 220;
+    -fx-max-width: infinity;
+    -fx-min-height: 40;
+    -fx-pref-height: 45;
+}
+
+/* =========================================================================
+   FORM CONTROL FIXES
+   ========================================================================= */
+.text-field-fix {
+    -fx-min-height: 35;
+    -fx-pref-height: 40;
+    -fx-font-size: 14px;
+    -fx-padding: 10 15;
+}
+
+.combo-box-fix {
+    -fx-min-height: 35;
+    -fx-pref-height: 40;
+    -fx-font-size: 14px;
+}
+
+/* =========================================================================
+   DIALOG AND MODAL FIXES
+   ========================================================================= */
+.dialog-fix {
+    -fx-min-width: 400;
+    -fx-pref-width: 500;
+    -fx-min-height: 300;
+    -fx-pref-height: 400;
+    -fx-spacing: 20;
+    -fx-padding: 30;
+}
+
+/* =========================================================================
+   RESPONSIVE GRID LAYOUT FIXES
+   ========================================================================= */
+.grid-pane-fix {
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 20;
+    -fx-alignment: center;
+}
+
+/* =========================================================================
+   TABLE AND LIST VIEW FIXES
+   ========================================================================= */
+.table-view-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-height: 400;
+    -fx-pref-height: 500;
+}
+
+.list-view-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-height: 300;
+    -fx-pref-height: 400;
+}
+
+/* =========================================================================
+   HEADER AND FOOTER FIXES
+   ========================================================================= */
+.header-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-height: 60;
+    -fx-pref-height: 80;
+    -fx-padding: 15 20;
+    -fx-alignment: center;
+}
+
+.footer-fix {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+    -fx-min-height: 40;
+    -fx-pref-height: 50;
+    -fx-padding: 10 20;
+    -fx-alignment: center;
+}
+
+/* =========================================================================
+   VISIBILITY AND DISPLAY FIXES
+   ========================================================================= */
+.ensure-visible {
+    -fx-opacity: 1.0;
+    -fx-visible: true;
+    -fx-managed: true;
+}
+
+.full-size {
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
+.center-content {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.stretch-horizontal {
+    -fx-pref-width: 100%;
+    -fx-max-width: infinity;
+}
+
+.stretch-vertical {
+    -fx-pref-height: 100%;
+    -fx-max-height: infinity;
 }

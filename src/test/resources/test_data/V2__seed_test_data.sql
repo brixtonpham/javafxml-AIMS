@@ -56,7 +56,7 @@ INSERT OR REPLACE INTO PRODUCT (productID, title, category, value_amount, price,
 ('book_015', 'Mathematics and Its Applications in Engineering and Computer Science', 'Education', 95.50, 95.50, 5, 'Advanced mathematics for technical fields with practical applications.', '/images/books/math.jpg', '9780596009207', '26x21x4', 1.3, '2024-01-29', 'BOOK'),
 
 -- CDs (15 products with diverse characteristics)
-('cd_001', 'Classic Rock Anthology', 'Music', 19.99, 19.99, 30, 'Best classic rock hits from the 70s and 80s featuring legendary bands.', '/images/cds/classic_rock.jpg', 'CD001234567890', '12.4x14.2x1', 0.1, '2024-02-01', 'CD'),
+('cd_001', 'Abbey Road', 'Music', 19.99, 19.99, 15, 'The Beatles greatest album featuring legendary tracks like Come Together and Here Comes the Sun.', '/images/cds/abbey_road.jpg', '094638241928', '12.4x14.2x1', 0.1, '2024-02-01', 'CD'),
 ('cd_002', 'Pop Hits', 'Music', 15.50, 15.50, 0, 'Latest pop music hits.', NULL, 'CD001234567891', '12.4x14.2x1', 0.1, '2024-02-02', 'CD'),
 ('cd_003', 'The Complete Works of Beethoven: Symphonies, Concertos, and Chamber Music Collection', 'Classical', 85.00, 85.00, 12, 'Comprehensive collection of Beethoven''s masterpieces performed by world-class orchestras.', '/images/cds/beethoven.jpg', 'CD001234567892', '12.4x14.2x1', 0.1, '2024-02-03', 'CD'),
 ('cd_004', 'Jazz Collection', 'Music', 24.99, 24.99, 25, 'Smooth jazz classics from legendary artists of the golden age.', NULL, 'CD001234567893', '12.4x14.2x1', 0.1, '2024-02-04', 'CD'),
@@ -104,7 +104,7 @@ INSERT OR REPLACE INTO BOOK (productID, authors, coverType, publisher, publicati
 
 -- 6. CHI TIẾT SẢN PHẨM CD
 INSERT OR REPLACE INTO CD (productID, artists, recordLabel, tracklist, cd_genre, releaseDate) VALUES 
-('cd_001', 'Various Artists', 'Classic Rock Records', 'Highway to Hell;Smoke on the Water;Stairway to Heaven;Free Bird;Hotel California', 'Rock', '2023-02-01'),
+('cd_001', 'The Beatles', 'Apple Records', 'Come Together;Something;Maxwell''s Silver Hammer;Oh! Darling;Octopus''s Garden;I Want You (She''s So Heavy);Here Comes the Sun;Because;You Never Give Me Your Money;Sun King;Mean Mr. Mustard;Polythene Pam;She Came in Through the Bathroom Window;Golden Slumbers;Carry That Weight;The End;Her Majesty', 'Rock', '1969-09-26'),
 ('cd_002', 'Pop Stars', 'Hit Records', 'Dancing Queen;Billie Jean;Like a Prayer;I Want It That Way', 'Pop', '2023-02-02'),
 ('cd_003', 'Vienna Philharmonic', 'Classical Masters', 'Symphony No. 9;Moonlight Sonata;Für Elise;Ode to Joy', 'Classical', '2023-02-03'),
 ('cd_004', 'Jazz Legends', 'Blue Note Records', 'Take Five;Round Midnight;All Blues;So What', 'Jazz', '2023-02-04'),

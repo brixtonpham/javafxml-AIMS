@@ -6,6 +6,9 @@ import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
+import com.aims.core.shared.ServiceFactory;
+import com.aims.core.shared.constants.FXMLPaths;
+import com.aims.core.presentation.utils.NavigationContext;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
 
@@ -104,8 +107,41 @@ public class ProductDetailScreenController {
             quantitySpinner.setValueFactory(valueFactory);
         }
         
+        // Validate and initialize services if needed
+        validateAndInitializeServices();
+        
         setErrorMessage("", false);
         System.out.println("ProductDetailScreenController.initialize: Controller initialization completed");
+    }
+
+    /**
+     * Validates that required services are available and attempts to initialize them if needed.
+     * This provides a fallback mechanism when dependency injection fails.
+     */
+    private void validateAndInitializeServices() {
+        if (productService == null) {
+            System.err.println("ProductService is null - attempting to initialize from ServiceFactory");
+            try {
+                ServiceFactory serviceFactory = ServiceFactory.getInstance();
+                this.productService = serviceFactory.getProductService();
+                System.out.println("ProductService initialized from ServiceFactory: " + (productService != null));
+            } catch (Exception e) {
+                System.err.println("Failed to initialize ProductService: " + e.getMessage());
+                displayError("Product service unavailable. Please refresh the page.");
+            }
+        }
+        
+        if (cartService == null) {
+            System.err.println("CartService is null - attempting to initialize from ServiceFactory");
+            try {
+                ServiceFactory serviceFactory = ServiceFactory.getInstance();
+                this.cartService = serviceFactory.getCartService();
+                System.out.println("CartService initialized from ServiceFactory: " + (cartService != null));
+            } catch (Exception e) {
+                System.err.println("Failed to initialize CartService: " + e.getMessage());
+                // Cart service failure is not critical for viewing product details
+            }
+        }
     }
 
     /**
@@ -131,15 +167,28 @@ public class ProductDetailScreenController {
 
     private void loadProductDetails() {
         System.out.println("ProductDetailScreenController.loadProductDetails: Starting for product ID: " + productIdToLoad);
-        System.out.println("ProductDetailScreenController.loadProductDetails: ProductService status: " + (productService != null ? "Available" : "NULL"));
         
-        if (productService == null) {
-            System.err.println("ProductDetailScreenController.loadProductDetails: ProductService is null, cannot load product");
-            displayError("Product service is not available.");
+        // Validate prerequisites
+        if (productIdToLoad == null || productIdToLoad.trim().isEmpty()) {
+            displayError("Invalid product identifier.");
             return;
         }
         
+        if (productService == null) {
+            System.err.println("ProductService is null - attempting recovery");
+            validateAndInitializeServices();
+            
+            if (productService == null) {
+                displayError("Product service is temporarily unavailable. Please try again later.");
+                return;
+            }
+        }
+        
         try {
+            // Show loading state
+            productTitleLabel.setText("Loading product details...");
+            addToCartButton.setDisable(true);
+            
             System.out.println("ProductDetailScreenController.loadProductDetails: Calling productService.getProductDetailsForCustomer()");
             // ProductService.getProductDetailsForCustomer should return product with VAT-inclusive price
             currentProduct = productService.getProductDetailsForCustomer(productIdToLoad);
@@ -147,6 +196,8 @@ public class ProductDetailScreenController {
             if (currentProduct != null) {
                 System.out.println("ProductDetailScreenController.loadProductDetails: Product loaded successfully: " + currentProduct.getTitle());
                 populateProductData();
+                
+                // Update header
                 if (mainLayoutController != null) {
                     System.out.println("ProductDetailScreenController.loadProductDetails: Setting header title to: " + currentProduct.getTitle());
                     mainLayoutController.setHeaderTitle("Product Details: " + currentProduct.getTitle());
@@ -154,13 +205,16 @@ public class ProductDetailScreenController {
                     System.out.println("ProductDetailScreenController.loadProductDetails: MainLayoutController is null, cannot set header");
                 }
             } else {
-                System.err.println("ProductDetailScreenController.loadProductDetails: Product not found for ID: " + productIdToLoad);
-                displayError("Product not found.");
+                displayError("Product not found. It may have been removed or is temporarily unavailable.");
             }
+            
+        } catch (SQLException e) {
+            System.err.println("Database error loading product: " + e.getMessage());
+            displayError("Database connection error. Please check your connection and try again.");
         } catch (Exception e) {
+            System.err.println("Unexpected error loading product: " + e.getMessage());
             e.printStackTrace();
-            System.err.println("ProductDetailScreenController.loadProductDetails: Error loading product details: " + e.getMessage());
-            displayError("Error loading product details: " + e.getMessage());
+            displayError("An unexpected error occurred. Please try again or contact support.");
         }
     }
 
@@ -315,23 +369,71 @@ public class ProductDetailScreenController {
     @FXML
     void handleBackToListingAction(ActionEvent event) {
         System.out.println("Back to Product Listing action triggered");
-        // if (mainLayoutController != null && sceneManager != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.HOME_SCREEN); // Or previous screen
-        //     mainLayoutController.setHeaderTitle("AIMS Home");
-        // }
+        
+        boolean navigationSuccess = false;
+        
+        // First, try to use navigation history for smart back navigation
+        if (sceneManager != null) {
+            try {
+                System.out.println("ProductDetailScreenController.handleBackToListingAction: Attempting smart back navigation");
+                navigationSuccess = sceneManager.navigateBack();
+                if (navigationSuccess) {
+                    System.out.println("ProductDetailScreenController.handleBackToListingAction: Successfully navigated back using history");
+                    return;
+                }
+            } catch (Exception e) {
+                System.err.println("ProductDetailScreenController.handleBackToListingAction: Error during smart back navigation: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("ProductDetailScreenController.handleBackToListingAction: SceneManager is null, cannot use smart navigation");
+        }
+        
+        // Fallback to home screen navigation
+        if (mainLayoutController != null) {
+            try {
+                System.out.println("ProductDetailScreenController.handleBackToListingAction: Using fallback navigation to home screen");
+                Object controller = mainLayoutController.loadContent(FXMLPaths.HOME_SCREEN);
+                mainLayoutController.setHeaderTitle("AIMS - Product Catalog");
+                navigationSuccess = true;
+                System.out.println("ProductDetailScreenController.handleBackToListingAction: Successfully navigated to home screen");
+            } catch (Exception e) {
+                System.err.println("ProductDetailScreenController.handleBackToListingAction: Error during fallback navigation: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("ProductDetailScreenController.handleBackToListingAction: MainLayoutController is null, cannot navigate");
+        }
+        
+        // Final fallback - log error if all navigation attempts failed
+        if (!navigationSuccess) {
+            System.err.println("ProductDetailScreenController.handleBackToListingAction: All navigation attempts failed - unable to navigate back");
+            if (errorMessageLabel != null) {
+                setErrorMessage("Navigation error - please refresh the page", true);
+            }
+        }
     }
 
     private void displayError(String message) {
-        productTitleLabel.setText(message);
-        productImageView.setImage(null); // Clear image
+        System.err.println("ProductDetailScreenController Error: " + message);
+        
+        // Show error in title with visual indication
+        productTitleLabel.setText("Unable to Load Product Details");
+        productTitleLabel.setStyle("-fx-text-fill: red;");
+        
+        // Clear other fields
+        productImageView.setImage(null);
         productPriceLabel.setText("");
         productCategoryLabel.setText("");
         productAvailabilityLabel.setText("");
-        productDescriptionArea.setText("");
+        productDescriptionArea.setText("Error: " + message + "\n\nPlease try refreshing the page or contact support if the issue persists.");
         productSpecificsGrid.getChildren().clear();
+        
+        // Disable controls
         quantitySpinner.setDisable(true);
         addToCartButton.setDisable(true);
-        // AlertHelper.showErrorAlert("Error", message);
+        
+        // Show error message in the error label
         setErrorMessage(message, true);
     }
 

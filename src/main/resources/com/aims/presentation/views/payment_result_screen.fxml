@@ -9,26 +9,21 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane fx:id="paymentResultPane" prefHeight="600.0" prefWidth="700.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentResultScreenController">
+<BorderPane fx:id="paymentResultPane" prefHeight="-1.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentResultScreenController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <VBox alignment="CENTER" spacing="10">
+        <VBox alignment="CENTER" spacing="10" styleClass="content-area">
             <ImageView fx:id="statusIconImageView" fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true">
                 <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
             </ImageView>
-            <Label fx:id="paymentStatusTitleLabel" text="Payment Status" >
-                <font>
-                    <Font name="System Bold" size="24.0" />
-                </font>
-            </Label>
-            <Label fx:id="paymentMessageLabel" text="Details about the payment."  wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="paymentStatusTitleLabel" text="Payment Status" styleClass="header-title"/>
+            <Label fx:id="paymentMessageLabel" text="Details about the payment." styleClass="form-label" wrapText="true" textAlignment="CENTER"/>
              <Separator prefWidth="200.0">
                 <VBox.margin>
                     <Insets top="10.0" bottom="10.0" />
@@ -37,43 +32,43 @@
         </VBox>
     </top>
     <center>
-        <VBox spacing="15" alignment="TOP_CENTER" >
-            <Label text="Order & Transaction Details:" />
-            <GridPane fx:id="detailsGrid" hgap="10" vgap="8" maxWidth="500">
-                <Label text="AIMS Order ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                <Label fx:id="orderIdLabel" text="N/A" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <VBox spacing="15" alignment="TOP_CENTER" styleClass="content-area">
+            <Label text="Order & Transaction Details:" styleClass="section-title"/>
+            <GridPane fx:id="detailsGrid" hgap="10" vgap="8" maxWidth="500" styleClass="form-grid">
+                <Label text="AIMS Order ID:" styleClass="form-label" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                <Label fx:id="orderIdLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-                <Label text="Customer Name:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                <Label fx:id="customerNameLabel" text="N/A" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <Label text="Customer Name:" styleClass="form-label" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <Label fx:id="customerNameLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-                <Label text="Phone Number:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                <Label fx:id="phoneLabel" text="N/A" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                <Label text="Phone Number:" styleClass="form-label" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                <Label fx:id="phoneLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
                 
-                <Label text="Shipping Address:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                <Text fx:id="shippingAddressText" wrappingWidth="300" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                <Label text="Shipping Address:" styleClass="form-label" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <Text fx:id="shippingAddressText" wrappingWidth="300" styleClass="form-input" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
 
-                <Label text="Total Amount Paid:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                <Label fx:id="totalAmountLabel" text="0 VND" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+                <Label text="Total Amount Paid:" styleClass="form-label" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                <Label fx:id="totalAmountLabel" text="0 VND" styleClass="form-input" GridPane.rowIndex="4" GridPane.columnIndex="1" />
 
-                <Label text="AIMS Transaction ID:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                <Label fx:id="aimsTransactionIdLabel" text="N/A" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                <Label text="AIMS Transaction ID:" styleClass="form-label" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                <Label fx:id="aimsTransactionIdLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
-                <Label text="Gateway Transaction ID:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
-                <Label fx:id="gatewayTransactionIdLabel" text="N/A" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                <Label text="Gateway Transaction ID:" styleClass="form-label" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                <Label fx:id="gatewayTransactionIdLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
                 
-                <Label text="Transaction Time:" GridPane.rowIndex="7" GridPane.columnIndex="0" />
-                <Label fx:id="transactionTimeLabel" text="N/A" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                <Label text="Transaction Time:" styleClass="form-label" GridPane.rowIndex="7" GridPane.columnIndex="0" />
+                <Label fx:id="transactionTimeLabel" text="N/A" styleClass="form-input" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
 
-                <Label text="Gateway Message:" GridPane.rowIndex="8" GridPane.columnIndex="0" />
-                <Text fx:id="gatewayMessageText" wrappingWidth="300" GridPane.rowIndex="8" GridPane.columnIndex="1" />
+                <Label text="Gateway Message:" styleClass="form-label" GridPane.rowIndex="8" GridPane.columnIndex="0" />
+                <Text fx:id="gatewayMessageText" wrappingWidth="300" styleClass="form-input" GridPane.rowIndex="8" GridPane.columnIndex="1" />
 
             </GridPane>
         </VBox>
     </center>
     <bottom>
-        <HBox alignment="CENTER" spacing="20"  BorderPane.alignment="CENTER">
-            <Button text="View Order Details" onAction="#handleViewOrderDetailsAction"  fx:id="viewOrderButton" visible="false" managed="false"/>
-            <Button text="Continue Shopping" onAction="#handleContinueShoppingAction"  defaultButton="true"/>
+        <HBox alignment="CENTER" spacing="20" styleClass="dashboard-actions" BorderPane.alignment="CENTER">
+            <Button text="View Order Details" styleClass="secondary-button" onAction="#handleViewOrderDetailsAction" fx:id="viewOrderButton" visible="false" managed="false"/>
+            <Button text="Continue Shopping" styleClass="primary-button" onAction="#handleContinueShoppingAction" defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>

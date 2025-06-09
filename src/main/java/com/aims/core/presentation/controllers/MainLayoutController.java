@@ -186,6 +186,90 @@ public class MainLayoutController { // This could be your BaseScreenController o
         }
     }
 
+    /**
+     * Loads content with navigation history support.
+     * This method delegates to FXMLSceneManager for history-aware navigation.
+     *
+     * @param fxmlPath The path to the FXML file
+     * @param title The title for the screen (used in navigation context)
+     * @return The loaded controller object
+     */
+    public Object loadContentWithHistory(String fxmlPath, String title) {
+        System.out.println("MainLayoutController.loadContentWithHistory: Loading " + fxmlPath + " with title: " + title);
+        
+        if (sceneManager != null) {
+            // Use FXMLSceneManager's history-aware loading
+            Object controller = sceneManager.loadContentWithHistory(contentPane, fxmlPath, title);
+            this.currentController = controller; // Store the loaded controller
+            System.out.println("MainLayoutController.loadContentWithHistory: Content loaded successfully: " + fxmlPath +
+                             (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
+            return controller;
+        } else {
+            System.err.println("MainLayoutController.loadContentWithHistory: SceneManager not available, falling back to regular loadContent");
+            return loadContent(fxmlPath);
+        }
+    }
+
+    /**
+     * Loads content with navigation history support and custom navigation context.
+     * This method delegates to FXMLSceneManager for history-aware navigation.
+     *
+     * @param fxmlPath The path to the FXML file
+     * @param title The title for the screen (used in navigation context)
+     * @param context Custom navigation context (for search state, etc.)
+     * @return The loaded controller object
+     */
+    public Object loadContentWithHistory(String fxmlPath, String title, com.aims.core.presentation.utils.NavigationContext context) {
+        System.out.println("MainLayoutController.loadContentWithHistory: Loading " + fxmlPath + " with title: " + title + " and custom context");
+        
+        if (sceneManager != null) {
+            // Use FXMLSceneManager's history-aware loading with custom context
+            Object controller = sceneManager.loadContentWithHistory(contentPane, fxmlPath, title, context);
+            this.currentController = controller; // Store the loaded controller
+            System.out.println("MainLayoutController.loadContentWithHistory: Content loaded successfully: " + fxmlPath +
+                             (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
+            return controller;
+        } else {
+            System.err.println("MainLayoutController.loadContentWithHistory: SceneManager not available, falling back to regular loadContent");
+            return loadContent(fxmlPath);
+        }
+    }
+
+    /**
+     * Attempts to navigate back using navigation history.
+     * This method delegates to FXMLSceneManager for smart back navigation.
+     *
+     * @return true if navigation was successful, false otherwise
+     */
+    public boolean navigateBack() {
+        System.out.println("MainLayoutController.navigateBack: Attempting back navigation");
+        
+        if (sceneManager != null) {
+            boolean success = sceneManager.navigateBack();
+            if (success) {
+                // Note: The current controller is managed by FXMLSceneManager internally
+                // We don't need to track it here since we can't access getCurrentController
+                System.out.println("MainLayoutController.navigateBack: Back navigation successful");
+            } else {
+                System.out.println("MainLayoutController.navigateBack: Back navigation failed or no history available");
+            }
+            return success;
+        } else {
+            System.err.println("MainLayoutController.navigateBack: SceneManager not available, cannot perform back navigation");
+            return false;
+        }
+    }
+
+    /**
+     * Returns the content pane for direct access by FXMLSceneManager.
+     * This is needed for history-aware navigation.
+     *
+     * @return The content pane where screens are loaded
+     */
+    public javafx.scene.layout.BorderPane getContentPane() {
+        return contentPane;
+    }
+
     public Object loadContent(String fxmlPath) {
         System.out.println("MainLayoutController: Loading content: " + fxmlPath);
         System.out.println("MainLayoutController: SceneManager available: " + (sceneManager != null));
@@ -195,7 +279,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
             // Use FXMLSceneManager for proper dependency injection
             Object controller = sceneManager.loadFXMLIntoPane(contentPane, fxmlPath);
             this.currentController = controller; // Store the loaded controller
-            System.out.println("Content loaded successfully: " + fxmlPath + 
+            System.out.println("Content loaded successfully: " + fxmlPath +
                              (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
             return controller;
         } else {
@@ -255,30 +339,36 @@ public class MainLayoutController { // This could be your BaseScreenController o
                         }
                     }
                     else if (childController instanceof ProductDetailScreenController) {
-                        System.out.println("MainLayoutController.loadContent: Fallback injection for ProductDetailScreenController");
+                        System.out.println("MainLayoutController.loadContent: Injecting services into ProductDetailScreenController");
                         ProductDetailScreenController detailController = (ProductDetailScreenController) childController;
                         try {
+                            // Get ServiceFactory instance
+                            System.out.println("MainLayoutController.loadContent: Getting ServiceFactory instance");
+                            
+                            // Inject services with enhanced error handling
+                            System.out.println("MainLayoutController.loadContent: About to inject MainLayoutController into ProductDetailScreenController");
+                            detailController.setMainLayoutController(this);
+                            System.out.println("MainLayoutController.loadContent: MainLayoutController injected successfully");
+                            
                             System.out.println("MainLayoutController.loadContent: About to inject ProductService into ProductDetailScreenController");
                             detailController.setProductService(serviceFactory.getProductService());
-                            System.out.println("MainLayoutController.loadContent: ProductService injected into ProductDetailScreenController (fallback)");
+                            System.out.println("MainLayoutController.loadContent: ProductService injected successfully");
                             
                             System.out.println("MainLayoutController.loadContent: About to inject CartService into ProductDetailScreenController");
                             detailController.setCartService(serviceFactory.getCartService());
-                            System.out.println("MainLayoutController.loadContent: CartService injected into ProductDetailScreenController (fallback)");
-                            
-                            System.out.println("MainLayoutController.loadContent: About to inject MainLayoutController into ProductDetailScreenController");
-                            detailController.setMainLayoutController(this);
-                            System.out.println("MainLayoutController.loadContent: MainLayoutController injected into ProductDetailScreenController (fallback)");
+                            System.out.println("MainLayoutController.loadContent: CartService injected successfully");
                             
                             if (sceneManager != null) {
                                 System.out.println("MainLayoutController.loadContent: About to inject SceneManager into ProductDetailScreenController");
                                 detailController.setSceneManager(sceneManager);
-                                System.out.println("MainLayoutController.loadContent: SceneManager injected into ProductDetailScreenController (fallback)");
+                                System.out.println("MainLayoutController.loadContent: SceneManager injected successfully");
                             } else {
-                                System.out.println("MainLayoutController.loadContent: SceneManager is null, cannot inject into ProductDetailScreenController");
+                                System.out.println("MainLayoutController.loadContent: SceneManager is null, skipping injection");
                             }
+                            
+                            System.out.println("MainLayoutController.loadContent: All services injected successfully into ProductDetailScreenController");
                         } catch (Exception e) {
-                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for ProductDetailScreenController: " + e.getMessage());
+                            System.err.println("Error injecting services into ProductDetailScreenController: " + e.getMessage());
                             e.printStackTrace();
                         }
                     }

@@ -12,6 +12,8 @@ import com.aims.core.infrastructure.database.dao.IUserAccountDAO; // For fetchin
 import com.aims.core.shared.exceptions.ValidationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
 import com.aims.core.shared.exceptions.InventoryException; // For stock issues
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -19,6 +21,8 @@ import java.util.UUID; // For generating cart session IDs
 
 public class CartServiceImpl implements ICartService {
 
+    private static final Logger logger = LoggerFactory.getLogger(CartServiceImpl.class);
+    
     private final ICartDAO cartDAO;
     private final ICartItemDAO cartItemDAO;
     private final IProductDAO productDAO;
@@ -93,24 +97,32 @@ public class CartServiceImpl implements ICartService {
     @Override
     public Cart addItemToCart(String cartSessionId, String productId, int quantity)
             throws SQLException, ResourceNotFoundException, ValidationException, InventoryException {
+        logger.info("Adding item to cart - Session: {}, Product: {}, Quantity: {}", cartSessionId, productId, quantity);
+        
         if (quantity <= 0) {
+            logger.warn("Invalid quantity provided: {}", quantity);
             throw new ValidationException("Quantity to add must be positive.");
         }
+        
         Product product = productDAO.getById(productId);
         if (product == null) {
+            logger.error("Product not found: {}", productId);
             throw new ResourceNotFoundException("Product with ID " + productId + " not found.");
         }
+        
         if (product.getQuantityInStock() < quantity) {
+            logger.warn("Insufficient stock for product {} - Available: {}, Requested: {}",
+                       productId, product.getQuantityInStock(), quantity);
             throw new InventoryException("Insufficient stock for product " + product.getTitle() +
                                         ". Available: " + product.getQuantityInStock() + ", Requested: " + quantity);
         }
 
         Cart cart = cartDAO.getBySessionId(cartSessionId);
         if (cart == null) {
-            // If cart doesn't exist for session, create a new one.
-            // The problem implies customers can add to cart without explicitly creating one.
-            cart = createNewCart(null); // Create a guest cart with the given session ID
-            cart.setCartSessionId(cartSessionId); // Ensure session ID is set if createNewCart doesn't take it
+            logger.info("Cart not found for session {}, creating new cart", cartSessionId);
+            // CRITICAL FIX: Create cart with specific session ID to prevent FK constraint violation
+            cart = createNewCartWithSessionId(cartSessionId, null);
+            logger.info("Created new cart with session ID: {}", cartSessionId);
         }
 
         CartItem existingItem = null;
@@ -121,24 +133,45 @@ public class CartServiceImpl implements ICartService {
             }
         }
 
-        if (existingItem != null) {
-            int newQuantity = existingItem.getQuantity() + quantity;
-            if (product.getQuantityInStock() < newQuantity) {
-                 throw new InventoryException("Insufficient stock for product " + product.getTitle() +
-                                       ". Available: " + product.getQuantityInStock() +
-                                       ", Requested total: " + newQuantity);
+        try {
+            if (existingItem != null) {
+                int newQuantity = existingItem.getQuantity() + quantity;
+                logger.info("Updating existing cart item - Product: {}, Old Quantity: {}, New Quantity: {}",
+                           productId, existingItem.getQuantity(), newQuantity);
+                           
+                if (product.getQuantityInStock() < newQuantity) {
+                    logger.warn("Insufficient stock for updated quantity - Product: {}, Available: {}, Requested total: {}",
+                               productId, product.getQuantityInStock(), newQuantity);
+                    throw new InventoryException("Insufficient stock for product " + product.getTitle() +
+                                           ". Available: " + product.getQuantityInStock() +
+                                           ", Requested total: " + newQuantity);
+                }
+                existingItem.setQuantity(newQuantity);
+                cartItemDAO.update(existingItem);
+                logger.info("Successfully updated cart item quantity");
+            } else {
+                logger.info("Adding new cart item - Cart Session: {}, Product: {}, Quantity: {}",
+                           cartSessionId, productId, quantity);
+                CartItem newItem = new CartItem(cart, product, quantity);
+                cart.getItems().add(newItem); // Add to in-memory list first
+                cartItemDAO.add(newItem);     // Persist with consistent session ID
+                logger.info("Successfully added new cart item");
             }
-            existingItem.setQuantity(newQuantity);
-            cartItemDAO.update(existingItem);
-        } else {
-            CartItem newItem = new CartItem(cart, product, quantity);
-            cart.getItems().add(newItem); // Add to in-memory list first
-            cartItemDAO.add(newItem);     // Persist
-        }
-        cart.setLastUpdated(LocalDateTime.now());
-        cartDAO.saveOrUpdate(cart); // Update lastUpdated timestamp
+            
+            cart.setLastUpdated(LocalDateTime.now());
+            cartDAO.saveOrUpdate(cart); // Update lastUpdated timestamp
+            logger.info("Cart successfully updated for session: {}", cartSessionId);
 
-        return getCart(cart.getCartSessionId()); // Return the refreshed cart
+            return getCart(cart.getCartSessionId()); // Return the refreshed cart
+        } catch (SQLException e) {
+            logger.error("Database error while adding item to cart - Session: {}, Product: {}, Error: {}",
+                        cartSessionId, productId, e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error while adding item to cart - Session: {}, Product: {}, Error: {}",
+                        cartSessionId, productId, e.getMessage(), e);
+            throw new SQLException("Failed to add item to cart: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -261,6 +294,21 @@ public class CartServiceImpl implements ICartService {
             // Optionally handle if user not found, though typically userId should be valid
         }
         Cart newCart = new Cart(newCartSessionId, user, LocalDateTime.now());
+        cartDAO.saveOrUpdate(newCart);
+        return newCart;
+    }
+
+    /**
+     * CRITICAL FIX: Creates a new cart with a specific session ID to prevent FK constraint violations
+     * This ensures that CartItem foreign key references match the Cart primary key
+     */
+    public Cart createNewCartWithSessionId(String cartSessionId, String userId) throws SQLException {
+        UserAccount user = null;
+        if (userId != null) {
+            user = userAccountDAO.getById(userId);
+            // Optionally handle if user not found, though typically userId should be valid
+        }
+        Cart newCart = new Cart(cartSessionId, user, LocalDateTime.now());
         cartDAO.saveOrUpdate(newCart);
         return newCart;
     }

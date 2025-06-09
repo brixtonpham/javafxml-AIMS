@@ -7,18 +7,18 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<HBox fx:id="orderItemRowPane" alignment="CENTER_LEFT" spacing="10"  prefHeight="70.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.OrderItemRowController">
+<HBox fx:id="orderItemRowPane" alignment="CENTER_LEFT" spacing="10" prefHeight="-1.0" prefWidth="-1.0" styleClass="order-item-row" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.OrderItemRowController">
     <padding>
         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
     </padding>
-    <ImageView fx:id="productImageView" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true" />
+    <ImageView fx:id="productImageView" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true" styleClass="product-image"/>
     <VBox HBox.hgrow="ALWAYS" spacing="2">
-        <Label fx:id="productTitleLabel"  text="Product Title - Lorem Ipsum Dolor Sit Amet Consectetur"/>
-        <Label fx:id="productIdLabel"  text="ID: PRODUCT_ID_001"/>
+        <Label fx:id="productTitleLabel" text="Product Title - Lorem Ipsum Dolor Sit Amet Consectetur" styleClass="product-title"/>
+        <Label fx:id="productIdLabel" text="ID: PRODUCT_ID_001" styleClass="product-id-label"/>
     </VBox>
     <VBox alignment="CENTER_RIGHT" spacing="2" prefWidth="180.0">
-        <Label fx:id="quantityLabel"  text="Qty: 1"/>
-        <Label fx:id="unitPriceLabel"  text="Unit: 100,000 VND"/>
+        <Label fx:id="quantityLabel" text="Qty: 1" styleClass="quantity-label"/>
+        <Label fx:id="unitPriceLabel" text="Unit: 100,000 VND" styleClass="price-label"/>
     </VBox>
-    <Label fx:id="totalItemPriceLabel"  text="Total: 100,000 VND" prefWidth="150.0" alignment="CENTER_RIGHT"/>
+    <Label fx:id="totalItemPriceLabel" text="Total: 100,000 VND" prefWidth="150.0" alignment="CENTER_RIGHT" styleClass="total-price-label"/>
 </HBox>

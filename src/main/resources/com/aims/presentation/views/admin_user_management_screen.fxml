@@ -12,46 +12,46 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="userManagementPane" prefHeight="700.0" prefWidth="1000.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminUserManagementController">
+<BorderPane fx:id="userManagementPane" prefHeight="-1.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.AdminUserManagementController">
     <padding>
         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
     </padding>
     <top>
-        <VBox spacing="10">
-            <Label text="User Account Management"  BorderPane.alignment="CENTER">
+        <VBox spacing="10" styleClass="content-area">
+            <Label text="User Account Management" styleClass="header-title" BorderPane.alignment="CENTER">
                 <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
             </Label>
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <TextField fx:id="searchUserField" promptText="Search by Username or Email..." HBox.hgrow="ALWAYS" onAction="#handleSearchUserAction"/>
-                <ComboBox fx:id="roleFilterComboBox" promptText="Filter by Role" />
-                <ComboBox fx:id="statusFilterComboBox" promptText="Filter by Status" />
-                <Button text="Search/Filter" onAction="#handleSearchUserAction" />
-                <Button text="Clear Filters" onAction="#handleClearFiltersAction" />
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="search-container">
+                <TextField fx:id="searchUserField" promptText="Search by Username or Email..." styleClass="search-field" HBox.hgrow="ALWAYS" onAction="#handleSearchUserAction"/>
+                <ComboBox fx:id="roleFilterComboBox" promptText="Filter by Role" styleClass="filter-combo" />
+                <ComboBox fx:id="statusFilterComboBox" promptText="Filter by Status" styleClass="filter-combo" />
+                <Button text="Search/Filter" styleClass="primary-button" onAction="#handleSearchUserAction" />
+                <Button text="Clear Filters" styleClass="secondary-button" onAction="#handleClearFiltersAction" />
             </HBox>
             <HBox alignment="CENTER_RIGHT" spacing="10" >
-                <Button text="Add New User" onAction="#handleAddNewUserAction" />
+                <Button text="Add New User" styleClass="success-button" onAction="#handleAddNewUserAction" />
             </HBox>
         </VBox>
     </top>
     <center>
-        <TableView fx:id="usersTableView" prefHeight="500.0" BorderPane.alignment="CENTER">
+        <TableView fx:id="usersTableView" prefHeight="-1.0" styleClass="table-view" BorderPane.alignment="CENTER">
             <columns>
-                <TableColumn fx:id="userIdColumn" prefWidth="150.0" text="User ID">
+                <TableColumn fx:id="userIdColumn" prefWidth="-1.0" text="User ID" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="userId" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="usernameColumn" prefWidth="150.0" text="Username">
+                <TableColumn fx:id="usernameColumn" prefWidth="-1.0" text="Username" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="username" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="emailColumn" prefWidth="200.0" text="Email">
+                <TableColumn fx:id="emailColumn" prefWidth="-1.0" text="Email" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="email" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="rolesColumn" prefWidth="150.0" text="Roles"/>
-                <TableColumn fx:id="statusColumn" prefWidth="100.0" text="Status">
+                <TableColumn fx:id="rolesColumn" prefWidth="-1.0" text="Roles" styleClass="table-cell"/>
+                <TableColumn fx:id="statusColumn" prefWidth="-1.0" text="Status" styleClass="table-cell">
                     <cellValueFactory><PropertyValueFactory property="userStatus" /></cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="actionsUserColumn" prefWidth="220.0" text="Actions"/>
+                <TableColumn fx:id="actionsUserColumn" prefWidth="-1.0" text="Actions" styleClass="table-cell"/>
             </columns>
             <placeholder>
                 <Label text="No users found matching your criteria."/>
@@ -63,9 +63,9 @@
     </center>
     <bottom>
         <HBox fx:id="userPaginationControls" spacing="10" alignment="CENTER" >
-            <Button fx:id="prevUserPageButton" text="Previous" onAction="#handlePrevUserPageAction"/>
-            <Label fx:id="currentUserPageLabel" text="Page 1/X"/>
-            <Button fx:id="nextUserPageButton" text="Next" onAction="#handleNextUserPageAction"/>
+            <Button fx:id="prevUserPageButton" text="Previous" styleClass="secondary-button" onAction="#handlePrevUserPageAction"/>
+            <Label fx:id="currentUserPageLabel" text="Page 1/X" styleClass="pagination-label"/>
+            <Button fx:id="nextUserPageButton" text="Next" styleClass="secondary-button" onAction="#handleNextUserPageAction"/>
         </HBox>
     </bottom>
 </BorderPane>

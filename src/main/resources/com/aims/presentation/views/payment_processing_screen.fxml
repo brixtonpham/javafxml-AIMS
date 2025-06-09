@@ -1,34 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.web.WebView?> <BorderPane fx:id="paymentProcessingPane" prefHeight="400.0" prefWidth="600.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentProcessingScreenController">
+
+<BorderPane fx:id="paymentProcessingPane" prefHeight="-1.0" prefWidth="-1.0" styleClass="main-layout" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentProcessingScreenController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
     <top>
-        <Label text="Processing Payment..."  BorderPane.alignment="CENTER">
+        <Label text="Processing Payment..." styleClass="header-title" BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="30.0" />
             </BorderPane.margin>
         </Label>
     </top>
     <center>
-        <VBox fx:id="contentVBox" alignment="CENTER" spacing="20">
+        <VBox fx:id="contentVBox" alignment="CENTER" spacing="20" styleClass="content-area">
             <ProgressIndicator fx:id="progressIndicator" prefHeight="80.0" prefWidth="80.0" />
-            <Label fx:id="statusLabel" text="Please wait while your payment is being processed with VNPay."  wrapText="true" textAlignment="CENTER"/>
-            <Label fx:id="instructionLabel" text="You might be redirected to VNPay's website. Do not close this window or navigate away unless instructed."  wrapText="true" textAlignment="CENTER"/>
-            <Label fx:id="transactionRefLabel" text="Your AIMS Transaction ID: N/A" />
+            <Label fx:id="statusLabel" text="Please wait while your payment is being processed with VNPay." styleClass="form-label" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="instructionLabel" text="You might be redirected to VNPay's website. Do not close this window or navigate away unless instructed." styleClass="pagination-label" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="transactionRefLabel" text="Your AIMS Transaction ID: N/A" styleClass="form-input"/>
 
-            <Button fx:id="checkStatusButton" text="Check Payment Status Manually" onAction="#handleCheckStatusAction" visible="false" managed="false" >
+            <Button fx:id="checkStatusButton" text="Check Payment Status Manually" styleClass="secondary-button" onAction="#handleCheckStatusAction" visible="false" managed="false">
                 <VBox.margin>
                     <Insets top="20.0" />
                 </VBox.margin>
             </Button>
-            <Button fx:id="cancelPaymentButton" text="Cancel Payment Attempt" onAction="#handleCancelPaymentAttemptAction" >
+            <Button fx:id="cancelPaymentButton" text="Cancel Payment Attempt" styleClass="danger-button" onAction="#handleCancelPaymentAttemptAction">
                  <VBox.margin>
                     <Insets top="10.0" />
                 </VBox.margin>
