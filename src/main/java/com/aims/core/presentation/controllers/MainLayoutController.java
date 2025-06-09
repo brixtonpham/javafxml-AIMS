@@ -68,12 +68,22 @@ public class MainLayoutController { // This could be your BaseScreenController o
         
         // Load CSS stylesheets for layout fixes
         try {
+            // Load existing layout-fix.css
             String cssPath = "/com/aims/presentation/styles/layout-fix.css";
             if (getClass().getResource(cssPath) != null) {
                 mainBorderPane.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
                 System.out.println("MainLayoutController: Layout fix CSS loaded successfully");
             } else {
                 System.out.println("MainLayoutController: Layout fix CSS not found at: " + cssPath);
+            }
+            
+            // Load new fullscreen-layout.css
+            String fullscreenCssPath = "/com/aims/presentation/styles/fullscreen-layout.css";
+            if (getClass().getResource(fullscreenCssPath) != null) {
+                mainBorderPane.getStylesheets().add(getClass().getResource(fullscreenCssPath).toExternalForm());
+                System.out.println("MainLayoutController: Fullscreen layout CSS loaded successfully");
+            } else {
+                System.out.println("MainLayoutController: Fullscreen layout CSS not found at: " + fullscreenCssPath);
             }
         } catch (Exception e) {
             System.err.println("MainLayoutController: Error loading CSS: " + e.getMessage());
@@ -291,13 +301,32 @@ public class MainLayoutController { // This could be your BaseScreenController o
                 Object childController = loader.getController();
                 this.currentController = childController; // Store the loaded controller
                 
-                // Ensure content fills the entire contentPane
+                // Ensure content fills the entire contentPane with comprehensive sizing constraints
                 if (newContent instanceof javafx.scene.layout.Region) {
                     javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) newContent;
+                    
+                    // Set preferred size to USE_COMPUTED_SIZE for dynamic sizing
                     regionContent.setPrefWidth(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
                     regionContent.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+                    
+                    // Set maximum size to allow full expansion
                     regionContent.setMaxWidth(Double.MAX_VALUE);
                     regionContent.setMaxHeight(Double.MAX_VALUE);
+                    
+                    // Set minimum size to ensure proper display
+                    regionContent.setMinWidth(800.0);
+                    regionContent.setMinHeight(500.0);
+                    
+                    System.out.println("MainLayoutController.loadContent: Applied fullscreen sizing constraints to: " +
+                                     regionContent.getClass().getSimpleName());
+                }
+                
+                // Apply HBox.hgrow and VBox.vgrow properties if content is within layout containers
+                if (newContent instanceof javafx.scene.layout.BorderPane) {
+                    javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) newContent;
+                    javafx.scene.layout.HBox.setHgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
+                    javafx.scene.layout.VBox.setVgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
+                    System.out.println("MainLayoutController.loadContent: Applied HBox.hgrow=ALWAYS and VBox.vgrow=ALWAYS to BorderPane");
                 }
                 
                 // Pass this MainLayoutController to child controllers if they need it
@@ -380,9 +409,14 @@ public class MainLayoutController { // This could be your BaseScreenController o
                     System.err.println("MainLayoutController.loadContent: ServiceFactory is null, cannot perform fallback service injection");
                 }
 
-                // Use setCenter and ensure proper alignment
+                // Use setCenter and ensure proper alignment with enhanced layout properties
                 contentPane.setCenter(newContent);
-                BorderPane.setAlignment(newContent, javafx.geometry.Pos.CENTER);
+                javafx.scene.layout.BorderPane.setAlignment(newContent, javafx.geometry.Pos.CENTER);
+                
+                // Apply BorderPane layout constraints to ensure content fills the center
+                javafx.scene.layout.BorderPane.setMargin(newContent, new javafx.geometry.Insets(0));
+                
+                System.out.println("MainLayoutController.loadContent: Content positioned in center with BorderPane.alignment=CENTER");
                 
                 return childController;
             } catch (IOException e) {

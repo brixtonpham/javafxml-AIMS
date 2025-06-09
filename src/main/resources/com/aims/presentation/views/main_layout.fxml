@@ -48,15 +48,19 @@
         </VBox>
     </top>
     <center>
-        <BorderPane fx:id="contentPane" 
+        <BorderPane fx:id="contentPane"
                     styleClass="content-pane"
-                    maxHeight="Infinity" 
-                    maxWidth="Infinity" 
-                    minHeight="600.0" 
-                    minWidth="1000.0" 
-                    prefHeight="800.0" 
-                    prefWidth="1400.0"
-                    BorderPane.alignment="CENTER" />
+                    maxHeight="Infinity"
+                    maxWidth="Infinity"
+                    minHeight="600.0"
+                    minWidth="1000.0"
+                    prefHeight="-1.0"
+                    prefWidth="-1.0"
+                    BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="0.0" left="0.0" right="0.0" top="0.0" />
+            </BorderPane.margin>
+        </BorderPane>
     </center>
     <bottom>
         <Label fx:id="footerLabel" text="© 2025 AIMS Project" alignment="CENTER" maxWidth="Infinity">

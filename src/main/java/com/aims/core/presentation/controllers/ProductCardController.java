@@ -2,6 +2,7 @@ package com.aims.core.presentation.controllers;
 
 import com.aims.core.entities.Product;
 import com.aims.core.application.services.ICartService;
+import com.aims.core.presentation.utils.CartSessionManager;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager; // For navigation
 // import com.aims.MainLayoutController; // To navigate
@@ -139,8 +140,11 @@ public class ProductCardController {
         if (product == null) return;
         System.out.println("Add to cart clicked for (Card): " + product.getTitle());
 
+        // Validate and initialize services if needed
+        validateAndInitializeServices();
+
         if (cartService == null) {
-            System.err.println("CartService not available in ProductCardController.");
+            System.err.println("CartService not available in ProductCardController after validation.");
             showCartServiceUnavailableMessage();
             return;
         }
@@ -157,8 +161,8 @@ public class ProductCardController {
         addToCartButton.setText("Adding...");
 
         try {
-            // Generate or get session ID - in a real app this would come from a session manager
-            String currentCartSessionId = generateGuestCartSessionId();
+            // Generate or get session ID using centralized session manager
+            String currentCartSessionId = CartSessionManager.getOrCreateCartSessionId();
             cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1);
             
             // Success feedback
@@ -201,9 +205,23 @@ public class ProductCardController {
         event.consume();
     }
 
-    private String generateGuestCartSessionId() {
-        // In a real application, this would be managed by a session service
-        return "guest_cart_" + System.currentTimeMillis();
+
+    /**
+     * Validates that required services are available and attempts to initialize them if needed.
+     * This provides a fallback mechanism when dependency injection fails.
+     */
+    private void validateAndInitializeServices() {
+        if (cartService == null) {
+            System.err.println("ProductCardController: CartService is null - attempting to initialize from ServiceFactory");
+            try {
+                com.aims.core.shared.ServiceFactory serviceFactory = com.aims.core.shared.ServiceFactory.getInstance();
+                this.cartService = serviceFactory.getCartService();
+                System.out.println("ProductCardController: CartService initialized from ServiceFactory: " + (cartService != null));
+            } catch (Exception e) {
+                System.err.println("ProductCardController: Failed to initialize CartService: " + e.getMessage());
+                // Cart service failure will be handled by the calling method
+            }
+        }
     }
 
     private void updateOutOfStockState() {

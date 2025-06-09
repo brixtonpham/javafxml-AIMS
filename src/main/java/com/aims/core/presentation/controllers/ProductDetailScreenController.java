@@ -9,6 +9,7 @@ import com.aims.core.entities.DVD;
 import com.aims.core.shared.ServiceFactory;
 import com.aims.core.shared.constants.FXMLPaths;
 import com.aims.core.presentation.utils.NavigationContext;
+import com.aims.core.presentation.utils.CartSessionManager;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
 
@@ -340,30 +341,80 @@ public class ProductDetailScreenController {
 
     @FXML
     void handleAddToCartAction(ActionEvent event) {
-        if (currentProduct == null) return;
+        if (currentProduct == null) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: currentProduct is null");
+            return;
+        }
+        
         int quantity = quantitySpinner.getValue();
+        System.out.println("ProductDetailScreenController.handleAddToCartAction: Add to cart clicked for: " + currentProduct.getTitle() + ", Quantity: " + quantity);
+        
+        // Validate quantity
         if (quantity <= 0) {
-            // AlertHelper.showWarningAlert("Invalid Quantity", "Please select a quantity greater than 0.");
             setErrorMessage("Quantity must be greater than 0.", true);
             return;
         }
+        
+        // Check if quantity exceeds available stock
+        if (quantity > currentProduct.getQuantityInStock()) {
+            setErrorMessage("Requested quantity (" + quantity + ") exceeds available stock (" + currentProduct.getQuantityInStock() + ").", true);
+            return;
+        }
+        
+        // Clear any previous error messages
         setErrorMessage("", false);
-
-        System.out.println("Add to cart clicked for: " + currentProduct.getTitle() + ", Quantity: " + quantity);
-        // if (cartService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Cart service is not available.");
-        //     return;
-        // }
-        // try {
-        //     String currentCartSessionId = "guest_cart_session_id_placeholder"; // TODO: Get actual session ID
-        //     cartService.addItemToCart(currentCartSessionId, currentProduct.getProductId(), quantity);
-        //     AlertHelper.showInfoAlert("Added to Cart", quantity + " of '" + currentProduct.getTitle() + "' added to your cart.");
-        //     // Optionally update availability display, though a full reload via setProductId might be better
-        //     loadProductDetails(); // Refresh details, especially stock
-        // } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
-        //     e.printStackTrace();
-        //     AlertHelper.showErrorAlert("Add to Cart Failed", e.getMessage());
-        // }
+        
+        // Validate and initialize services if needed
+        validateAndInitializeServices();
+        
+        // Check service availability
+        if (cartService == null) {
+            setErrorMessage("Cart service is not available. Please refresh the page and try again.", true);
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: CartService is null after validation");
+            return;
+        }
+        
+        // Disable button temporarily to prevent double-clicks
+        addToCartButton.setDisable(true);
+        String originalButtonText = addToCartButton.getText();
+        addToCartButton.setText("Adding...");
+        
+        try {
+            // Get or create cart session ID with proper persistence
+            String currentCartSessionId = CartSessionManager.getOrCreateCartSessionId();
+            System.out.println("ProductDetailScreenController.handleAddToCartAction: Using cart session ID: " + currentCartSessionId);
+            
+            // Add item to cart
+            cartService.addItemToCart(currentCartSessionId, currentProduct.getProductId(), quantity);
+            
+            // Success feedback
+            System.out.println("ProductDetailScreenController.handleAddToCartAction: Successfully added " + quantity + " of '" + currentProduct.getTitle() + "' to cart");
+            setErrorMessage("Added " + quantity + " of '" + currentProduct.getTitle() + "' to your cart.", false);
+            
+            // Refresh product details to update stock information
+            loadProductDetails();
+            
+        } catch (com.aims.core.shared.exceptions.ValidationException e) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: Validation error: " + e.getMessage());
+            setErrorMessage("Invalid request: " + e.getMessage(), true);
+        } catch (com.aims.core.shared.exceptions.ResourceNotFoundException e) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: Product not found: " + e.getMessage());
+            setErrorMessage("Product is no longer available.", true);
+        } catch (com.aims.core.shared.exceptions.InventoryException e) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: Inventory error: " + e.getMessage());
+            setErrorMessage("Insufficient stock: " + e.getMessage(), true);
+        } catch (SQLException e) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: Database error: " + e.getMessage());
+            setErrorMessage("Database error occurred. Please try again.", true);
+        } catch (Exception e) {
+            System.err.println("ProductDetailScreenController.handleAddToCartAction: Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            setErrorMessage("An unexpected error occurred. Please try again.", true);
+        } finally {
+            // Re-enable button
+            addToCartButton.setDisable(false);
+            addToCartButton.setText(originalButtonText);
+        }
     }
 
     @FXML
@@ -441,5 +492,17 @@ public class ProductDetailScreenController {
         errorMessageLabel.setText(message);
         errorMessageLabel.setVisible(visible);
         errorMessageLabel.setManaged(visible);
+        
+        // Set appropriate styling based on message type
+        if (visible) {
+            if (message.toLowerCase().contains("added") || message.toLowerCase().contains("success")) {
+                errorMessageLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+            } else {
+                errorMessageLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+            }
+        } else {
+            errorMessageLabel.setStyle(""); // Reset style when hidden
+        }
     }
+
 }

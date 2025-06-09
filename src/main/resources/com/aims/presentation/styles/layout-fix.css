@@ -11,57 +11,66 @@
 }
 
 .main-border-pane {
-    -fx-pref-width: 100%;
-    -fx-pref-height: 100%;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1200;
     -fx-min-height: 720;
+    -fx-background-color: #f8f9fa;
 }
 
 .content-pane {
-    -fx-pref-width: 100%;
-    -fx-pref-height: 100%;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
     -fx-min-height: 600;
+    -fx-background-color: transparent;
 }
 
 .home-screen-pane {
-    -fx-pref-width: 100%;
-    -fx-pref-height: 100%;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
     -fx-min-height: 600;
+    -fx-background-color: transparent;
 }
 
 /* =========================================================================
    PRODUCT DISPLAY OPTIMIZATION
    ========================================================================= */
 .product-flow-pane {
-    -fx-alignment: center;
-    -fx-pref-width: 100%;
+    -fx-alignment: top-center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
-    -fx-hgap: 30;
-    -fx-vgap: 30;
-    -fx-padding: 30 50 30 50;
+    -fx-max-height: infinity;
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 30 40 30 40;
     -fx-column-halignment: center;
-    -fx-pref-wrap-length: infinity;
+    -fx-pref-wrap-length: USE_COMPUTED_SIZE;
+    -fx-background-color: transparent;
 }
 
 /* Ensure ScrollPane properly fills its container and shows content */
 .scroll-pane {
     -fx-fit-to-width: true;
     -fx-fit-to-height: true;
-    -fx-pref-width: 100%;
-    -fx-pref-height: 100%;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-hbar-policy: never;
     -fx-vbar-policy: as-needed;
     -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }
 
 .scroll-pane .viewport {
@@ -74,13 +83,16 @@
 
 /* Ensure FlowPane stretches to full width and displays products properly */
 .flow-pane {
-    -fx-pref-width: 100%;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
     -fx-max-width: infinity;
-    -fx-alignment: center;
-    -fx-hgap: 30;
-    -fx-vgap: 30;
-    -fx-padding: 30;
+    -fx-max-height: infinity;
+    -fx-alignment: top-center;
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 25;
     -fx-background-color: transparent;
+    -fx-column-halignment: center;
 }
 
 /* =========================================================================

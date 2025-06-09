@@ -13,6 +13,7 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.beans.value.ChangeListener;
 
 public class CartItemRowController {
 
@@ -35,25 +36,37 @@ public class CartItemRowController {
     private ICartService cartService;
     private CartScreenController parentCartScreenController; // Để gọi refresh hoặc xử lý
     private String cartSessionId;
+    private ChangeListener<Integer> quantityChangeListener;
+    private boolean isUpdatingSpinner = false;
 
 
     public void initialize() {
         SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100, 1); // Min 0 for removal
         quantitySpinner.setValueFactory(valueFactory);
 
-        quantitySpinner.valueProperty().addListener((obs, oldValue, newValue) -> {
+        // Create and store the listener reference for proper management
+        quantityChangeListener = (obs, oldValue, newValue) -> {
+            // CRITICAL FIX: Prevent listener from triggering during programmatic updates
+            if (isUpdatingSpinner) {
+                return;
+            }
+            
             if (this.cartItem != null && newValue != null && !newValue.equals(oldValue)) {
                 if (newValue == 0) {
                     parentCartScreenController.handleRemoveItemFromRow(this.cartItem);
                 } else if (newValue > cartItem.getAvailableStock()){
                      // AlertHelper.showWarningAlert("Stock Limit", "Cannot exceed available stock: " + cartItem.getAvailableStock());
+                     isUpdatingSpinner = true;
                      quantitySpinner.getValueFactory().setValue(oldValue); // Revert
+                     isUpdatingSpinner = false;
                 }
                 else {
                     parentCartScreenController.handleUpdateQuantityFromRow(this.cartItem, newValue);
                 }
             }
-        });
+        };
+        
+        quantitySpinner.valueProperty().addListener(quantityChangeListener);
     }
 
     public void setData(CartItemDTO cartItem, ICartService cartService, String cartSessionId, CartScreenController parentController) {
@@ -64,7 +77,22 @@ public class CartItemRowController {
 
         productTitleLabel.setText(cartItem.getTitle());
         unitPriceLabel.setText(String.format("Unit: %,.0f VND", cartItem.getUnitPriceExclVAT()));
+        
+        // CRITICAL FIX: Prevent listener triggering during initialization
+        // Remove listener temporarily, update value, then re-add listener
+        if (quantityChangeListener != null) {
+            quantitySpinner.valueProperty().removeListener(quantityChangeListener);
+        }
+        
+        isUpdatingSpinner = true;
         quantitySpinner.getValueFactory().setValue(cartItem.getQuantity());
+        isUpdatingSpinner = false;
+        
+        // Re-add the listener after setting the value
+        if (quantityChangeListener != null) {
+            quantitySpinner.valueProperty().addListener(quantityChangeListener);
+        }
+        
         updateTotalItemPrice();
 
         if (cartItem.getImageUrl() != null && !cartItem.getImageUrl().isEmpty()) {

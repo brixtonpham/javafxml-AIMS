@@ -1,0 +1,508 @@
+/* =========================================================================
+   FULLSCREEN LAYOUT CSS - Comprehensive Layout Infrastructure
+   Phase 1: Core Layout Infrastructure for FXML Fullscreen Implementation
+   ========================================================================= */
+
+/* =========================================================================
+   ROOT AND APPLICATION LEVEL FIXES
+   ========================================================================= */
+.root {
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+    -fx-pref-width: 100%;
+    -fx-pref-height: 100%;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1200;
+    -fx-min-height: 720;
+}
+
+/* =========================================================================
+   MAIN LAYOUT CONTAINER FIXES
+   ========================================================================= */
+.main-border-pane {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1200;
+    -fx-min-height: 720;
+    -fx-background-color: #f8f9fa;
+}
+
+.content-pane {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-background-color: transparent;
+}
+
+/* =========================================================================
+   HOME SCREEN FULLSCREEN LAYOUT
+   ========================================================================= */
+.home-screen-pane {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-background-color: transparent;
+}
+
+/* =========================================================================
+   SCROLLPANE FULLSCREEN FIXES
+   ========================================================================= */
+.scroll-pane {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: as-needed;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .content {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* =========================================================================
+   PRODUCT DISPLAY FULLSCREEN OPTIMIZATION
+   ========================================================================= */
+.product-flow-pane {
+    -fx-alignment: top-center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 30 40 30 40;
+    -fx-column-halignment: center;
+    -fx-pref-wrap-length: USE_COMPUTED_SIZE;
+    -fx-background-color: transparent;
+}
+
+/* Ensure FlowPane stretches to full width and displays products properly */
+.flow-pane {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-alignment: top-center;
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 25;
+    -fx-background-color: transparent;
+    -fx-column-halignment: center;
+}
+
+/* =========================================================================
+   SEARCH AND FILTER FULLSCREEN AREA
+   ========================================================================= */
+.search-container-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-width: 900;
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-padding: 25 60 25 60;
+    -fx-background-color: transparent;
+}
+
+.search-field-fullscreen {
+    -fx-pref-width: 500;
+    -fx-min-width: 450;
+    -fx-max-width: infinity;
+    -fx-pref-height: 45;
+    -fx-min-height: 40;
+    -fx-font-size: 14px;
+    -fx-padding: 12 18;
+}
+
+.filter-combo-fullscreen {
+    -fx-pref-width: 180;
+    -fx-min-width: 160;
+    -fx-max-width: 220;
+    -fx-pref-height: 45;
+    -fx-min-height: 40;
+    -fx-font-size: 14px;
+}
+
+/* =========================================================================
+   PRODUCT CARD FULLSCREEN OPTIMIZATION
+   ========================================================================= */
+.product-card-fullscreen {
+    -fx-min-width: 300;
+    -fx-max-width: 340;
+    -fx-pref-width: 320;
+    -fx-min-height: 380;
+    -fx-max-height: 420;
+    -fx-pref-height: 400;
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-padding: 20;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 8, 0, 0, 2);
+}
+
+.product-card-fullscreen:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0, 0, 4);
+    -fx-border-color: #3498db;
+}
+
+.product-image-fullscreen {
+    -fx-fit-height: 200;
+    -fx-fit-width: 180;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+.product-title-fullscreen {
+    -fx-min-height: 55;
+    -fx-max-height: 70;
+    -fx-pref-height: 60;
+    -fx-max-width: 280;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.product-price-fullscreen {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e74c3c;
+    -fx-alignment: center;
+}
+
+/* =========================================================================
+   PAGINATION FULLSCREEN CONTROLS
+   ========================================================================= */
+.pagination-controls-fullscreen {
+    -fx-min-height: 90;
+    -fx-pref-height: 90;
+    -fx-spacing: 25;
+    -fx-alignment: center;
+    -fx-padding: 25 40 25 40;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-background-color: transparent;
+}
+
+.pagination-button-fullscreen {
+    -fx-min-width: 130;
+    -fx-pref-width: 130;
+    -fx-max-width: 160;
+    -fx-min-height: 45;
+    -fx-pref-height: 45;
+    -fx-font-size: 14px;
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.pagination-button-fullscreen:hover {
+    -fx-background-color: #2980b9;
+}
+
+.pagination-button-fullscreen:disabled {
+    -fx-background-color: #bdc3c7;
+    -fx-text-fill: #7f8c8d;
+}
+
+.page-label-fullscreen {
+    -fx-min-width: 140;
+    -fx-pref-width: 140;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* =========================================================================
+   CART SCREEN FULLSCREEN LAYOUT
+   ========================================================================= */
+.cart-screen-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-background-color: transparent;
+}
+
+.cart-items-container-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-spacing: 15;
+    -fx-padding: 25;
+}
+
+.cart-item-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-height: 90;
+    -fx-pref-height: 110;
+    -fx-spacing: 20;
+    -fx-padding: 20 25 20 25;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+/* =========================================================================
+   ADMIN SCREEN FULLSCREEN LAYOUT
+   ========================================================================= */
+.admin-dashboard-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-background-color: transparent;
+}
+
+.admin-content-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-spacing: 25;
+    -fx-padding: 25;
+}
+
+/* =========================================================================
+   PRODUCT DETAIL SCREEN FULLSCREEN
+   ========================================================================= */
+.product-detail-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 1000;
+    -fx-min-height: 600;
+    -fx-spacing: 40;
+    -fx-padding: 40;
+    -fx-background-color: transparent;
+}
+
+.product-detail-image-fullscreen {
+    -fx-fit-height: 450;
+    -fx-fit-width: 350;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+.product-detail-info-fullscreen {
+    -fx-spacing: 25;
+    -fx-padding: 25;
+    -fx-pref-width: 550;
+    -fx-max-width: infinity;
+}
+
+/* =========================================================================
+   BUTTON FULLSCREEN OPTIMIZATIONS
+   ========================================================================= */
+.button-fullscreen {
+    -fx-min-width: 110;
+    -fx-pref-width: 130;
+    -fx-min-height: 40;
+    -fx-pref-height: 45;
+    -fx-font-size: 14px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.add-to-cart-button-fullscreen {
+    -fx-min-width: 220;
+    -fx-pref-width: 250;
+    -fx-max-width: infinity;
+    -fx-min-height: 45;
+    -fx-pref-height: 50;
+    -fx-font-size: 16px;
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.add-to-cart-button-fullscreen:hover {
+    -fx-background-color: #229954;
+}
+
+/* =========================================================================
+   FORM CONTROL FULLSCREEN OPTIMIZATIONS
+   ========================================================================= */
+.text-field-fullscreen {
+    -fx-min-height: 40;
+    -fx-pref-height: 45;
+    -fx-font-size: 14px;
+    -fx-padding: 12 18;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+.combo-box-fullscreen {
+    -fx-min-height: 40;
+    -fx-pref-height: 45;
+    -fx-font-size: 14px;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+/* =========================================================================
+   TABLE AND LIST VIEW FULLSCREEN
+   ========================================================================= */
+.table-view-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-height: 450;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-height: infinity;
+}
+
+.list-view-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-height: 350;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-height: infinity;
+}
+
+/* =========================================================================
+   HEADER AND FOOTER FULLSCREEN
+   ========================================================================= */
+.header-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-height: 70;
+    -fx-pref-height: 90;
+    -fx-padding: 20 30;
+    -fx-alignment: center;
+    -fx-background-color: #2c3e50;
+}
+
+.footer-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-min-height: 50;
+    -fx-pref-height: 60;
+    -fx-padding: 15 30;
+    -fx-alignment: center;
+    -fx-background-color: #34495e;
+}
+
+/* =========================================================================
+   FULLSCREEN UTILITY CLASSES
+   ========================================================================= */
+.fullscreen-container {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-background-color: transparent;
+}
+
+.fullscreen-content {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
+.stretch-horizontal-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+}
+
+.stretch-vertical-fullscreen {
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-height: infinity;
+}
+
+.center-alignment-fullscreen {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* =========================================================================
+   RESPONSIVE FULLSCREEN ADAPTATIONS
+   ========================================================================= */
+.responsive-fullscreen {
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-background-color: transparent;
+}
+
+/* Ensure proper spacing and alignment for all containers */
+.vbox-fullscreen {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+}
+
+.hbox-fullscreen {
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+}
+
+/* =========================================================================
+   DIALOG AND MODAL FULLSCREEN
+   ========================================================================= */
+.dialog-fullscreen {
+    -fx-min-width: 450;
+    -fx-pref-width: 550;
+    -fx-min-height: 350;
+    -fx-pref-height: 450;
+    -fx-spacing: 25;
+    -fx-padding: 35;
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+/* =========================================================================
+   GRID LAYOUT FULLSCREEN FIXES
+   ========================================================================= */
+.grid-pane-fullscreen {
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 25;
+    -fx-alignment: center;
+    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-max-width: infinity;
+}
