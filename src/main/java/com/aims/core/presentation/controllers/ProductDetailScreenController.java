@@ -18,6 +18,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox; // If needed for dynamic content
 import javafx.scene.layout.VBox;  // If needed for dynamic content
@@ -28,6 +29,10 @@ import java.time.format.DateTimeFormatter;
 
 public class ProductDetailScreenController {
 
+    @FXML
+    private BorderPane productDetailPane;
+    @FXML
+    private HBox productDetailContentBox;
     @FXML
     private Label productTitleLabel;
     @FXML
@@ -87,9 +92,11 @@ public class ProductDetailScreenController {
     }
 
     public void initialize() {
-        System.out.println("ProductDetailScreenController.initialize: Starting controller initialization");
+        System.out.println("ProductDetailScreenController.initialize: Starting enhanced controller initialization");
         
         // Check if FXML components are injected
+        System.out.println("ProductDetailScreenController.initialize: productDetailPane = " + (productDetailPane != null ? "INJECTED" : "NULL"));
+        System.out.println("ProductDetailScreenController.initialize: productDetailContentBox = " + (productDetailContentBox != null ? "INJECTED" : "NULL"));
         System.out.println("ProductDetailScreenController.initialize: productTitleLabel = " + (productTitleLabel != null ? "INJECTED" : "NULL"));
         System.out.println("ProductDetailScreenController.initialize: productImageView = " + (productImageView != null ? "INJECTED" : "NULL"));
         System.out.println("ProductDetailScreenController.initialize: productPriceLabel = " + (productPriceLabel != null ? "INJECTED" : "NULL"));
@@ -98,21 +105,81 @@ public class ProductDetailScreenController {
         System.out.println("ProductDetailScreenController.initialize: productSpecificsGrid = " + (productSpecificsGrid != null ? "INJECTED" : "NULL"));
         System.out.println("ProductDetailScreenController.initialize: quantitySpinner = " + (quantitySpinner != null ? "INJECTED" : "NULL"));
         
+        // Enhanced text area configuration
         if (productDescriptionArea != null) {
             productDescriptionArea.setWrapText(true);
             productDescriptionArea.setEditable(false);
+            productDescriptionArea.setFocusTraversable(false);
         }
         
+        // Enhanced spinner configuration
         if (quantitySpinner != null) {
-            SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1); // Min 1, Max 100, Initial 1
+            SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1);
             quantitySpinner.setValueFactory(valueFactory);
+            quantitySpinner.setEditable(true);
         }
+        
+        // Apply responsive layout setup
+        setupResponsiveLayout();
         
         // Validate and initialize services if needed
         validateAndInitializeServices();
         
         setErrorMessage("", false);
-        System.out.println("ProductDetailScreenController.initialize: Controller initialization completed");
+        System.out.println("ProductDetailScreenController.initialize: Enhanced controller initialization completed");
+    }
+    
+    /**
+     * Setup responsive layout behavior for the product detail screen
+     */
+    private void setupResponsiveLayout() {
+        if (productDetailPane != null) {
+            // Apply initial responsive classes
+            if (!productDetailPane.getStyleClass().contains("responsive-product-detail-container")) {
+                productDetailPane.getStyleClass().add("responsive-product-detail-container");
+            }
+            
+            // Setup responsive content box behavior
+            if (productDetailContentBox != null) {
+                // Add window resize listener for responsive layout adjustments
+                javafx.application.Platform.runLater(() -> {
+                    if (productDetailPane.getScene() != null) {
+                        productDetailPane.getScene().widthProperty().addListener((observable, oldValue, newValue) -> {
+                            applyResponsiveLayout(newValue.doubleValue());
+                        });
+                        
+                        // Apply initial responsive layout
+                        applyResponsiveLayout(productDetailPane.getScene().getWidth());
+                    }
+                });
+            }
+        }
+    }
+    
+    /**
+     * Apply responsive layout based on window width
+     */
+    private void applyResponsiveLayout(double width) {
+        if (productDetailContentBox != null) {
+            // Remove existing responsive classes
+            productDetailContentBox.getStyleClass().removeIf(styleClass ->
+                styleClass.startsWith("responsive-mobile") || styleClass.startsWith("responsive-desktop"));
+            
+            // Apply responsive classes based on screen size
+            if (width < 1024) {
+                // Mobile/Tablet layout
+                productDetailContentBox.getStyleClass().add("responsive-mobile-layout");
+                System.out.println("ProductDetailScreenController: Applied mobile layout classes");
+            } else if (width < 1366) {
+                // Compact desktop layout
+                productDetailContentBox.getStyleClass().add("responsive-desktop-compact-layout");
+                System.out.println("ProductDetailScreenController: Applied compact desktop layout classes");
+            } else {
+                // Standard desktop layout
+                productDetailContentBox.getStyleClass().add("responsive-desktop-standard-layout");
+                System.out.println("ProductDetailScreenController: Applied standard desktop layout classes");
+            }
+        }
     }
 
     /**
@@ -158,6 +225,28 @@ public class ProductDetailScreenController {
         
         this.productIdToLoad = productId;
         if (productIdToLoad != null) {
+            // Validate and initialize services before loading product details
+            if (productService == null) {
+                System.out.println("ProductDetailScreenController.setProductId: ProductService is null, attempting to initialize");
+                validateAndInitializeServices();
+                
+                // If services are still not available, defer the loading
+                if (productService == null) {
+                    System.out.println("ProductDetailScreenController.setProductId: Services not ready, deferring product loading");
+                    javafx.application.Platform.runLater(() -> {
+                        validateAndInitializeServices();
+                        if (productService != null) {
+                            System.out.println("ProductDetailScreenController.setProductId: Services now available, loading product details");
+                            loadProductDetails();
+                        } else {
+                            System.err.println("ProductDetailScreenController.setProductId: Failed to initialize services after deferral");
+                            displayError("Product service is temporarily unavailable. Please refresh the page.");
+                        }
+                    });
+                    return;
+                }
+            }
+            
             System.out.println("ProductDetailScreenController.setProductId: About to call loadProductDetails()");
             loadProductDetails();
         } else {
@@ -241,17 +330,25 @@ public class ProductDetailScreenController {
             System.out.println("ProductDetailScreenController.populateProductData: Setting product description");
             productDescriptionArea.setText(currentProduct.getDescription() != null ? currentProduct.getDescription() : "No description available.");
 
-            System.out.println("ProductDetailScreenController.populateProductData: Setting availability info");
+            System.out.println("ProductDetailScreenController.populateProductData: Setting availability info with responsive styling");
             if (currentProduct.getQuantityInStock() > 0) {
                 productAvailabilityLabel.setText("Available: " + currentProduct.getQuantityInStock());
-                productAvailabilityLabel.setStyle("-fx-text-fill: green;");
+                // Apply responsive CSS class for in-stock status
+                productAvailabilityLabel.getStyleClass().removeAll("out-of-stock");
+                if (!productAvailabilityLabel.getStyleClass().contains("in-stock")) {
+                    productAvailabilityLabel.getStyleClass().add("in-stock");
+                }
                 quantitySpinner.setDisable(false);
                 addToCartButton.setDisable(false);
                 ((SpinnerValueFactory.IntegerSpinnerValueFactory) quantitySpinner.getValueFactory())
                         .setMax(Math.min(100, currentProduct.getQuantityInStock())); // Limit spinner max to stock or 100
             } else {
                 productAvailabilityLabel.setText("Out of Stock");
-                productAvailabilityLabel.setStyle("-fx-text-fill: red;");
+                // Apply responsive CSS class for out-of-stock status
+                productAvailabilityLabel.getStyleClass().removeAll("in-stock");
+                if (!productAvailabilityLabel.getStyleClass().contains("out-of-stock")) {
+                    productAvailabilityLabel.getStyleClass().add("out-of-stock");
+                }
                 quantitySpinner.setDisable(true);
                 addToCartButton.setDisable(true);
             }
@@ -323,17 +420,22 @@ public class ProductDetailScreenController {
     }
     
     private void addDetailToGrid(String labelText, String valueText, int rowIndex, boolean useTextNodeForValue) {
+        // Create label with responsive styling
         Label label = new Label(labelText);
-        label.setStyle("-fx-font-weight: bold;");
+        label.getStyleClass().add("responsive-spec-label");
         productSpecificsGrid.add(label, 0, rowIndex);
 
         if (useTextNodeForValue) {
+            // Use Text node for potentially long content
             Text valueNode = new Text(valueText != null ? valueText : "N/A");
+            valueNode.getStyleClass().add("responsive-spec-value");
             valueNode.setWrappingWidth(productSpecificsGrid.getColumnConstraints().get(1).getPrefWidth() > 0 ?
-                                      productSpecificsGrid.getColumnConstraints().get(1).getPrefWidth() - 10 : 300); // Adjust wrapping
+                                      productSpecificsGrid.getColumnConstraints().get(1).getPrefWidth() - 10 : 300);
             productSpecificsGrid.add(valueNode, 1, rowIndex);
         } else {
+            // Use Label for regular content
             Label valueNode = new Label(valueText != null ? valueText : "N/A");
+            valueNode.getStyleClass().add("responsive-spec-value");
             valueNode.setWrapText(true);
             productSpecificsGrid.add(valueNode, 1, rowIndex);
         }
@@ -493,15 +595,16 @@ public class ProductDetailScreenController {
         errorMessageLabel.setVisible(visible);
         errorMessageLabel.setManaged(visible);
         
-        // Set appropriate styling based on message type
+        // Remove existing message styling classes
+        errorMessageLabel.getStyleClass().removeAll("success", "error");
+        
+        // Apply responsive styling based on message type
         if (visible) {
             if (message.toLowerCase().contains("added") || message.toLowerCase().contains("success")) {
-                errorMessageLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                errorMessageLabel.getStyleClass().add("success");
             } else {
-                errorMessageLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                errorMessageLabel.getStyleClass().add("error");
             }
-        } else {
-            errorMessageLabel.setStyle(""); // Reset style when hidden
         }
     }
 

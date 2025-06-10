@@ -3,6 +3,8 @@ package com.aims.core.presentation.controllers;
 import com.aims.core.application.services.IAuthenticationService; // For logout
 import com.aims.core.entities.UserAccount; // To store current user
 import com.aims.core.presentation.utils.FXMLSceneManager; // Your scene management utility
+import com.aims.core.presentation.utils.ResponsiveLayoutManager;
+import com.aims.core.presentation.utils.ScreenDetectionService;
 import com.aims.core.shared.ServiceFactory;
 // import com.aims.shared.constants.FXMLPaths; // Your FXML paths constants
 
@@ -54,6 +56,15 @@ public class MainLayoutController { // This could be your BaseScreenController o
     private UserAccount currentUser;
     private String currentSessionId; // If you manage sessions with IDs
     private Object currentController; // Store the currently loaded controller
+    
+    // Enhanced responsive layout management
+    private ResponsiveLayoutManager.ScreenSize currentScreenSize;
+    private ScreenDetectionService.ScreenInfo currentScreenInfo;
+    
+    // Enhanced full-screen state tracking
+    private boolean isFullScreenMode = false;
+    private double lastKnownWidth = 0;
+    private double lastKnownHeight = 0;
 
     public MainLayoutController() {
         // Initialize services via DI in a real app
@@ -63,41 +74,168 @@ public class MainLayoutController { // This could be your BaseScreenController o
     }
 
     public void initialize() {
-        // Set initial state
         updateUserSpecificMenus();
         
-        // Load CSS stylesheets for layout fixes
-        try {
-            // Load existing layout-fix.css
-            String cssPath = "/com/aims/presentation/styles/layout-fix.css";
-            if (getClass().getResource(cssPath) != null) {
-                mainBorderPane.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
-                System.out.println("MainLayoutController: Layout fix CSS loaded successfully");
-            } else {
-                System.out.println("MainLayoutController: Layout fix CSS not found at: " + cssPath);
-            }
-            
-            // Load new fullscreen-layout.css
-            String fullscreenCssPath = "/com/aims/presentation/styles/fullscreen-layout.css";
-            if (getClass().getResource(fullscreenCssPath) != null) {
-                mainBorderPane.getStylesheets().add(getClass().getResource(fullscreenCssPath).toExternalForm());
-                System.out.println("MainLayoutController: Fullscreen layout CSS loaded successfully");
-            } else {
-                System.out.println("MainLayoutController: Fullscreen layout CSS not found at: " + fullscreenCssPath);
-            }
-        } catch (Exception e) {
-            System.err.println("MainLayoutController: Error loading CSS: " + e.getMessage());
-        }
+        // Initialize responsive layout system
+        initializeResponsiveLayout();
         
-        // Don't load home screen here - will be loaded after dependencies are injected
+        // Load responsive CSS
+        loadResponsiveCSS();
+        
+        // Apply initial responsive classes
+        javafx.application.Platform.runLater(this::setupResponsiveBehavior);
+        
         setHeaderTitle("AIMS Home");
     }
     
     /**
-     * Called after all dependencies have been injected to complete initialization
+     * Initialize the responsive layout system with screen detection
+     */
+    private void initializeResponsiveLayout() {
+        try {
+            // Get current screen information
+            currentScreenInfo = ScreenDetectionService.getPrimaryScreenInfo();
+            currentScreenSize = currentScreenInfo.getSizeCategory();
+            
+            System.out.println("MainLayoutController: Detected screen - " + currentScreenInfo);
+            System.out.println("MainLayoutController: Initial screen size category - " + currentScreenSize);
+        } catch (Exception e) {
+            System.err.println("MainLayoutController: Error initializing responsive layout - " + e.getMessage());
+            // Fallback to desktop if detection fails
+            currentScreenSize = ResponsiveLayoutManager.ScreenSize.DESKTOP;
+        }
+    }
+    
+    /**
+     * Load all responsive CSS frameworks
+     */
+    private void loadResponsiveCSS() {
+        try {
+            // Load primary responsive CSS framework
+            String responsiveCssPath = "/styles/responsive.css";
+            if (getClass().getResource(responsiveCssPath) != null) {
+                mainBorderPane.getStylesheets().add(getClass().getResource(responsiveCssPath).toExternalForm());
+                System.out.println("MainLayoutController: Primary responsive CSS loaded successfully");
+            }
+            
+            // Load additional responsive CSS files
+            String[] additionalCssFiles = {
+                "/styles/product-detail-responsive.css",
+                "/styles/global.css",
+                "/styles/theme.css",
+                "/com/aims/presentation/styles/layout-fix.css",
+                "/com/aims/presentation/styles/fullscreen-layout.css"
+            };
+            
+            for (String cssPath : additionalCssFiles) {
+                try {
+                    if (getClass().getResource(cssPath) != null) {
+                        mainBorderPane.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
+                        System.out.println("MainLayoutController: Loaded additional CSS - " + cssPath);
+                    }
+                } catch (Exception e) {
+                    System.out.println("MainLayoutController: Could not load optional CSS - " + cssPath);
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("MainLayoutController: Error loading responsive CSS: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Enhanced responsive behavior setup with full-screen optimization
+     */
+    private void setupResponsiveBehavior() {
+        if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+            System.out.println("MainLayoutController.setupResponsiveBehavior: Setting up enhanced responsive behavior");
+            
+            // Setup responsive behavior using ResponsiveLayoutManager
+            ResponsiveLayoutManager.setupResponsiveBehavior(mainBorderPane.getScene(), mainBorderPane);
+            
+            // Add enhanced window resize listener for full-screen behavior
+            mainBorderPane.getScene().widthProperty().addListener((observable, oldValue, newValue) -> {
+                updateFullScreenResponsiveLayout(newValue.doubleValue(), mainBorderPane.getScene().getHeight());
+            });
+            
+            mainBorderPane.getScene().heightProperty().addListener((observable, oldValue, newValue) -> {
+                updateFullScreenResponsiveLayout(mainBorderPane.getScene().getWidth(), newValue.doubleValue());
+            });
+            
+            // Apply initial full-screen responsive layout
+            applyFullScreenResponsiveLayout();
+            
+            System.out.println("MainLayoutController.setupResponsiveBehavior: Enhanced responsive behavior setup completed");
+        }
+    }
+    
+    /**
+     * Update responsive layout based on current window width
+     */
+    private void updateResponsiveLayout(double width) {
+        ResponsiveLayoutManager.ScreenSize newScreenSize = ResponsiveLayoutManager.detectScreenSize(width);
+        
+        if (currentScreenSize != newScreenSize) {
+            currentScreenSize = newScreenSize;
+            
+            // Apply responsive layout using ResponsiveLayoutManager
+            ResponsiveLayoutManager.applyResponsiveLayout(mainBorderPane, width);
+            
+            // Apply screen-specific optimizations
+            applyScreenSpecificOptimizations();
+            
+            System.out.println("MainLayoutController: Updated responsive layout for " + newScreenSize + " (width: " + width + ")");
+        }
+    }
+    
+    /**
+     * Apply screen-specific optimizations based on current screen info
+     */
+    private void applyScreenSpecificOptimizations() {
+        if (currentScreenInfo != null) {
+            // Apply ultra-wide specific styles
+            if (currentScreenInfo.isUltraWide()) {
+                if (!mainBorderPane.getStyleClass().contains("responsive-ultrawide")) {
+                    mainBorderPane.getStyleClass().add("responsive-ultrawide");
+                }
+            } else {
+                mainBorderPane.getStyleClass().remove("responsive-ultrawide");
+            }
+            
+            // Apply high-DPI specific styles
+            if (currentScreenInfo.isHighDPI()) {
+                if (!mainBorderPane.getStyleClass().contains("high-dpi")) {
+                    mainBorderPane.getStyleClass().add("high-dpi");
+                }
+            } else {
+                mainBorderPane.getStyleClass().remove("high-dpi");
+            }
+        }
+    }
+    
+    /**
+     * Enhanced completeInitialization with comprehensive full-screen responsive setup
+     * Following Vietnamese guide specifications exactly
      */
     public void completeInitialization() {
-        navigateToHome(); // Load the home screen after dependencies are ready
+        System.out.println("MainLayoutController.completeInitialization: Starting FULL-SCREEN enhanced initialization");
+        
+        // Configure window for optimal display
+        if (mainBorderPane.getScene() != null && mainBorderPane.getScene().getWindow() instanceof Stage) {
+            Stage stage = (Stage) mainBorderPane.getScene().getWindow();
+            ScreenDetectionService.configureWindowForScreen(stage, mainBorderPane.getScene());
+        }
+        
+        // Setup enhanced responsive behavior with full-screen optimization
+        setupResponsiveBehavior();
+        
+        // Apply comprehensive full-screen responsive layout (Vietnamese guide requirement)
+        applyFullScreenResponsiveLayout();
+        
+        // Navigate to home screen with enhanced full-screen responsive support
+        navigateToHome();
+        
+        System.out.println("MainLayoutController.completeInitialization: FULL-SCREEN enhanced initialization completed");
     }
 
     /**
@@ -211,6 +349,10 @@ public class MainLayoutController { // This could be your BaseScreenController o
             // Use FXMLSceneManager's history-aware loading
             Object controller = sceneManager.loadContentWithHistory(contentPane, fxmlPath, title);
             this.currentController = controller; // Store the loaded controller
+            
+            // Apply responsive layout after content is loaded
+            applyResponsiveClassesToContent();
+            
             System.out.println("MainLayoutController.loadContentWithHistory: Content loaded successfully: " + fxmlPath +
                              (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
             return controller;
@@ -236,6 +378,10 @@ public class MainLayoutController { // This could be your BaseScreenController o
             // Use FXMLSceneManager's history-aware loading with custom context
             Object controller = sceneManager.loadContentWithHistory(contentPane, fxmlPath, title, context);
             this.currentController = controller; // Store the loaded controller
+            
+            // Apply responsive layout after content is loaded
+            applyResponsiveClassesToContent();
+            
             System.out.println("MainLayoutController.loadContentWithHistory: Content loaded successfully: " + fxmlPath +
                              (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
             return controller;
@@ -257,8 +403,8 @@ public class MainLayoutController { // This could be your BaseScreenController o
         if (sceneManager != null) {
             boolean success = sceneManager.navigateBack();
             if (success) {
-                // Note: The current controller is managed by FXMLSceneManager internally
-                // We don't need to track it here since we can't access getCurrentController
+                // Apply responsive layout after navigation
+                applyResponsiveClassesToContent();
                 System.out.println("MainLayoutController.navigateBack: Back navigation successful");
             } else {
                 System.out.println("MainLayoutController.navigateBack: Back navigation failed or no history available");
@@ -280,143 +426,57 @@ public class MainLayoutController { // This could be your BaseScreenController o
         return contentPane;
     }
 
+    /**
+     * Enhanced content loading with comprehensive responsive layout enforcement
+     * Following Vietnamese guide specifications exactly
+     */
     public Object loadContent(String fxmlPath) {
-        System.out.println("MainLayoutController: Loading content: " + fxmlPath);
-        System.out.println("MainLayoutController: SceneManager available: " + (sceneManager != null));
-        System.out.println("MainLayoutController: ServiceFactory available: " + (serviceFactory != null));
+        System.out.println("MainLayoutController.loadContent: Loading content with FULL-SCREEN responsive framework: " + fxmlPath);
         
         if (sceneManager != null) {
-            // Use FXMLSceneManager for proper dependency injection
             Object controller = sceneManager.loadFXMLIntoPane(contentPane, fxmlPath);
-            this.currentController = controller; // Store the loaded controller
-            System.out.println("Content loaded successfully: " + fxmlPath +
+            this.currentController = controller;
+            
+            // Apply comprehensive responsive layout
+            applyResponsiveClassesToContent();
+            
+            System.out.println("MainLayoutController.loadContent: Content loaded successfully with responsive enhancements: " + fxmlPath +
                              (controller != null ? " with controller: " + controller.getClass().getSimpleName() : ""));
             return controller;
         } else {
-            // Fallback to direct FXMLLoader usage if sceneManager is not set up
-            System.out.println("Attempting to load content: " + fxmlPath + " (Using direct FXMLLoader - SceneManager not available)");
+            // Enhanced fallback with comprehensive full-screen responsive layout constraints
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
                 Parent newContent = loader.load();
                 Object childController = loader.getController();
-                this.currentController = childController; // Store the loaded controller
+                this.currentController = childController;
                 
-                // Ensure content fills the entire contentPane with comprehensive sizing constraints
-                if (newContent instanceof javafx.scene.layout.Region) {
-                    javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) newContent;
-                    
-                    // Set preferred size to USE_COMPUTED_SIZE for dynamic sizing
-                    regionContent.setPrefWidth(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
-                    regionContent.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
-                    
-                    // Set maximum size to allow full expansion
-                    regionContent.setMaxWidth(Double.MAX_VALUE);
-                    regionContent.setMaxHeight(Double.MAX_VALUE);
-                    
-                    // Set minimum size to ensure proper display
-                    regionContent.setMinWidth(800.0);
-                    regionContent.setMinHeight(500.0);
-                    
-                    System.out.println("MainLayoutController.loadContent: Applied fullscreen sizing constraints to: " +
-                                     regionContent.getClass().getSimpleName());
-                }
+                // Step 1: Apply full-screen constraints enforcement (Vietnamese guide requirement)
+                enforceFullScreenConstraints(newContent);
                 
-                // Apply HBox.hgrow and VBox.vgrow properties if content is within layout containers
-                if (newContent instanceof javafx.scene.layout.BorderPane) {
-                    javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) newContent;
-                    javafx.scene.layout.HBox.setHgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
-                    javafx.scene.layout.VBox.setVgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
-                    System.out.println("MainLayoutController.loadContent: Applied HBox.hgrow=ALWAYS and VBox.vgrow=ALWAYS to BorderPane");
-                }
+                // Step 2: Bind content dimensions to parent container (Vietnamese guide requirement)
+                bindContentToParentSize(newContent);
                 
-                // Pass this MainLayoutController to child controllers if they need it
+                // Service injection (existing code)
                 if (childController instanceof IChildController) {
                     ((IChildController) childController).setMainLayoutController(this);
                 }
                 
-                // Manual service injection for known controllers
-                System.out.println("MainLayoutController.loadContent: Starting fallback service injection for " + childController.getClass().getSimpleName());
-                if (serviceFactory != null) {
-                    System.out.println("MainLayoutController.loadContent: ServiceFactory is available for injection");
-                    
-                    if (childController instanceof HomeScreenController) {
-                        System.out.println("MainLayoutController.loadContent: Fallback injection for HomeScreenController");
-                        HomeScreenController homeController = (HomeScreenController) childController;
-                        try {
-                            homeController.setProductService(serviceFactory.getProductService());
-                            System.out.println("MainLayoutController.loadContent: ProductService injected into HomeScreenController (fallback)");
-                            
-                            homeController.setCartService(serviceFactory.getCartService());
-                            System.out.println("MainLayoutController.loadContent: CartService injected into HomeScreenController (fallback)");
-                            
-                            homeController.completeInitialization(); // Call after services are injected
-                            System.out.println("MainLayoutController.loadContent: HomeScreenController initialization completed (fallback)");
-                        } catch (Exception e) {
-                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for HomeScreenController: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                    else if (childController instanceof CartScreenController) {
-                        System.out.println("MainLayoutController.loadContent: Fallback injection for CartScreenController");
-                        CartScreenController cartController = (CartScreenController) childController;
-                        try {
-                            cartController.setCartService(serviceFactory.getCartService());
-                            System.out.println("MainLayoutController.loadContent: CartService injected into CartScreenController (fallback)");
-                        } catch (Exception e) {
-                            System.err.println("MainLayoutController.loadContent: Error in fallback injection for CartScreenController: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                    else if (childController instanceof ProductDetailScreenController) {
-                        System.out.println("MainLayoutController.loadContent: Injecting services into ProductDetailScreenController");
-                        ProductDetailScreenController detailController = (ProductDetailScreenController) childController;
-                        try {
-                            // Get ServiceFactory instance
-                            System.out.println("MainLayoutController.loadContent: Getting ServiceFactory instance");
-                            
-                            // Inject services with enhanced error handling
-                            System.out.println("MainLayoutController.loadContent: About to inject MainLayoutController into ProductDetailScreenController");
-                            detailController.setMainLayoutController(this);
-                            System.out.println("MainLayoutController.loadContent: MainLayoutController injected successfully");
-                            
-                            System.out.println("MainLayoutController.loadContent: About to inject ProductService into ProductDetailScreenController");
-                            detailController.setProductService(serviceFactory.getProductService());
-                            System.out.println("MainLayoutController.loadContent: ProductService injected successfully");
-                            
-                            System.out.println("MainLayoutController.loadContent: About to inject CartService into ProductDetailScreenController");
-                            detailController.setCartService(serviceFactory.getCartService());
-                            System.out.println("MainLayoutController.loadContent: CartService injected successfully");
-                            
-                            if (sceneManager != null) {
-                                System.out.println("MainLayoutController.loadContent: About to inject SceneManager into ProductDetailScreenController");
-                                detailController.setSceneManager(sceneManager);
-                                System.out.println("MainLayoutController.loadContent: SceneManager injected successfully");
-                            } else {
-                                System.out.println("MainLayoutController.loadContent: SceneManager is null, skipping injection");
-                            }
-                            
-                            System.out.println("MainLayoutController.loadContent: All services injected successfully into ProductDetailScreenController");
-                        } catch (Exception e) {
-                            System.err.println("Error injecting services into ProductDetailScreenController: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                    else {
-                        System.out.println("MainLayoutController.loadContent: No fallback injection logic for " + childController.getClass().getSimpleName());
-                    }
-                    // Add more controllers as needed
-                } else {
-                    System.err.println("MainLayoutController.loadContent: ServiceFactory is null, cannot perform fallback service injection");
-                }
+                // Enhanced service injection for known controllers
+                performEnhancedServiceInjection(childController);
 
-                // Use setCenter and ensure proper alignment with enhanced layout properties
+                // Enhanced content positioning with full-screen optimization
                 contentPane.setCenter(newContent);
                 javafx.scene.layout.BorderPane.setAlignment(newContent, javafx.geometry.Pos.CENTER);
-                
-                // Apply BorderPane layout constraints to ensure content fills the center
                 javafx.scene.layout.BorderPane.setMargin(newContent, new javafx.geometry.Insets(0));
                 
-                System.out.println("MainLayoutController.loadContent: Content positioned in center with BorderPane.alignment=CENTER");
+                // Step 3: Apply comprehensive full-screen responsive layout (Vietnamese guide requirement)
+                applyFullScreenResponsiveLayout();
+                
+                // Apply responsive classes to loaded content
+                applyResponsiveClassesToContent();
+                
+                System.out.println("MainLayoutController.loadContent: FULL-SCREEN layout enforcement completed for: " + fxmlPath);
                 
                 return childController;
             } catch (IOException e) {
@@ -424,6 +484,122 @@ public class MainLayoutController { // This could be your BaseScreenController o
                 setFooterStatus("Error loading page: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1));
                 return null;
             }
+        }
+    }
+    
+    /**
+     * Apply responsive constraints to loaded content
+     */
+    private void applyResponsiveConstraintsToContent(Parent content) {
+        if (content instanceof javafx.scene.layout.Region) {
+            javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) content;
+            
+            // Apply responsive sizing constraints using ResponsiveLayoutManager settings
+            regionContent.setPrefWidth(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+            regionContent.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+            regionContent.setMaxWidth(Double.MAX_VALUE);
+            regionContent.setMaxHeight(Double.MAX_VALUE);
+            regionContent.setMinWidth(600.0);
+            regionContent.setMinHeight(400.0);
+            
+            // Apply responsive style classes
+            if (!regionContent.getStyleClass().contains("fill-parent")) {
+                regionContent.getStyleClass().add("fill-parent");
+            }
+            
+            // Apply screen-size specific classes
+            String responsiveClass = ResponsiveLayoutManager.getResponsiveStyleClass(currentScreenSize);
+            if (!regionContent.getStyleClass().contains(responsiveClass)) {
+                regionContent.getStyleClass().add(responsiveClass);
+            }
+            
+            System.out.println("MainLayoutController: Applied enhanced responsive constraints to: " +
+                             regionContent.getClass().getSimpleName());
+        }
+        
+        // Enhanced layout container properties
+        if (content instanceof javafx.scene.layout.BorderPane) {
+            javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) content;
+            javafx.scene.layout.HBox.setHgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
+            javafx.scene.layout.VBox.setVgrow(borderPane, javafx.scene.layout.Priority.ALWAYS);
+            borderPane.getStyleClass().add("responsive-border-pane");
+        }
+    }
+    
+    /**
+     * Enhanced service injection with responsive setup
+     */
+    private void performEnhancedServiceInjection(Object childController) {
+        System.out.println("MainLayoutController.performEnhancedServiceInjection: Starting enhanced service injection for " + 
+                         (childController != null ? childController.getClass().getSimpleName() : "null"));
+        
+        if (serviceFactory != null && childController != null) {
+            try {
+                if (childController instanceof HomeScreenController) {
+                    System.out.println("MainLayoutController: Enhanced injection for HomeScreenController");
+                    HomeScreenController homeController = (HomeScreenController) childController;
+                    
+                    homeController.setProductService(serviceFactory.getProductService());
+                    homeController.setCartService(serviceFactory.getCartService());
+                    homeController.setMainLayoutController(this);
+                    
+                    // Note: Removed optional method calls that don't exist yet
+                    // homeController.setCurrentScreenSize(currentScreenSize);
+                    // homeController.setScreenInfo(currentScreenInfo);
+                    
+                    homeController.completeInitialization();
+                    System.out.println("MainLayoutController: HomeScreenController enhanced injection completed");
+                    
+                } else if (childController instanceof CartScreenController) {
+                    System.out.println("MainLayoutController: Enhanced injection for CartScreenController");
+                    CartScreenController cartController = (CartScreenController) childController;
+                    
+                    cartController.setCartService(serviceFactory.getCartService());
+                    cartController.setMainLayoutController(this);
+                    
+                    // Note: Removed optional method calls that don't exist yet
+                    // cartController.setCurrentScreenSize(currentScreenSize);
+                    
+                    System.out.println("MainLayoutController: CartScreenController enhanced injection completed");
+                    
+                } else if (childController instanceof ProductDetailScreenController) {
+                    System.out.println("MainLayoutController: Enhanced injection for ProductDetailScreenController");
+                    ProductDetailScreenController detailController = (ProductDetailScreenController) childController;
+                    
+                    // Inject services immediately to ensure they're available before setProductId is called
+                    detailController.setMainLayoutController(this);
+                    detailController.setProductService(serviceFactory.getProductService());
+                    detailController.setCartService(serviceFactory.getCartService());
+                    
+                    if (sceneManager != null) {
+                        detailController.setSceneManager(sceneManager);
+                    }
+                    
+                    System.out.println("MainLayoutController: ProductDetailScreenController enhanced injection completed - Services ready for product loading");
+                }
+                // Add more controllers as needed
+                
+            } catch (Exception e) {
+                System.err.println("MainLayoutController.performEnhancedServiceInjection: Error in enhanced injection: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("MainLayoutController.performEnhancedServiceInjection: ServiceFactory or childController is null");
+        }
+    }
+    
+    /**
+     * Apply responsive classes to content and main layout
+     */
+    private void applyResponsiveClassesToContent() {
+        // Apply to main container
+        applyResponsiveClasses();
+        
+        // Apply to loaded content if it exists
+        if (contentPane.getCenter() instanceof javafx.scene.layout.Region) {
+            javafx.scene.layout.Region content = (javafx.scene.layout.Region) contentPane.getCenter();
+            ResponsiveLayoutManager.applyResponsiveLayout(content, 
+                mainBorderPane.getScene() != null ? mainBorderPane.getScene().getWidth() : 1200);
         }
     }
 
@@ -522,6 +698,197 @@ public class MainLayoutController { // This could be your BaseScreenController o
     public void setFooterStatus(String status) {
         if (footerLabel != null) {
             footerLabel.setText(status);
+        }
+    }
+
+    /**
+     * Enhanced responsive classes application using ResponsiveLayoutManager
+     */
+    private void applyResponsiveClasses() {
+        if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+            double width = mainBorderPane.getScene().getWidth();
+            ResponsiveLayoutManager.applyResponsiveLayout(mainBorderPane, width);
+            
+            // Apply screen-specific optimizations
+            applyScreenSpecificOptimizations();
+        }
+    }
+    
+    /**
+     * Get current screen size for child controllers
+     */
+    public ResponsiveLayoutManager.ScreenSize getCurrentScreenSize() {
+        return currentScreenSize;
+    }
+    
+    /**
+     * Get current screen info for child controllers
+     */
+    public ScreenDetectionService.ScreenInfo getCurrentScreenInfo() {
+        return currentScreenInfo;
+    }
+    
+    // =========================================================================
+    // ENHANCED RESPONSIVE FULL-SCREEN METHODS - PHASE 1 & 2 IMPLEMENTATION
+    // =========================================================================
+    
+    /**
+     * Enforce comprehensive full-screen constraints on loaded content
+     */
+    private void enforceFullScreenConstraints(Parent content) {
+        System.out.println("MainLayoutController.enforceFullScreenConstraints: Applying full-screen constraints");
+        
+        if (content instanceof javafx.scene.layout.Region) {
+            javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) content;
+            
+            // Apply full-screen sizing constraints
+            regionContent.setPrefWidth(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+            regionContent.setPrefHeight(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+            regionContent.setMaxWidth(Double.MAX_VALUE);
+            regionContent.setMaxHeight(Double.MAX_VALUE);
+            regionContent.setMinWidth(0);
+            regionContent.setMinHeight(0);
+            
+            // Apply full-screen style classes
+            if (!regionContent.getStyleClass().contains("fullscreen-main")) {
+                regionContent.getStyleClass().add("fullscreen-main");
+            }
+            if (!regionContent.getStyleClass().contains("responsive-fullscreen")) {
+                regionContent.getStyleClass().add("responsive-fullscreen");
+            }
+            
+            System.out.println("MainLayoutController.enforceFullScreenConstraints: Full-screen constraints applied successfully");
+        }
+    }
+    
+    /**
+     * Bind loaded content size to parent container for real-time scaling
+     */
+    private void bindContentToParentSize(Parent content) {
+        System.out.println("MainLayoutController.bindContentToParentSize: Setting up real-time size binding");
+        
+        if (content instanceof javafx.scene.layout.Region && contentPane != null) {
+            javafx.scene.layout.Region regionContent = (javafx.scene.layout.Region) content;
+            
+            // Bind width and height to parent
+            regionContent.prefWidthProperty().bind(contentPane.widthProperty());
+            regionContent.prefHeightProperty().bind(contentPane.heightProperty());
+            
+            // Setup growth properties
+            javafx.scene.layout.HBox.setHgrow(regionContent, javafx.scene.layout.Priority.ALWAYS);
+            javafx.scene.layout.VBox.setVgrow(regionContent, javafx.scene.layout.Priority.ALWAYS);
+            
+            // Add real-time update listener
+            contentPane.widthProperty().addListener((observable, oldValue, newValue) -> {
+                updateLoadedContentResponsiveness(newValue.doubleValue(), contentPane.getHeight());
+            });
+            
+            contentPane.heightProperty().addListener((observable, oldValue, newValue) -> {
+                updateLoadedContentResponsiveness(contentPane.getWidth(), newValue.doubleValue());
+            });
+            
+            System.out.println("MainLayoutController.bindContentToParentSize: Real-time size binding completed");
+        }
+    }
+    
+    /**
+     * Apply comprehensive responsive layout with screen-specific optimizations
+     */
+    private void applyFullScreenResponsiveLayout() {
+        System.out.println("MainLayoutController.applyFullScreenResponsiveLayout: Applying comprehensive responsive layout");
+        
+        if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+            double currentWidth = mainBorderPane.getScene().getWidth();
+            double currentHeight = mainBorderPane.getScene().getHeight();
+            
+            // Update screen size detection
+            currentScreenSize = ResponsiveLayoutManager.detectScreenSize(currentWidth);
+            
+            // Apply responsive layout to main container
+            ResponsiveLayoutManager.applyResponsiveLayout(mainBorderPane, currentWidth);
+            
+            // Apply full-screen classes
+            if (!mainBorderPane.getStyleClass().contains("responsive-fullscreen-container")) {
+                mainBorderPane.getStyleClass().add("responsive-fullscreen-container");
+            }
+            
+            // Apply content pane full-screen classes
+            if (contentPane != null && !contentPane.getStyleClass().contains("fullscreen-content-pane")) {
+                contentPane.getStyleClass().add("fullscreen-content-pane");
+            }
+            
+            // Apply screen-specific optimizations
+            applyScreenSpecificOptimizations();
+            
+            // Update loaded content if exists
+            if (contentPane.getCenter() != null) {
+                updateLoadedContentResponsiveness(currentWidth, currentHeight);
+            }
+            
+            System.out.println("MainLayoutController.applyFullScreenResponsiveLayout: Comprehensive layout applied for " +
+                             currentScreenSize + " (" + currentWidth + "x" + currentHeight + ")");
+        }
+    }
+    
+    /**
+     * Update responsive layout in real-time based on window size changes
+     */
+    private void updateFullScreenResponsiveLayout(double width, double height) {
+        System.out.println("MainLayoutController.updateFullScreenResponsiveLayout: Updating layout for " + width + "x" + height);
+        
+        // Check if significant size change occurred
+        boolean significantChange = Math.abs(width - lastKnownWidth) > 50 || Math.abs(height - lastKnownHeight) > 50;
+        
+        if (significantChange) {
+            lastKnownWidth = width;
+            lastKnownHeight = height;
+            
+            // Detect new screen size
+            ResponsiveLayoutManager.ScreenSize newScreenSize = ResponsiveLayoutManager.detectScreenSize(width);
+            
+            // Apply changes if screen size category changed
+            if (currentScreenSize != newScreenSize) {
+                currentScreenSize = newScreenSize;
+                
+                // Apply responsive layout
+                ResponsiveLayoutManager.applyResponsiveLayout(mainBorderPane, width);
+                
+                // Update screen-specific optimizations
+                applyScreenSpecificOptimizations();
+                
+                // Update loaded content
+                updateLoadedContentResponsiveness(width, height);
+                
+                System.out.println("MainLayoutController.updateFullScreenResponsiveLayout: Layout updated to " + newScreenSize);
+            }
+        }
+    }
+    
+    /**
+     * Update loaded content responsiveness during window resize
+     */
+    private void updateLoadedContentResponsiveness(double width, double height) {
+        if (contentPane != null && contentPane.getCenter() instanceof javafx.scene.layout.Region) {
+            javafx.scene.layout.Region content = (javafx.scene.layout.Region) contentPane.getCenter();
+            
+            // Apply responsive layout to content
+            ResponsiveLayoutManager.applyResponsiveLayout(content, width);
+            
+            // Ensure content maintains full-screen behavior
+            enforceFullScreenConstraints(content);
+            
+            // Apply current screen size class
+            String responsiveClass = ResponsiveLayoutManager.getResponsiveStyleClass(currentScreenSize);
+            if (!content.getStyleClass().contains(responsiveClass)) {
+                // Remove old responsive classes
+                content.getStyleClass().removeIf(styleClass ->
+                    styleClass.startsWith("responsive-desktop-") ||
+                    styleClass.equals("responsive-mobile") ||
+                    styleClass.equals("responsive-tablet"));
+                
+                // Add new responsive class
+                content.getStyleClass().add(responsiveClass);
+            }
         }
     }
 

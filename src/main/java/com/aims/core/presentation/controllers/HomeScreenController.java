@@ -641,4 +641,122 @@ public class HomeScreenController implements MainLayoutController.IChildControll
             loadProducts();
         }
     }
+
+    // =========================================================================
+    // VIETNAMESE GUIDE: RESPONSIVE METHODS IMPLEMENTATION (STEP 5)
+    // =========================================================================
+    
+    /**
+     * Vietnamese Guide: Update responsive layout based on window size changes
+     * Real-time responsive behavior during window resize
+     */
+    public void updateResponsiveLayout(double width, double height) {
+        System.out.println("HomeScreenController.updateResponsiveLayout: Updating layout for " + width + "x" + height);
+        
+        try {
+            // Update product card sizes based on container width
+            updateProductCardSizes(width);
+            
+            // Calculate and apply optimal column count
+            int optimalColumns = calculateOptimalColumns(width);
+            
+            // Apply responsive classes based on screen size
+            if (productFlowPane != null) {
+                // Remove existing responsive classes
+                productFlowPane.getStyleClass().removeIf(styleClass ->
+                    styleClass.startsWith("responsive-") && (
+                        styleClass.contains("mobile") ||
+                        styleClass.contains("tablet") ||
+                        styleClass.contains("desktop") ||
+                        styleClass.contains("ultrawide")
+                    )
+                );
+                
+                // Add new responsive class based on width
+                String responsiveClass = getResponsiveClassForWidth(width);
+                if (!productFlowPane.getStyleClass().contains(responsiveClass)) {
+                    productFlowPane.getStyleClass().add(responsiveClass);
+                }
+            }
+            
+            System.out.println("HomeScreenController.updateResponsiveLayout: Applied " + optimalColumns + " columns for width " + width);
+            
+        } catch (Exception e) {
+            System.err.println("HomeScreenController.updateResponsiveLayout: Error updating responsive layout: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Vietnamese Guide: Update product card sizes based on container width
+     * Responsive breakpoints: Mobile(1 col), Tablet(2 col), Desktop(3 col), Large Desktop(4 col), Ultra-wide(5 col)
+     */
+    public void updateProductCardSizes(double containerWidth) {
+        System.out.println("HomeScreenController.updateProductCardSizes: Updating for container width: " + containerWidth);
+        
+        if (productFlowPane == null) {
+            return;
+        }
+        
+        try {
+            // Calculate optimal card width based on container width and column count
+            int columns = calculateOptimalColumns(containerWidth);
+            double availableWidth = containerWidth - 60; // Account for padding
+            double cardWidth = (availableWidth - (columns - 1) * 20) / columns; // Account for gaps
+            
+            // Ensure minimum card width
+            cardWidth = Math.max(cardWidth, 180);
+            
+            // Update gap spacing based on screen size
+            double gap = containerWidth >= 1920 ? 30 :
+                        containerWidth >= 1440 ? 25 :
+                        containerWidth >= 1024 ? 20 :
+                        containerWidth >= 768 ? 15 : 10;
+            
+            productFlowPane.setHgap(gap);
+            productFlowPane.setVgap(gap);
+            
+            System.out.println("HomeScreenController.updateProductCardSizes: Set " + columns + " columns with card width " + cardWidth + " and gap " + gap);
+            
+        } catch (Exception e) {
+            System.err.println("HomeScreenController.updateProductCardSizes: Error updating card sizes: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Vietnamese Guide: Calculate optimal column count based on width
+     * Responsive breakpoints: Mobile(1 col), Tablet(2 col), Desktop(3 col), Large Desktop(4 col), Ultra-wide(5 col)
+     */
+    public int calculateOptimalColumns(double width) {
+        // Vietnamese guide responsive breakpoints exactly as specified
+        if (width < 768) {
+            return 1; // Mobile (1 col)
+        } else if (width < 1024) {
+            return 2; // Tablet (2 col)
+        } else if (width < 1440) {
+            return 3; // Desktop (3 col)
+        } else if (width < 1920) {
+            return 4; // Large Desktop (4 col)
+        } else {
+            return 5; // Ultra-wide (5 col)
+        }
+    }
+    
+    /**
+     * Get the responsive CSS class for the given width
+     */
+    private String getResponsiveClassForWidth(double width) {
+        if (width < 768) {
+            return "responsive-mobile";
+        } else if (width < 1024) {
+            return "responsive-tablet";
+        } else if (width < 1440) {
+            return "responsive-desktop";
+        } else if (width < 1920) {
+            return "responsive-large-desktop";
+        } else {
+            return "responsive-ultrawide";
+        }
+    }
 }

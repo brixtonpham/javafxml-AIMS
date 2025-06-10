@@ -8,9 +8,19 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane fx:id="mainBorderPane" styleClass="main-border-pane" maxHeight="Infinity" maxWidth="Infinity" minHeight="720.0" minWidth="1200.0" prefHeight="900.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
+<BorderPane fx:id="mainBorderPane"
+            styleClass="responsive-main-container, fullscreen-container"
+            maxHeight="Infinity"
+            maxWidth="Infinity"
+            minHeight="600.0"
+            minWidth="800.0"
+            prefHeight="-1"
+            prefWidth="-1"
+            xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.aims.core.presentation.controllers.MainLayoutController">
     <top>
-        <VBox>
+        <VBox styleClass="responsive-vbox" spacing="0">
             <MenuBar fx:id="menuBar">
                 <menus>
                     <Menu text="File">
@@ -40,7 +50,12 @@
                     </Menu>
                 </menus>
             </MenuBar>
-            <Label fx:id="headerTitle" text="AIMS - An Internet Media Store" alignment="CENTER" maxWidth="Infinity" VBox.vgrow="NEVER">
+            <Label fx:id="headerTitle"
+                   text="AIMS - An Internet Media Store"
+                   styleClass="responsive-header"
+                   alignment="CENTER"
+                   maxWidth="Infinity"
+                   VBox.vgrow="NEVER">
                 <padding>
                     <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
                 </padding>
@@ -49,13 +64,13 @@
     </top>
     <center>
         <BorderPane fx:id="contentPane"
-                    styleClass="content-pane"
+                    styleClass="responsive-content-container, fill-parent"
                     maxHeight="Infinity"
                     maxWidth="Infinity"
-                    minHeight="600.0"
-                    minWidth="1000.0"
-                    prefHeight="-1.0"
-                    prefWidth="-1.0"
+                    minHeight="400.0"
+                    minWidth="600.0"
+                    prefHeight="-1"
+                    prefWidth="-1"
                     BorderPane.alignment="CENTER">
             <BorderPane.margin>
                 <Insets bottom="0.0" left="0.0" right="0.0" top="0.0" />
@@ -63,7 +78,11 @@
         </BorderPane>
     </center>
     <bottom>
-        <Label fx:id="footerLabel" text="© 2025 AIMS Project" alignment="CENTER" maxWidth="Infinity">
+        <Label fx:id="footerLabel"
+               text="© 2025 AIMS Project"
+               styleClass="responsive-footer"
+               alignment="CENTER"
+               maxWidth="Infinity">
             <padding>
                 <Insets bottom="5.0" left="15.0" right="15.0" top="5.0" />
             </padding>

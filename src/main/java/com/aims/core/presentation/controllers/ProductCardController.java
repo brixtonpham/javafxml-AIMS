@@ -319,14 +319,19 @@ public class ProductCardController {
                 System.out.println("ProductCardController.handleViewProductDetails: LoadContent returned controller: " + 
                     (controller != null ? controller.getClass().getSimpleName() : "null"));
                 
-                // Set the product ID on the ProductDetailScreenController
+                // Set the product ID on the ProductDetailScreenController after ensuring services are ready
                 if (controller instanceof ProductDetailScreenController) {
-                    System.out.println("ProductCardController.handleViewProductDetails: Controller is ProductDetailScreenController, setting product ID");
+                    System.out.println("ProductCardController.handleViewProductDetails: Controller is ProductDetailScreenController, deferring product ID setting");
                     ProductDetailScreenController detailController = (ProductDetailScreenController) controller;
-                    detailController.setProductId(product.getProductId());
-                    System.out.println("ProductCardController.handleViewProductDetails: Product ID set on ProductDetailScreenController");
+                    
+                    // Defer the setProductId call to ensure services are injected first
+                    javafx.application.Platform.runLater(() -> {
+                        System.out.println("ProductCardController.handleViewProductDetails: Setting product ID after service injection");
+                        detailController.setProductId(product.getProductId());
+                        System.out.println("ProductCardController.handleViewProductDetails: Product ID set on ProductDetailScreenController");
+                    });
                 } else {
-                    System.err.println("ProductCardController.handleViewProductDetails: Controller is not ProductDetailScreenController, it's: " + 
+                    System.err.println("ProductCardController.handleViewProductDetails: Controller is not ProductDetailScreenController, it's: " +
                         (controller != null ? controller.getClass().getSimpleName() : "null"));
                 }
                 

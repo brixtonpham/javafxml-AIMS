@@ -21,8 +21,8 @@
    MAIN LAYOUT CONTAINER FIXES
    ========================================================================= */
 .main-border-pane {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1200;
@@ -31,8 +31,8 @@
 }
 
 .content-pane {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
@@ -44,8 +44,8 @@
    HOME SCREEN FULLSCREEN LAYOUT
    ========================================================================= */
 .home-screen-pane {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
@@ -59,8 +59,8 @@
 .scroll-pane {
     -fx-fit-to-width: true;
     -fx-fit-to-height: true;
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-hbar-policy: never;
@@ -85,26 +85,61 @@
 }
 
 /* =========================================================================
-   PRODUCT DISPLAY FULLSCREEN OPTIMIZATION
+   PHASE 2: ENHANCED PRODUCT DISPLAY FULLSCREEN OPTIMIZATION
    ========================================================================= */
+
+/* Enhanced compact product flow pane for maximum density */
+.product-flow-pane-compact {
+    -fx-alignment: top-center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hgap: 18;
+    -fx-vgap: 20;
+    -fx-padding: 20 30 20 30;
+    -fx-column-halignment: center;
+    -fx-row-valignment: top;
+    -fx-pref-wrap-length: -1;
+    -fx-background-color: transparent;
+    -fx-cache: true;
+    -fx-cache-hint: quality;
+}
+
+/* Legacy product flow pane - maintained for compatibility */
 .product-flow-pane {
     -fx-alignment: top-center;
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-hgap: 25;
     -fx-vgap: 25;
     -fx-padding: 30 40 30 40;
     -fx-column-halignment: center;
-    -fx-pref-wrap-length: USE_COMPUTED_SIZE;
+    -fx-pref-wrap-length: -1;
     -fx-background-color: transparent;
 }
 
-/* Ensure FlowPane stretches to full width and displays products properly */
+/* Enhanced FlowPane with optimized spacing */
+.flow-pane-compact {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-alignment: top-center;
+    -fx-hgap: 18;
+    -fx-vgap: 20;
+    -fx-padding: 20;
+    -fx-background-color: transparent;
+    -fx-column-halignment: center;
+    -fx-row-valignment: top;
+}
+
+/* Legacy FlowPane - maintained for compatibility */
 .flow-pane {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-alignment: top-center;
@@ -119,7 +154,7 @@
    SEARCH AND FILTER FULLSCREEN AREA
    ========================================================================= */
 .search-container-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-width: 900;
     -fx-spacing: 20;
@@ -148,8 +183,39 @@
 }
 
 /* =========================================================================
-   PRODUCT CARD FULLSCREEN OPTIMIZATION
+   PHASE 2: ENHANCED PRODUCT CARD FULLSCREEN OPTIMIZATION
    ========================================================================= */
+
+/* Compact fullscreen product cards for maximum density */
+.product-card-fullscreen-compact {
+    -fx-min-width: 220;
+    -fx-max-width: 260;
+    -fx-pref-width: 240;
+    -fx-min-height: 300;
+    -fx-max-height: 340;
+    -fx-pref-height: 320;
+    -fx-spacing: 12;
+    -fx-alignment: center;
+    -fx-padding: 15;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 3, 0, 0, 1);
+    -fx-cursor: hand;
+}
+
+.product-card-fullscreen-compact:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.18), 12, 0, 0, 6);
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+    -fx-background-color: #fdfdfd;
+}
+
+/* Legacy fullscreen cards - maintained for compatibility */
 .product-card-fullscreen {
     -fx-min-width: 300;
     -fx-max-width: 340;
@@ -173,11 +239,33 @@
     -fx-border-color: #3498db;
 }
 
+/* Enhanced fullscreen product images */
+.product-image-fullscreen-compact {
+    -fx-fit-height: 180;
+    -fx-fit-width: 180;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
 .product-image-fullscreen {
     -fx-fit-height: 200;
     -fx-fit-width: 180;
     -fx-preserve-ratio: true;
     -fx-smooth: true;
+}
+
+/* Enhanced fullscreen product titles */
+.product-title-fullscreen-compact {
+    -fx-min-height: 40;
+    -fx-max-height: 55;
+    -fx-pref-height: 45;
+    -fx-max-width: 220;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
 }
 
 .product-title-fullscreen {
@@ -190,6 +278,14 @@
     -fx-alignment: center;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
+}
+
+/* Enhanced fullscreen product prices */
+.product-price-fullscreen-compact {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e74c3c;
+    -fx-alignment: center;
 }
 
 .product-price-fullscreen {
@@ -208,7 +304,7 @@
     -fx-spacing: 25;
     -fx-alignment: center;
     -fx-padding: 25 40 25 40;
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-background-color: transparent;
 }
@@ -248,8 +344,8 @@
    CART SCREEN FULLSCREEN LAYOUT
    ========================================================================= */
 .cart-screen-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
@@ -258,14 +354,14 @@
 }
 
 .cart-items-container-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-spacing: 15;
     -fx-padding: 25;
 }
 
 .cart-item-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-height: 90;
     -fx-pref-height: 110;
@@ -282,8 +378,8 @@
    ADMIN SCREEN FULLSCREEN LAYOUT
    ========================================================================= */
 .admin-dashboard-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
@@ -292,7 +388,7 @@
 }
 
 .admin-content-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-spacing: 25;
     -fx-padding: 25;
@@ -302,8 +398,8 @@
    PRODUCT DETAIL SCREEN FULLSCREEN
    ========================================================================= */
 .product-detail-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-min-width: 1000;
@@ -381,18 +477,18 @@
    TABLE AND LIST VIEW FULLSCREEN
    ========================================================================= */
 .table-view-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-height: 450;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-height: -1;
     -fx-max-height: infinity;
 }
 
 .list-view-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-height: 350;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-height: -1;
     -fx-max-height: infinity;
 }
 
@@ -400,7 +496,7 @@
    HEADER AND FOOTER FULLSCREEN
    ========================================================================= */
 .header-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-height: 70;
     -fx-pref-height: 90;
@@ -410,7 +506,7 @@
 }
 
 .footer-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
     -fx-min-height: 50;
     -fx-pref-height: 60;
@@ -423,8 +519,8 @@
    FULLSCREEN UTILITY CLASSES
    ========================================================================= */
 .fullscreen-container {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-background-color: transparent;
@@ -433,19 +529,19 @@
 .fullscreen-content {
     -fx-alignment: center;
     -fx-text-alignment: center;
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
 }
 
 .stretch-horizontal-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
 }
 
 .stretch-vertical-fullscreen {
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-height: -1;
     -fx-max-height: infinity;
 }
 
@@ -458,8 +554,8 @@
    RESPONSIVE FULLSCREEN ADAPTATIONS
    ========================================================================= */
 .responsive-fullscreen {
-    -fx-pref-width: USE_COMPUTED_SIZE;
-    -fx-pref-height: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
     -fx-max-width: infinity;
     -fx-max-height: infinity;
     -fx-background-color: transparent;
@@ -469,14 +565,14 @@
 .vbox-fullscreen {
     -fx-spacing: 20;
     -fx-alignment: center;
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
 }
 
 .hbox-fullscreen {
     -fx-spacing: 15;
     -fx-alignment: center;
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
 }
 
@@ -503,6 +599,216 @@
     -fx-vgap: 25;
     -fx-padding: 25;
     -fx-alignment: center;
-    -fx-pref-width: USE_COMPUTED_SIZE;
+    -fx-pref-width: -1;
     -fx-max-width: infinity;
+}
+/* =========================================================================
+   PHASE 2: ENHANCED FULLSCREEN RESPONSIVE BREAKPOINTS
+   ========================================================================= */
+
+/* Ultra-wide screens (2560px+) - Enhanced fullscreen */
+.responsive-desktop-ultrawide .product-flow-pane-compact {
+    -fx-hgap: 22;
+    -fx-vgap: 24;
+    -fx-padding: 25 45 25 45;
+}
+
+.responsive-desktop-ultrawide .product-card-fullscreen-compact {
+    -fx-min-width: 240;
+    -fx-max-width: 280;
+    -fx-pref-width: 260;
+    -fx-min-height: 320;
+    -fx-max-height: 360;
+    -fx-pref-height: 340;
+}
+
+/* Large Desktop (1920-2560px) - Optimized fullscreen */
+.responsive-desktop-large .product-flow-pane-compact {
+    -fx-hgap: 20;
+    -fx-vgap: 22;
+    -fx-padding: 22 40 22 40;
+}
+
+.responsive-desktop-large .product-card-fullscreen-compact {
+    -fx-min-width: 230;
+    -fx-max-width: 270;
+    -fx-pref-width: 250;
+    -fx-min-height: 310;
+    -fx-max-height: 350;
+    -fx-pref-height: 330;
+}
+
+/* Standard Desktop (1366-1920px) - Balanced fullscreen */
+.responsive-desktop-standard .product-flow-pane-compact {
+    -fx-hgap: 18;
+    -fx-vgap: 20;
+    -fx-padding: 20 35 20 35;
+}
+
+.responsive-desktop-standard .product-card-fullscreen-compact {
+    -fx-min-width: 220;
+    -fx-max-width: 260;
+    -fx-pref-width: 240;
+    -fx-min-height: 300;
+    -fx-max-height: 340;
+    -fx-pref-height: 320;
+}
+
+/* Compact Desktop (1024-1366px) - Space-efficient fullscreen */
+.responsive-desktop-compact .product-flow-pane-compact {
+    -fx-hgap: 15;
+    -fx-vgap: 18;
+    -fx-padding: 18 30 18 30;
+}
+
+.responsive-desktop-compact .product-card-fullscreen-compact {
+    -fx-min-width: 200;
+    -fx-max-width: 240;
+    -fx-pref-width: 220;
+    -fx-min-height: 280;
+    -fx-max-height: 320;
+    -fx-pref-height: 300;
+}
+
+/* =========================================================================
+   PHASE 2: ENHANCED SEARCH CONTAINER FULLSCREEN OPTIMIZATION
+   ========================================================================= */
+
+/* Compact search container for optimized top section */
+.search-container-fullscreen-compact {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-min-width: 900;
+    -fx-spacing: 18;
+    -fx-alignment: center;
+    -fx-padding: 18 50 18 50;
+    -fx-background-color: transparent;
+}
+
+/* Enhanced search field for compact layout */
+.search-field-fullscreen-compact {
+    -fx-pref-width: 450;
+    -fx-min-width: 400;
+    -fx-max-width: infinity;
+    -fx-pref-height: 40;
+    -fx-min-height: 35;
+    -fx-font-size: 13px;
+    -fx-padding: 10 15;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+/* Enhanced filter combo for compact layout */
+.filter-combo-fullscreen-compact {
+    -fx-pref-width: 160;
+    -fx-min-width: 140;
+    -fx-max-width: 200;
+    -fx-pref-height: 40;
+    -fx-min-height: 35;
+    -fx-font-size: 13px;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+/* =========================================================================
+   PHASE 2: ENHANCED PAGINATION FULLSCREEN CONTROLS
+   ========================================================================= */
+
+/* Compact pagination for optimized bottom section */
+.pagination-controls-fullscreen-compact {
+    -fx-min-height: 75;
+    -fx-pref-height: 75;
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-padding: 20 35 20 35;
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-background-color: transparent;
+}
+
+.pagination-button-fullscreen-compact {
+    -fx-min-width: 110;
+    -fx-pref-width: 110;
+    -fx-max-width: 140;
+    -fx-min-height: 35;
+    -fx-pref-height: 35;
+    -fx-font-size: 13px;
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+.pagination-button-fullscreen-compact:hover {
+    -fx-background-color: #2980b9;
+}
+
+.pagination-button-fullscreen-compact:disabled {
+    -fx-background-color: #bdc3c7;
+    -fx-text-fill: #7f8c8d;
+}
+
+.page-label-fullscreen-compact {
+    -fx-min-width: 120;
+    -fx-pref-width: 120;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* =========================================================================
+   PHASE 2: PERFORMANCE AND VISUAL ENHANCEMENTS
+   ========================================================================= */
+
+/* Enhanced loading states */
+.product-flow-pane-compact.loading {
+    -fx-opacity: 0.75;
+    -fx-effect: blur(1);
+}
+
+/* Smooth transitions for fullscreen elements */
+.product-card-fullscreen-compact {
+    -fx-transition: all 0.2s ease-in-out;
+}
+
+/* Focus management for fullscreen layout */
+.product-card-fullscreen-compact:focused {
+    -fx-border-color: #2980b9;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(41,128,185,0.5), 6, 0, 0, 2);
+    -fx-background-color: #f8f9fa;
+}
+
+/* High contrast support for fullscreen */
+.high-contrast .product-card-fullscreen-compact {
+    -fx-border-color: #000000;
+    -fx-border-width: 2;
+    -fx-background-color: #ffffff;
+}
+
+.high-contrast .product-card-fullscreen-compact:hover {
+    -fx-border-color: #0066cc;
+    -fx-border-width: 3;
+    -fx-background-color: #f0f8ff;
+}
+
+/* =========================================================================
+   PHASE 2: ACCESSIBILITY AND MOTION PREFERENCES
+   ========================================================================= */
+
+/* Reduced motion support for fullscreen layout */
+.reduce-motion .product-card-fullscreen-compact {
+    -fx-transition: none;
+}
+
+.reduce-motion .product-card-fullscreen-compact:hover {
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+}
+
+/* Enhanced keyboard navigation for fullscreen */
+.product-flow-pane-compact:focused .product-card-fullscreen-compact:focused {
+    -fx-border-color: #e74c3c;
+    -fx-background-color: #fff5f5;
 }

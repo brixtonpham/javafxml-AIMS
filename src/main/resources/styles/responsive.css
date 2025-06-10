@@ -1,0 +1,1068 @@
+/* =========================================================================
+   AIMS - Enhanced Responsive Full-Screen CSS Framework (Phase 1 & 2)
+   Unified responsive layout system for full-screen and cross-device support
+   ========================================================================= */
+
+/* =========================================================================
+   ROOT AND VIEWPORT CONFIGURATION
+   ========================================================================= */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #f8f9fa;
+    -fx-text-fill: #2c3e50;
+    
+    /* Enhanced responsive properties */
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 800;
+    -fx-min-height: 600;
+}
+
+/* =========================================================================
+   ENHANCED FULL-SCREEN BASE CLASSES (PHASE 1 & 2)
+   ========================================================================= */
+
+/* Core Full-Screen Classes - Vietnamese Guide Implementation */
+.fullscreen-main {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-min-width: 0;
+    -fx-min-height: 0;
+    /* Vietnamese guide: Apply zero minimum sizes, infinite maximum sizes */
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+}
+
+.fullscreen-content-pane {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-min-width: 0;
+    -fx-min-height: 0;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+    /* Vietnamese guide: Bind content dimensions to parent container */
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+}
+
+.responsive-fullscreen {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    /* Vietnamese guide: Home Screen scales 100% to Main Layout size */
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+    -fx-min-width: 0;
+    -fx-min-height: 0;
+}
+
+/* Enhanced Container Classes - Vietnamese Guide Requirements */
+.responsive-fullscreen-container {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-min-width: 800;
+    -fx-min-height: 600;
+    /* Vietnamese guide: Real-time responsive behavior during window resize */
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+}
+
+/* =========================================================================
+   RESPONSIVE CONTAINER SYSTEM
+   ========================================================================= */
+
+/* Main Layout Containers */
+.responsive-main-container {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 800;
+    -fx-min-height: 600;
+    -fx-background-color: #ffffff;
+}
+
+.responsive-content-container {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 600;
+    -fx-min-height: 400;
+    -fx-background-color: #f8f9fa;
+}
+
+/* Flexible Layout Containers */
+.responsive-vbox {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-fill-width: true;
+}
+
+.responsive-hbox {
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-fill-height: true;
+}
+
+.responsive-border-pane {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
+/* =========================================================================
+   RESPONSIVE SCROLLPANE SYSTEM
+   ========================================================================= */
+.responsive-scroll-pane {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: false;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: as-needed;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.responsive-scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.responsive-scroll-pane .content {
+    -fx-background-color: transparent;
+}
+
+/* =========================================================================
+   RESPONSIVE PRODUCT GRID SYSTEM
+   ========================================================================= */
+.responsive-product-grid {
+    -fx-alignment: top-center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 20 30 20 30;
+    -fx-column-halignment: center;
+    -fx-pref-wrap-length: -1;
+    -fx-background-color: transparent;
+}
+
+/* Responsive Product Cards */
+.responsive-product-card {
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 4, 0, 0, 2);
+    -fx-padding: 15;
+    -fx-spacing: 12;
+    -fx-alignment: center;
+    
+    /* Responsive sizing */
+    -fx-min-width: 240;
+    -fx-max-width: 320;
+    -fx-pref-width: -1;
+    -fx-min-height: 320;
+    -fx-max-height: 400;
+    -fx-pref-height: -1;
+}
+
+.responsive-product-card:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 8, 0, 0, 4);
+    -fx-border-color: #3498db;
+}
+
+/* =========================================================================
+   RESPONSIVE SEARCH INTERFACE
+   ========================================================================= */
+.responsive-search-container {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-min-width: 600;
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-padding: 20 30 20 30;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-min-width: 300;
+    -fx-max-width: 500;
+    -fx-pref-height: 40;
+    -fx-min-height: 35;
+    -fx-font-size: 14px;
+    -fx-padding: 10 15;
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.responsive-search-field:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+}
+
+.responsive-filter-combo {
+    -fx-pref-width: 150;
+    -fx-min-width: 120;
+    -fx-max-width: 200;
+    -fx-pref-height: 40;
+    -fx-font-size: 14px;
+}
+
+/* =========================================================================
+   RESPONSIVE BUTTON SYSTEM
+   ========================================================================= */
+.responsive-button {
+    -fx-font-size: 14px;
+    -fx-padding: 10 20;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-text-fill: white;
+    -fx-font-weight: normal;
+    -fx-min-width: 80;
+    -fx-pref-width: -1;
+}
+
+.responsive-primary-button {
+    -fx-background-color: #3498db;
+}
+
+.responsive-primary-button:hover {
+    -fx-background-color: #2980b9;
+}
+
+.responsive-success-button {
+    -fx-background-color: #27ae60;
+    -fx-min-width: 150;
+    -fx-max-width: infinity;
+}
+
+.responsive-success-button:hover {
+    -fx-background-color: #229954;
+}
+
+/* =========================================================================
+   RESPONSIVE NAVIGATION SYSTEM
+   ========================================================================= */
+.responsive-header {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-min-height: 60;
+    -fx-pref-height: 80;
+    -fx-padding: 15 20;
+    -fx-alignment: center;
+    -fx-background-color: #34495e;
+    -fx-text-fill: white;
+}
+
+.responsive-footer {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-min-height: 40;
+    -fx-pref-height: 50;
+    -fx-padding: 10 20;
+    -fx-alignment: center;
+    -fx-background-color: #34495e;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+}
+
+/* =========================================================================
+   ENHANCED RESPONSIVE BREAKPOINT SYSTEM (PHASE 1 & 2)
+   ========================================================================= */
+
+/* Vietnamese Guide: Enhanced Responsive Breakpoints with Column Specifications */
+
+/* Mobile Devices (< 768px) - 1 Column */
+.responsive-mobile {
+    -fx-max-width: 767;
+    -fx-font-size: 14px;
+    -fx-spacing: 8;
+    -fx-padding: 10;
+}
+
+.responsive-mobile .responsive-product-grid-enhanced {
+    -fx-hgap: 10;
+    -fx-vgap: 10;
+    -fx-padding: 15;
+    -fx-pref-columns: 1;
+    /* Vietnamese guide: Mobile (1 col) */
+}
+
+.responsive-mobile .responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    /* Vietnamese guide: Search bar expands to full width */
+}
+
+/* Tablet Devices (768px - 1024px) - 2 Columns */
+.responsive-tablet {
+    -fx-min-width: 768;
+    -fx-max-width: 1023;
+    -fx-font-size: 15px;
+    -fx-spacing: 12;
+    -fx-padding: 15;
+}
+
+.responsive-tablet .responsive-product-grid-enhanced {
+    -fx-hgap: 15;
+    -fx-vgap: 15;
+    -fx-padding: 20;
+    -fx-pref-columns: 2;
+    /* Vietnamese guide: Tablet (2 col) */
+}
+
+.responsive-tablet .responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    /* Vietnamese guide: Search bar expands to full width */
+}
+
+/* Desktop Devices (1024px - 1440px) - 3 Columns */
+.responsive-desktop {
+    -fx-min-width: 1024;
+    -fx-max-width: 1439;
+    -fx-font-size: 16px;
+    -fx-spacing: 15;
+    -fx-padding: 20;
+}
+
+.responsive-desktop .responsive-product-grid-enhanced {
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 25;
+    -fx-pref-columns: 3;
+    /* Vietnamese guide: Desktop (3 col) */
+}
+
+.responsive-desktop .responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    /* Vietnamese guide: Search bar expands to full width */
+}
+
+/* Large Desktop (1440px - 1920px) - 4 Columns */
+.responsive-large-desktop {
+    -fx-min-width: 1440;
+    -fx-max-width: 1919;
+    -fx-font-size: 17px;
+    -fx-spacing: 18;
+    -fx-padding: 25;
+}
+
+.responsive-large-desktop .responsive-product-grid-enhanced {
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 30;
+    -fx-pref-columns: 4;
+    /* Vietnamese guide: Large Desktop (4 col) */
+}
+
+.responsive-large-desktop .responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    /* Vietnamese guide: Search bar expands to full width */
+}
+
+/* Ultra-wide Displays (> 1920px) - 5 Columns */
+.responsive-ultrawide {
+    -fx-min-width: 1920;
+    -fx-font-size: 18px;
+    -fx-spacing: 20;
+    -fx-padding: 30;
+}
+
+.responsive-ultrawide .responsive-product-grid-enhanced {
+    -fx-hgap: 30;
+    -fx-vgap: 30;
+    -fx-padding: 40;
+    -fx-pref-columns: 5;
+    /* Vietnamese guide: Ultra-wide (5 col) */
+}
+
+.responsive-ultrawide .responsive-search-field {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    /* Vietnamese guide: Search bar expands to full width */
+}
+
+/* Legacy breakpoints - maintain compatibility */
+/* Large Desktop (1920px+) */
+.responsive-desktop-large .responsive-product-grid {
+    -fx-hgap: 30;
+    -fx-vgap: 30;
+    -fx-padding: 30 50 30 50;
+}
+
+.responsive-desktop-large .responsive-product-card {
+    -fx-min-width: 280;
+    -fx-max-width: 340;
+}
+
+/* Standard Desktop (1366-1920px) */
+.responsive-desktop-standard .responsive-product-grid {
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+    -fx-padding: 25 40 25 40;
+}
+
+.responsive-desktop-standard .responsive-product-card {
+    -fx-min-width: 260;
+    -fx-max-width: 320;
+}
+
+/* Compact Desktop (1024-1366px) */
+.responsive-desktop-compact .responsive-product-grid {
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 20 30 20 30;
+}
+
+.responsive-desktop-compact .responsive-product-card {
+    -fx-min-width: 240;
+    -fx-max-width: 300;
+}
+
+.responsive-desktop-compact .responsive-search-container {
+    -fx-padding: 15 20 15 20;
+}
+
+/* Mobile/Tablet (768-1024px) - Legacy */
+.responsive-mobile .responsive-product-grid {
+    -fx-hgap: 15;
+    -fx-vgap: 15;
+    -fx-padding: 15 20 15 20;
+}
+
+.responsive-mobile .responsive-product-card {
+    -fx-min-width: 200;
+    -fx-max-width: 280;
+}
+
+.responsive-mobile .responsive-search-container {
+    -fx-spacing: 10;
+    -fx-padding: 15 15 15 15;
+}
+
+/* =========================================================================
+   UTILITY CLASSES
+   ========================================================================= */
+.fill-parent {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
+.center-content {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.grow-horizontal {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+}
+
+.grow-vertical {
+    -fx-pref-height: -1;
+    -fx-max-height: infinity;
+}
+
+.responsive-spacing-small {
+    -fx-spacing: 10;
+}
+
+.responsive-spacing-medium {
+    -fx-spacing: 20;
+}
+
+.responsive-spacing-large {
+    -fx-spacing: 30;
+}
+
+.responsive-padding-small {
+    -fx-padding: 10;
+}
+
+.responsive-padding-medium {
+    -fx-padding: 20;
+}
+
+.responsive-padding-large {
+    -fx-padding: 30;
+}
+
+/* =========================================================================
+   TOP SECTION FULL-SCREEN EXPANSION CLASSES
+   ========================================================================= */
+
+/* Top section container for full expansion */
+.top-section-container {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Responsive VBox for full-screen behavior */
+.responsive-vbox-fullscreen {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+    
+    /* Ensure proper growth behavior */
+    -fx-min-height: 120;
+    -fx-pref-height: -1;
+    
+    /* Center content within expanded area */
+    -fx-background-color: transparent;
+}
+
+/* Enhanced search container for full-screen mode */
+.responsive-vbox-fullscreen .responsive-search-container {
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-min-width: 600;
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-padding: 20 30 20 30;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 2, 0, 0, 1);
+}
+
+/* Welcome message styling for full-screen mode */
+.responsive-vbox-fullscreen .center-content {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-wrap-text: true;
+}
+
+/* =========================================================================
+   PHASE 1 LAYOUT OPTIMIZATION CLASSES
+   ========================================================================= */
+
+/* Fullscreen container for main layout optimization */
+.fullscreen-container {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-min-width: 800;
+    -fx-min-height: 600;
+}
+
+/* Compact VBox for optimized top section */
+.responsive-vbox-compact {
+    -fx-spacing: 15;
+    -fx-alignment: center;
+    -fx-pref-width: -1;
+    -fx-max-width: infinity;
+    -fx-fill-width: true;
+    -fx-min-height: 80;
+    -fx-pref-height: 100;
+    -fx-max-height: 120;
+}
+
+/* Optimized top section with reduced space allocation */
+.top-section-optimized {
+    -fx-spacing: 15;
+    -fx-padding: 15 25 15 25;
+    -fx-min-height: 80;
+    -fx-pref-height: 100;
+    -fx-max-height: 120;
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Expanded scroll pane for maximum product display */
+.responsive-scroll-pane-expanded {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hbar-policy: as-needed;
+    -fx-vbar-policy: as-needed;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* Enhanced product grid with optimized spacing for higher density */
+.responsive-product-grid-enhanced {
+    -fx-alignment: top-center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 20 30 20 30;
+    -fx-column-halignment: center;
+    -fx-row-valignment: top;
+    -fx-pref-wrap-length: -1;
+    -fx-background-color: transparent;
+    
+    /* Enhanced wrapping behavior to prevent clipping */
+    -fx-orientation: horizontal;
+}
+
+/* Compact spacing for pagination controls */
+.responsive-spacing-compact {
+    -fx-spacing: 12;
+}
+
+/* Ensure parent containers expand properly */
+.fill-parent-hierarchy {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+}
+
+/* =========================================================================
+   PHASE 2: ENHANCED PRODUCT CARD SYSTEM
+   ========================================================================= */
+
+/* Enhanced responsive product cards with compact sizing - Phase 2 */
+.responsive-product-card-compact {
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 3, 0, 0, 1);
+    -fx-padding: 10;
+    -fx-spacing: 8;
+    -fx-alignment: center;
+    
+    /* Phase 2 Optimized sizing for maximum density */
+    -fx-min-width: 200;
+    -fx-max-width: 220;
+    -fx-pref-width: 210;
+    -fx-min-height: 260;
+    -fx-max-height: 300;
+    -fx-pref-height: 280;
+    
+    /* Enhanced visual properties */
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease-in-out;
+}
+
+/* Enhanced hover effects for product cards */
+.responsive-product-card-compact:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.18), 12, 0, 0, 6);
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+    -fx-background-color: #fdfdfd;
+}
+
+/* Focused state for accessibility */
+.responsive-product-card-compact:focused {
+    -fx-border-color: #2980b9;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(41,128,185,0.3), 8, 0, 0, 3);
+}
+
+/* Product card image optimization for compact cards */
+.responsive-product-card-compact .product-image {
+    -fx-fit-width: 180;
+    -fx-fit-height: 180;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+/* Product card title optimization */
+.responsive-product-card-compact .product-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-max-width: 200;
+}
+
+/* Product card price optimization */
+.responsive-product-card-compact .product-price {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e74c3c;
+}
+
+/* Product card button optimization */
+.responsive-product-card-compact .add-to-cart-button {
+    -fx-font-size: 12px;
+    -fx-padding: 6 12;
+    -fx-min-width: 100;
+    -fx-max-width: 160;
+}
+
+/* =========================================================================
+   ENHANCED RESPONSIVE BREAKPOINTS FOR PHASE 1
+   ========================================================================= */
+
+/* =========================================================================
+   PHASE 2: COMPREHENSIVE RESPONSIVE BREAKPOINT SYSTEM
+   ========================================================================= */
+
+/* Ultra-wide screens (2560px+) - Maximum product density */
+.responsive-desktop-ultrawide .responsive-product-grid-enhanced {
+    -fx-hgap: 20;
+    -fx-vgap: 22;
+    -fx-padding: 20 40 20 40;
+}
+
+.responsive-desktop-ultrawide .responsive-product-card-compact {
+    -fx-min-width: 210;
+    -fx-max-width: 250;
+    -fx-pref-width: 230;
+    -fx-min-height: 270;
+    -fx-max-height: 310;
+    -fx-pref-height: 290;
+}
+
+/* Large Desktop (1920-2560px) - Optimized spacing */
+.responsive-desktop-large .responsive-product-grid-enhanced {
+    -fx-hgap: 22;
+    -fx-vgap: 22;
+    -fx-padding: 22 35 22 35;
+}
+
+.responsive-desktop-large .responsive-product-card-compact {
+    -fx-min-width: 205;
+    -fx-max-width: 245;
+    -fx-pref-width: 225;
+    -fx-min-height: 265;
+    -fx-max-height: 305;
+    -fx-pref-height: 285;
+}
+
+/* Standard Desktop (1366-1920px) - Balanced layout */
+.responsive-desktop-standard .responsive-product-grid-enhanced {
+    -fx-hgap: 20;
+    -fx-vgap: 20;
+    -fx-padding: 20 30 20 30;
+}
+
+.responsive-desktop-standard .responsive-product-card-compact {
+    -fx-min-width: 200;
+    -fx-max-width: 220;
+    -fx-pref-width: 210;
+    -fx-min-height: 260;
+    -fx-max-height: 300;
+    -fx-pref-height: 280;
+}
+
+/* Compact Desktop (1024-1366px) - Space-efficient design */
+.responsive-desktop-compact .responsive-product-grid-enhanced {
+    -fx-hgap: 18;
+    -fx-vgap: 18;
+    -fx-padding: 18 25 18 25;
+}
+
+.responsive-desktop-compact .responsive-product-card-compact {
+    -fx-min-width: 190;
+    -fx-max-width: 210;
+    -fx-pref-width: 200;
+    -fx-min-height: 250;
+    -fx-max-height: 290;
+    -fx-pref-height: 270;
+}
+
+/* Tablet (768-1024px) - Adaptive mobile-friendly */
+.responsive-tablet .responsive-product-grid-enhanced {
+    -fx-hgap: 10;
+    -fx-vgap: 12;
+    -fx-padding: 10 20 10 20;
+}
+
+.responsive-tablet .responsive-product-card-compact {
+    -fx-min-width: 180;
+    -fx-max-width: 220;
+    -fx-pref-width: 200;
+    -fx-min-height: 240;
+    -fx-max-height: 280;
+    -fx-pref-height: 260;
+}
+
+/* Mobile (480-768px) - Minimum viable sizing */
+.responsive-mobile .responsive-product-grid-enhanced {
+    -fx-hgap: 8;
+    -fx-vgap: 10;
+    -fx-padding: 8 15 8 15;
+}
+
+.responsive-mobile .responsive-product-card-compact {
+    -fx-min-width: 160;
+    -fx-max-width: 200;
+    -fx-pref-width: 180;
+    -fx-min-height: 220;
+    -fx-max-height: 260;
+    -fx-pref-height: 240;
+}
+
+/* =========================================================================
+   PHASE 2: ADVANCED RESPONSIVE GRID FRAMEWORK
+   ========================================================================= */
+
+/* Enhanced product grid with dynamic spacing - Phase 2 */
+.responsive-product-grid-enhanced {
+    -fx-alignment: top-center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hgap: 15;
+    -fx-vgap: 18;
+    -fx-padding: 15 25 15 25;
+    -fx-column-halignment: center;
+    -fx-row-valignment: top;
+    -fx-pref-wrap-length: -1;
+    -fx-background-color: transparent;
+    
+    /* Phase 2: Performance optimizations */
+    -fx-cache: true;
+    -fx-cache-hint: quality;
+}
+
+/* Grid performance optimization for large datasets */
+.responsive-product-grid-enhanced.high-density {
+    -fx-cache-hint: speed;
+    -fx-smooth: false;
+}
+
+/* =========================================================================
+   PHASE 2: CONTAINER HIERARCHY OPTIMIZATION
+   ========================================================================= */
+
+/* Advanced parent-child responsive chain */
+.fill-parent-hierarchy {
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-fill-width: true;
+    -fx-fill-height: true;
+}
+
+/* Enhanced top section with minimal space usage */
+.top-section-optimized {
+    -fx-spacing: 12;
+    -fx-padding: 12 20 12 20;
+    -fx-min-height: 75;
+    -fx-pref-height: 90;
+    -fx-max-height: 105;
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1 0;
+    -fx-alignment: center;
+}
+
+/* Complete responsive scroll pane implementation */
+.responsive-scroll-pane-expanded {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: infinity;
+    -fx-max-height: infinity;
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: as-needed;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    
+    /* Phase 2: Smooth scrolling optimization */
+    -fx-pannable: true;
+    -fx-hvalue: 0;
+    -fx-vvalue: 0;
+}
+
+/* Scroll pane content optimization */
+.responsive-scroll-pane-expanded .viewport {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.responsive-scroll-pane-expanded .content {
+    -fx-background-color: transparent;
+    -fx-smooth: true;
+}
+
+/* =========================================================================
+   PHASE 2: ENHANCED VISUAL EFFECTS AND ANIMATIONS
+   ========================================================================= */
+
+/* Loading state for product grid */
+.responsive-product-grid-enhanced.loading {
+    -fx-opacity: 0.7;
+    -fx-effect: blur(1);
+}
+
+/* Fade-in animation for newly loaded products */
+.responsive-product-card-compact.fade-in {
+    -fx-opacity: 0;
+    -fx-scale-x: 0.9;
+    -fx-scale-y: 0.9;
+}
+
+.responsive-product-card-compact.fade-in-complete {
+    -fx-opacity: 1;
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+    -fx-transition: all 0.3s ease-out;
+}
+
+/* Hover animation optimization */
+.responsive-product-card-compact:hover .product-image {
+    -fx-effect: blur(0.5);
+    -fx-opacity: 0.95;
+}
+
+/* Selection state for product cards */
+.responsive-product-card-compact.selected {
+    -fx-border-color: #2980b9;
+    -fx-border-width: 3;
+    -fx-background-color: #ecf0f1;
+    -fx-effect: dropshadow(three-pass-box, rgba(41,128,185,0.4), 10, 0, 0, 4);
+}
+
+/* =========================================================================
+   PHASE 2: PERFORMANCE AND ACCESSIBILITY ENHANCEMENTS
+   ========================================================================= */
+
+/* High contrast mode support */
+.high-contrast .responsive-product-card-compact {
+    -fx-border-color: #000000;
+    -fx-border-width: 2;
+    -fx-background-color: #ffffff;
+}
+
+.high-contrast .responsive-product-card-compact:hover {
+    -fx-border-color: #0066cc;
+    -fx-border-width: 3;
+    -fx-background-color: #f0f8ff;
+}
+
+/* Reduced motion support */
+.reduce-motion .responsive-product-card-compact {
+    -fx-transition: none;
+}
+
+.reduce-motion .responsive-product-card-compact:hover {
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+}
+
+/* Focus management for keyboard navigation */
+.responsive-product-card-compact:focused {
+    -fx-border-color: #2980b9;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(three-pass-box, rgba(41,128,185,0.5), 6, 0, 0, 2);
+    -fx-background-color: #f8f9fa;
+}
+
+/* Enhanced keyboard navigation indicators */
+.responsive-product-grid-enhanced:focused .responsive-product-card-compact:focused {
+    -fx-border-color: #e74c3c;
+    -fx-background-color: #fff5f5;
+}
+/* =========================================================================
+   HIGH DPI SUPPORT (PHASE 1 & 2)
+   ========================================================================= */
+.high-dpi {
+    -fx-font-size: 1.2em;
+    -fx-padding: 1.2em;
+}
+
+.high-dpi .responsive-product-grid-enhanced {
+    -fx-hgap: 25;
+    -fx-vgap: 25;
+}
+
+/* Enhanced ScrollPane with Full Expansion */
+.responsive-scroll-pane-expanded {
+    -fx-fit-to-width: true;
+    -fx-fit-to-height: true;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-min-width: 0;
+    -fx-min-height: 0;
+    -fx-hbar-policy: as-needed;
+    -fx-vbar-policy: as-needed;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+/* Enhanced Product Grid System */
+.responsive-product-grid-enhanced {
+    -fx-alignment: top-center;
+    -fx-column-halignment: center;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+    -fx-max-width: Infinity;
+    -fx-max-height: Infinity;
+    -fx-pref-wrap-length: -1;
+}

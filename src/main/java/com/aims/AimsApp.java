@@ -11,6 +11,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.Screen;
+import javafx.geometry.Rectangle2D;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -39,7 +41,7 @@ public class AimsApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        sceneManager.setPrimaryStage(primaryStage); // Cung cấp primaryStage cho SceneManager
+        sceneManager.setPrimaryStage(primaryStage);
 
         try {
             FXMLLoader loader = sceneManager.getLoader(FXMLPaths.MAIN_LAYOUT);
@@ -52,72 +54,78 @@ public class AimsApp extends Application {
                 return;
             }
 
-            // Cung cấp HostServices cho MainLayoutController (để mở trình duyệt)
-            // mainLayoutController.setHostServices(getHostServices()); // Cần thêm phương thức này vào MainLayoutController
+            // Enhanced scene setup for responsiveness
+            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+            double sceneWidth = Math.max(MIN_WINDOW_WIDTH, screenBounds.getWidth() * 0.8);
+            double sceneHeight = Math.max(MIN_WINDOW_HEIGHT, screenBounds.getHeight() * 0.8);
 
-            // Cung cấp MainLayoutController cho SceneManager để các controller con có thể tham chiếu
-            sceneManager.setMainLayoutController(this.mainLayoutController);
+            Scene scene = new Scene(root, sceneWidth, sceneHeight);
 
-            // Inject dependencies into MainLayoutController
-            mainLayoutController.setAuthenticationService(serviceFactory.getAuthenticationService());
-            mainLayoutController.setSceneManager(sceneManager);
-            mainLayoutController.setServiceFactory(serviceFactory);
-            
-            // Set the ServiceFactory in SceneManager so it can inject dependencies into child controllers
-            sceneManager.setServiceFactory(serviceFactory);
-            
-            // Complete initialization after dependencies are injected
-            mainLayoutController.completeInitialization();
-
-
-            Scene scene = new Scene(root, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
-
-            // Load CSS
+            // Load CSS with responsive framework
             try {
-                String globalCssPath = "/styles/global.css"; // Giả sử global.css nằm trong src/main/resources/styles/
-                String themeCssPath = "/styles/theme.css";   // Giả sử theme.css nằm trong src/main/resources/styles/
+                String responsiveCssPath = "/styles/responsive.css";
+                String globalCssPath = "/styles/global.css";
+                String themeCssPath = "/styles/theme.css";
+                
+                // Load responsive CSS first (highest priority)
+                if (getClass().getResource(responsiveCssPath) != null) {
+                    scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource(responsiveCssPath)).toExternalForm());
+                    System.out.println("Responsive CSS loaded successfully");
+                }
                 
                 if (getClass().getResource(globalCssPath) != null) {
                     scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource(globalCssPath)).toExternalForm());
-                } else {
-                    System.err.println("Warning: Global CSS not found at " + globalCssPath);
                 }
+                
                 if (getClass().getResource(themeCssPath) != null) {
-                     scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource(themeCssPath)).toExternalForm());
-                } else {
-                     System.err.println("Warning: Theme CSS not found at " + themeCssPath);
+                    scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource(themeCssPath)).toExternalForm());
                 }
 
             } catch (NullPointerException e) {
-                System.err.println("Warning: Could not load one or more CSS files. Ensure they are in src/main/resources/styles/ and paths are correct.");
-                e.printStackTrace();
+                System.err.println("Warning: Could not load one or more CSS files: " + e.getMessage());
             }
 
-
+            // Enhanced stage configuration following Vietnamese guide specifications
             primaryStage.setTitle(APP_TITLE);
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(MIN_WINDOW_WIDTH);
-            primaryStage.setMinHeight(MIN_WINDOW_HEIGHT);
             
-            // Set to maximized (fullscreen-like) state
+            // Vietnamese guide: Enhanced stage configuration
             primaryStage.setMaximized(true);
+            primaryStage.setResizable(true);
+            Rectangle2D screenBounds2 = Screen.getPrimary().getVisualBounds();
+            primaryStage.setMinWidth(Math.min(800, screenBounds2.getWidth() * 0.6));
+            primaryStage.setMinHeight(Math.min(600, screenBounds2.getHeight() * 0.6));
             
+            // Responsive window sizing
+            primaryStage.setWidth(sceneWidth);
+            primaryStage.setHeight(sceneHeight);
+            
+            // Center the window on screen
+            primaryStage.setX((screenBounds.getWidth() - sceneWidth) / 2);
+            primaryStage.setY((screenBounds.getHeight() - sceneHeight) / 2);
+            
+            // Enhanced window management
             primaryStage.setOnCloseRequest(event -> {
-                // Xử lý dọn dẹp tài nguyên nếu cần trước khi đóng ứng dụng
                 System.out.println("AIMS Application is closing...");
-                // Ví dụ: SQLiteConnector.getInstance().closeConnection(); // Nếu bạn có cơ chế đóng kết nối chung
             });
-            primaryStage.show();
 
-            // The MainLayoutController's initialize method will load the home screen by default
-            // mainLayoutController.navigateToHome(); // This is now typically called in MainLayoutController.initialize()
+            // Dependency injection and initialization
+            sceneManager.setMainLayoutController(this.mainLayoutController);
+            mainLayoutController.setAuthenticationService(serviceFactory.getAuthenticationService());
+            mainLayoutController.setSceneManager(sceneManager);
+            mainLayoutController.setServiceFactory(serviceFactory);
+            sceneManager.setServiceFactory(serviceFactory);
+            
+            primaryStage.show();
+            
+            // Complete initialization after stage is shown
+            mainLayoutController.completeInitialization();
 
         } catch (IOException e) {
             e.printStackTrace();
             showErrorDialog("Application Load Error", "Failed to load the main application interface: \n" + e.getMessage());
         } catch (Exception e) {
-            // Catch-all for other initialization errors
-             e.printStackTrace();
+            e.printStackTrace();
             showErrorDialog("Application Startup Error", "An unexpected error occurred during application startup: \n" + e.getMessage());
         }
     }
