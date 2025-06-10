@@ -102,7 +102,8 @@ public class FXMLSceneManager {
         }
         
         if (serviceFactory == null) {
-            System.out.println("FXMLSceneManager.injectServices: ServiceFactory is null, cannot inject services");
+            System.err.println("FXMLSceneManager.injectServices: ServiceFactory is null, cannot inject services");
+            System.err.println("FXMLSceneManager.injectServices: This is a critical error that will cause application failures");
             return;
         }
         
@@ -115,14 +116,31 @@ public class FXMLSceneManager {
                 (com.aims.core.presentation.controllers.HomeScreenController) controller;
             
             try {
-                homeController.setProductService(serviceFactory.getProductService());
-                System.out.println("FXMLSceneManager.injectServices: ProductService injected into HomeScreenController");
+                // Inject ProductService with null check
+                com.aims.core.application.services.IProductService productService = serviceFactory.getProductService();
+                if (productService != null) {
+                    homeController.setProductService(productService);
+                    System.out.println("FXMLSceneManager.injectServices: ProductService injected into HomeScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: ProductService is null, injection failed");
+                }
                 
-                homeController.setCartService(serviceFactory.getCartService());
-                System.out.println("FXMLSceneManager.injectServices: CartService injected into HomeScreenController");
+                // Inject CartService with null check
+                com.aims.core.application.services.ICartService cartService = serviceFactory.getCartService();
+                if (cartService != null) {
+                    homeController.setCartService(cartService);
+                    System.out.println("FXMLSceneManager.injectServices: CartService injected into HomeScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: CartService is null, injection failed");
+                }
                 
-                homeController.completeInitialization(); // Complete initialization after services are injected
-                System.out.println("FXMLSceneManager.injectServices: HomeScreenController initialization completed");
+                // Complete initialization only if at least ProductService is available
+                if (productService != null) {
+                    homeController.completeInitialization();
+                    System.out.println("FXMLSceneManager.injectServices: HomeScreenController initialization completed");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: Cannot complete HomeScreenController initialization - ProductService is null");
+                }
             } catch (Exception e) {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into HomeScreenController: " + e.getMessage());
                 e.printStackTrace();
@@ -164,6 +182,78 @@ public class FXMLSceneManager {
                 
             } catch (Exception e) {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into ProductDetailScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.PaymentProcessingScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected PaymentProcessingScreenController, injecting services...");
+            com.aims.core.presentation.controllers.PaymentProcessingScreenController paymentController =
+                (com.aims.core.presentation.controllers.PaymentProcessingScreenController) controller;
+            
+            try {
+                paymentController.setPaymentService(serviceFactory.getPaymentService());
+                System.out.println("FXMLSceneManager.injectServices: PaymentService injected into PaymentProcessingScreenController");
+                
+                paymentController.setOrderService(serviceFactory.getOrderService());
+                System.out.println("FXMLSceneManager.injectServices: OrderService injected into PaymentProcessingScreenController");
+                
+                // Set additional dependencies if available
+                if (mainLayoutController != null) {
+                    paymentController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into PaymentProcessingScreenController");
+                }
+                
+                paymentController.setSceneManager(this);
+                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into PaymentProcessingScreenController");
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into PaymentProcessingScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.CustomerOrderDetailController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected CustomerOrderDetailController, injecting services...");
+            com.aims.core.presentation.controllers.CustomerOrderDetailController orderDetailController =
+                (com.aims.core.presentation.controllers.CustomerOrderDetailController) controller;
+            
+            try {
+                orderDetailController.setOrderService(serviceFactory.getOrderService());
+                System.out.println("FXMLSceneManager.injectServices: OrderService injected into CustomerOrderDetailController");
+                
+                // Set additional dependencies if available
+                if (mainLayoutController != null) {
+                    orderDetailController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into CustomerOrderDetailController");
+                }
+                
+                orderDetailController.setSceneManager(this);
+                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into CustomerOrderDetailController");
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into CustomerOrderDetailController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.OrderReviewController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected OrderReviewController, injecting services...");
+            com.aims.core.presentation.controllers.OrderReviewController orderReviewController =
+                (com.aims.core.presentation.controllers.OrderReviewController) controller;
+            
+            try {
+                orderReviewController.setOrderService(serviceFactory.getOrderService());
+                System.out.println("FXMLSceneManager.injectServices: OrderService injected into OrderReviewController");
+                
+                // Set additional dependencies if available
+                if (mainLayoutController != null) {
+                    orderReviewController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into OrderReviewController");
+                }
+                
+                orderReviewController.setSceneManager(this);
+                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into OrderReviewController");
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderReviewController: " + e.getMessage());
                 e.printStackTrace();
             }
         }

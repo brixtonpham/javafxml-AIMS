@@ -243,33 +243,39 @@ public class CartScreenController implements MainLayoutController.IChildControll
 
     @FXML
     void handleProceedToCheckoutAction(ActionEvent event) {
-        // if (currentCartItemDTOs.isEmpty()) {
-        //     AlertHelper.showWarningAlert("Empty Cart", "Please add items to your cart before proceeding to checkout.");
-        //     return;
-        // }
-        // boolean hasStockIssues = currentCartItemDTOs.stream().anyMatch(item -> !item.isStockSufficient());
-        // if (hasStockIssues) {
-        //      AlertHelper.showErrorAlert("Stock Issue", "Please resolve stock issues in your cart before proceeding.");
-        //      return;
-        // }
-        //
-        // System.out.println("Proceed to Checkout action triggered for cart: " + cartSessionId);
-        // if (mainLayoutController != null && sceneManager != null) {
-        //     // The OrderService.initiateOrderFromCart will be called first.
-        //     // If successful, it will then navigate to DeliveryInfoScreen.
-        //     // This logic might be better placed in OrderService or a checkout orchestration service.
-        //     // For now, let's assume we navigate and DeliveryInfoScreen handles order initiation.
-        //
-        //     DeliveryInfoScreenController deliveryCtrl = (DeliveryInfoScreenController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.DELIVERY_INFO_SCREEN
-        //     );
-        //     // DeliveryInfoScreenController needs the cartSessionId or the newly created OrderEntity shell
-        //     // from OrderService.initiateOrderFromCart()
-        //     // deliveryCtrl.setCartSessionForOrder(this.cartSessionId);
-        //     // deliveryCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Delivery Information");
-        // }
-        System.out.println("Proceed to Checkout action - implement navigation and order initiation.");
+        if (currentCartItemDTOs.isEmpty()) {
+            setStockWarning("Please add items to your cart before proceeding to checkout.", true);
+            return;
+        }
+        
+        boolean hasStockIssues = currentCartItemDTOs.stream().anyMatch(item -> !item.isStockSufficient());
+        if (hasStockIssues) {
+            setStockWarning("Please resolve stock issues in your cart before proceeding.", true);
+            return;
+        }
+
+        System.out.println("Proceed to Checkout action triggered for cart: " + cartSessionId);
+        
+        if (mainLayoutController != null) {
+            try {
+                // Navigate to delivery info screen
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/delivery_info_screen.fxml");
+                mainLayoutController.setHeaderTitle("Delivery Information");
+                
+                // TODO: Pass cart session ID to delivery info controller when the setCartSessionForOrder method is available
+                // if (controller instanceof DeliveryInfoScreenController) {
+                //     ((DeliveryInfoScreenController) controller).setCartSessionForOrder(this.cartSessionId);
+                // }
+                
+                System.out.println("Successfully navigated to delivery info screen");
+            } catch (Exception e) {
+                System.err.println("Error navigating to delivery info screen: " + e.getMessage());
+                setStockWarning("Error proceeding to checkout. Please try again.", true);
+            }
+        } else {
+            System.err.println("MainLayoutController not available for navigation");
+            setStockWarning("Navigation error. Please refresh the page.", true);
+        }
     }
 
     /**

@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.image.ImageView?>
 
-<VBox fx:id="infoDialogPane" alignment="CENTER" spacing="15.0" prefHeight="-1.0" prefWidth="-1.0" styleClass="dialog-pane" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.dialogs.InfoDialogController">
+<VBox fx:id="infoDialogPane" alignment="CENTER" spacing="15.0" prefHeight="-1.0" prefWidth="-1.0" styleClass="dialog-pane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.dialogs.InfoDialogController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>

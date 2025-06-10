@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="loginPane" styleClass="main-layout, content-area" alignment="CENTER" spacing="20" prefHeight="-1.0" prefWidth="-1.0" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.LoginScreenController">
+<VBox fx:id="loginPane" styleClass="main-layout, content-area" alignment="CENTER" spacing="20" prefHeight="-1.0" prefWidth="-1.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.LoginScreenController">
     <padding>
         <Insets bottom="30.0" left="50.0" right="50.0" top="30.0" />
     </padding>

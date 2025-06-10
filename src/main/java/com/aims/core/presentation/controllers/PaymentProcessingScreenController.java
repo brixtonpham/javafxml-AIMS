@@ -53,8 +53,8 @@ public class PaymentProcessingScreenController {
     private IPaymentService paymentService;
     // @Inject
     private IOrderService orderService; // To update order if payment attempt is cancelled here
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private com.aims.core.presentation.utils.FXMLSceneManager sceneManager;
 
     private OrderEntity currentOrder;
     private String aimsTransactionId; // The AIMS internal transaction ID
@@ -67,10 +67,25 @@ public class PaymentProcessingScreenController {
         // orderService = new OrderServiceImpl(...);   // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setPaymentService(IPaymentService paymentService) { this.paymentService = paymentService; }
-    // public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+        System.out.println("PaymentProcessingScreenController.setMainLayoutController: MainLayoutController injected successfully");
+    }
+    
+    public void setSceneManager(com.aims.core.presentation.utils.FXMLSceneManager sceneManager) {
+        this.sceneManager = sceneManager;
+        System.out.println("PaymentProcessingScreenController.setSceneManager: SceneManager injected successfully");
+    }
+    
+    public void setPaymentService(IPaymentService paymentService) {
+        this.paymentService = paymentService;
+        System.out.println("PaymentProcessingScreenController.setPaymentService: PaymentService injected successfully - Available: " + (paymentService != null));
+    }
+    
+    public void setOrderService(IOrderService orderService) {
+        this.orderService = orderService;
+        System.out.println("PaymentProcessingScreenController.setOrderService: OrderService injected successfully - Available: " + (orderService != null));
+    }
 
 
     public void initialize() {

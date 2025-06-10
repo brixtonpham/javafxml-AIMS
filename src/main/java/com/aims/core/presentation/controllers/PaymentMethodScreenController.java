@@ -27,7 +27,7 @@ public class PaymentMethodScreenController {
     @FXML
     private Button proceedButton;
 
-    // private MainLayoutController mainLayoutController;
+    private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
     // private IPaymentService paymentService; // Sẽ được inject
     private OrderEntity currentOrder;
@@ -37,7 +37,10 @@ public class PaymentMethodScreenController {
         // paymentService = new PaymentServiceImpl(...); // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+    }
+    
     // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
     // public void setPaymentService(IPaymentService paymentService) { this.paymentService = paymentService; }
     public void setHostServices(HostServices hostServices) { this.hostServices = hostServices; }
@@ -96,14 +99,24 @@ public class PaymentMethodScreenController {
     @FXML
     void handleBackToOrderSummaryAction(ActionEvent event) {
         System.out.println("Back to Order Summary action triggered");
-        // if (sceneManager != null && mainLayoutController != null && currentOrder != null) {
-        //     OrderSummaryController summaryCtrl = (OrderSummaryController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.ORDER_SUMMARY_SCREEN
-        //     );
-        //     summaryCtrl.setOrderData(currentOrder);
-        //     summaryCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
-        // }
+        
+        if (mainLayoutController != null && currentOrder != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
+                mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
+                
+                // TODO: Pass order data to summary controller when setOrderData method is available
+                // if (controller instanceof OrderSummaryController) {
+                //     ((OrderSummaryController) controller).setOrderData(currentOrder);
+                // }
+                
+                System.out.println("Successfully navigated back to order summary");
+            } catch (Exception e) {
+                System.err.println("Error navigating back to order summary: " + e.getMessage());
+            }
+        } else {
+            System.err.println("MainLayoutController or order data not available for back navigation");
+        }
     }
 
     @FXML
@@ -184,14 +197,26 @@ public class PaymentMethodScreenController {
 
     private void navigateToPaymentProcessingScreen(String aimsTransactionId) {
         System.out.println("Navigating to Payment Processing for transaction: " + aimsTransactionId);
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     PaymentProcessingScreenController processCtrl = (PaymentProcessingScreenController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.PAYMENT_PROCESSING_SCREEN
-        //     );
-        //     processCtrl.setTransactionData(currentOrder, aimsTransactionId); // Truyền Order và mã giao dịch AIMS
-        //     processCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Processing Payment...");
-        // }
+        
+        if (mainLayoutController != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_processing_screen.fxml");
+                mainLayoutController.setHeaderTitle("Processing Payment...");
+                
+                // TODO: Pass transaction data to processing controller when setTransactionData method is available
+                // if (controller instanceof PaymentProcessingScreenController) {
+                //     ((PaymentProcessingScreenController) controller).setTransactionData(currentOrder, aimsTransactionId);
+                // }
+                
+                System.out.println("Successfully navigated to payment processing screen");
+            } catch (Exception e) {
+                System.err.println("Error navigating to payment processing: " + e.getMessage());
+                setErrorMessage("Navigation error. Please try again.", true);
+            }
+        } else {
+            System.err.println("MainLayoutController not available for navigation");
+            setErrorMessage("Navigation error. Please refresh the page.", true);
+        }
     }
 
      private void navigateToPaymentResultScreen(com.aims.core.application.dtos.PaymentResultDTO paymentResult) {

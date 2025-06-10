@@ -79,26 +79,38 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
     @Override
     public UserAccount validateSession(String sessionId) throws AuthenticationException {
-        // If using server-side session management:
-        // return sessionManager.validateAndGetUser(sessionId);
-
-        // Placeholder for simple desktop app:
-        // This method would not be directly applicable without a session mechanism.
-        // If 'sessionId' is actually a userId stored client-side after login:
         if (sessionId == null || sessionId.trim().isEmpty()) {
             throw new AuthenticationException("Session ID/User ID is invalid.");
         }
+        
         try {
             UserAccount user = userAccountDAO.getById(sessionId);
-            if (user == null || user.getUserStatus() != UserStatus.ACTIVE) {
-                throw new AuthenticationException("Session is invalid or user is not active.");
+            if (user == null) {
+                throw new AuthenticationException("Session is invalid - user not found.");
             }
-            // Further checks (e.g., role validity for current context) could be added.
+            
+            if (user.getUserStatus() != UserStatus.ACTIVE) {
+                throw new AuthenticationException("User account is not active. Current status: " + user.getUserStatus());
+            }
+            
+            // Validate that user still has required roles
+            Set<Role> roles = userRoleAssignmentDAO.getRolesByUserId(user.getUserId());
+            boolean hasValidRole = roles.stream().anyMatch(role ->
+                    UserRole.ADMIN.name().equalsIgnoreCase(role.getRoleId()) ||
+                    UserRole.PRODUCT_MANAGER.name().equalsIgnoreCase(role.getRoleId())
+            );
+            
+            if (!hasValidRole) {
+                throw new AuthenticationException("User no longer has sufficient privileges for this application.");
+            }
+            
+            System.out.println("Session validated successfully for user: " + user.getUsername());
             return user;
+            
         } catch (SQLException e) {
+            System.err.println("Database error during session validation: " + e.getMessage());
             throw new AuthenticationException("Error validating session: " + e.getMessage(), e);
         }
-        // throw new AuthenticationException("Session validation not fully implemented for this context.");
     }
 
     @Override

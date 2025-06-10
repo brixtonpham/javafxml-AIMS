@@ -4,6 +4,7 @@ import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
+import com.aims.core.entities.LP;
 import com.aims.core.enums.ProductType;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 
@@ -147,6 +148,25 @@ public class ProductDAOImpl implements IProductDAO {
                             }
                         }
                         break;
+                    case LP:
+                        String sqlLP = "SELECT * FROM LP WHERE productID = ?";
+                        try (PreparedStatement psLP = conn.prepareStatement(sqlLP)) {
+                            psLP.setString(1, productId);
+                            try (ResultSet rsLP = psLP.executeQuery()) {
+                                if (rsLP.next()) {
+                                    LP lp = new LP();
+                                    copyBaseProductProperties(baseProduct, lp);
+                                    lp.setArtists(rsLP.getString("artists"));
+                                    lp.setRecordLabel(rsLP.getString("recordLabel"));
+                                    lp.setTracklist(rsLP.getString("tracklist"));
+                                    lp.setGenre(rsLP.getString("genre"));
+                                    String relDateStr = rsLP.getString("releaseDate");
+                                    if (relDateStr != null) lp.setReleaseDate(LocalDate.parse(relDateStr));
+                                    return lp;
+                                }
+                            }
+                        }
+                        break;
                     default:
                         return baseProduct;
                 }
@@ -282,6 +302,23 @@ public class ProductDAOImpl implements IProductDAO {
         }
     }
 
+    @Override
+    public void addLPDetails(LP lp) throws SQLException {
+        addBaseProduct(lp);
+        String sql = "INSERT INTO LP (productID, artists, recordLabel, tracklist, genre, releaseDate) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, lp.getProductId());
+            pstmt.setString(2, lp.getArtists());
+            pstmt.setString(3, lp.getRecordLabel());
+            pstmt.setString(4, lp.getTracklist());
+            pstmt.setString(5, lp.getGenre());
+            pstmt.setString(6, lp.getReleaseDate() != null ? lp.getReleaseDate().toString() : null);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+    }
 
     @Override
     public void updateBaseProduct(Product product) throws SQLException {
@@ -368,6 +405,23 @@ public class ProductDAOImpl implements IProductDAO {
         }
     }
 
+    @Override
+    public void updateLPDetails(LP lp) throws SQLException {
+        updateBaseProduct(lp);
+        String sql = "UPDATE LP SET artists = ?, recordLabel = ?, tracklist = ?, genre = ?, releaseDate = ? WHERE productID = ?";
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, lp.getArtists());
+            pstmt.setString(2, lp.getRecordLabel());
+            pstmt.setString(3, lp.getTracklist());
+            pstmt.setString(4, lp.getGenre());
+            pstmt.setString(5, lp.getReleaseDate() != null ? lp.getReleaseDate().toString() : null);
+            pstmt.setString(6, lp.getProductId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+    }
 
     @Override
     public void delete(String productId) throws SQLException {
@@ -446,6 +500,7 @@ public class ProductDAOImpl implements IProductDAO {
         sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
         sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
         sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
         sql.append("WHERE p.quantityInStock > 0 ");
         
         List<String> conditions = new ArrayList<>();
@@ -457,9 +512,10 @@ public class ProductDAOImpl implements IProductDAO {
             conditions.add("(p.title LIKE ? OR p.description LIKE ? OR p.category LIKE ? " +
                           "OR b.authors LIKE ? OR b.publisher LIKE ? " +
                           "OR c.artists LIKE ? OR c.recordLabel LIKE ? " +
-                          "OR d.director LIKE ? OR d.studio LIKE ?)");
-            // Add 9 parameters for the keyword search
-            for (int i = 0; i < 9; i++) {
+                          "OR d.director LIKE ? OR d.studio LIKE ? " +
+                          "OR l.artists LIKE ? OR l.recordLabel LIKE ?)");
+            // Add 11 parameters for the keyword search
+            for (int i = 0; i < 11; i++) {
                 parameters.add(keywordPattern);
             }
         }
@@ -546,6 +602,7 @@ public class ProductDAOImpl implements IProductDAO {
         sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
         sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
         sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
         sql.append("WHERE p.quantityInStock > 0 ");
         
         List<String> conditions = new ArrayList<>();
@@ -557,9 +614,10 @@ public class ProductDAOImpl implements IProductDAO {
             conditions.add("(p.title LIKE ? OR p.description LIKE ? OR p.category LIKE ? " +
                           "OR b.authors LIKE ? OR b.publisher LIKE ? " +
                           "OR c.artists LIKE ? OR c.recordLabel LIKE ? " +
-                          "OR d.director LIKE ? OR d.studio LIKE ?)");
-            // Add 9 parameters for the keyword search
-            for (int i = 0; i < 9; i++) {
+                          "OR d.director LIKE ? OR d.studio LIKE ? " +
+                          "OR l.artists LIKE ? OR l.recordLabel LIKE ?)");
+            // Add 11 parameters for the keyword search
+            for (int i = 0; i < 11; i++) {
                 parameters.add(keywordPattern);
             }
         }

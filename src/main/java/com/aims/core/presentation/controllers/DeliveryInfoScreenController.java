@@ -75,7 +75,7 @@ public class DeliveryInfoScreenController {
     private IOrderService orderService;
     // @Inject
     private IDeliveryCalculationService deliveryService; // Để kiểm tra điều kiện giao hàng nhanh
-    // private MainLayoutController mainLayoutController;
+    private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
 
     private OrderEntity currentOrder; // Đơn hàng đang được xử lý, nhận từ bước trước
@@ -87,9 +87,17 @@ public class DeliveryInfoScreenController {
         // deliveryService = new DeliveryCalculationServiceImpl(...);
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
-    // public void setDeliveryService(IDeliveryCalculationService deliveryService) { this.deliveryService = deliveryService; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+    }
+    
+    public void setOrderService(IOrderService orderService) {
+        this.orderService = orderService;
+    }
+    
+    public void setDeliveryService(IDeliveryCalculationService deliveryService) {
+        this.deliveryService = deliveryService;
+    }
 
     public void initialize() {
         // TODO: Load danh sách tỉnh/thành vào provinceCityComboBox (từ DB hoặc config)
@@ -276,10 +284,19 @@ public class DeliveryInfoScreenController {
     @FXML
     void handleBackToCartAction(ActionEvent event) {
         System.out.println("Back to Cart action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.CART_SCREEN);
-        //     mainLayoutController.setHeaderTitle("Your Shopping Cart");
-        // }
+        if (mainLayoutController != null) {
+            try {
+                mainLayoutController.loadContent("/com/aims/presentation/views/cart_screen.fxml");
+                mainLayoutController.setHeaderTitle("Your Shopping Cart");
+                System.out.println("Successfully navigated back to cart");
+            } catch (Exception e) {
+                System.err.println("Error navigating back to cart: " + e.getMessage());
+                setErrorMessage("Navigation error. Please try again.", true);
+            }
+        } else {
+            System.err.println("MainLayoutController not available for back navigation");
+            setErrorMessage("Navigation error. Please refresh the page.", true);
+        }
     }
 
     @FXML

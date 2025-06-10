@@ -4,6 +4,7 @@ import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
+import com.aims.core.entities.LP;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -63,6 +64,14 @@ public interface IProductDAO {
     void addDVDDetails(DVD dvd) throws SQLException;
 
     /**
+     * Adds specific LP details to the database for an existing Product.
+     *
+     * @param lp The LP object containing subtype details.
+     * @throws SQLException If a database access error occurs.
+     */
+    void addLPDetails(LP lp) throws SQLException;
+
+    /**
      * Updates an existing Product's base information in the database.
      *
      * @param product The Product object with updated information.
@@ -94,6 +103,13 @@ public interface IProductDAO {
      */
     void updateDVDDetails(DVD dvd) throws SQLException;
 
+    /**
+     * Updates specific LP details in the database.
+     *
+     * @param lp The LP object with updated subtype information.
+     * @throws SQLException If a database access error occurs.
+     */
+    void updateLPDetails(LP lp) throws SQLException;
 
     /**
      * Deletes a Product (and its associated subtype data due to CASCADE ON DELETE) from the database by its ID.

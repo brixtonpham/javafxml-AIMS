@@ -16,7 +16,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-<BorderPane fx:id="deliveryInfoPane" styleClass="main-layout" prefHeight="-1.0" prefWidth="-1.0" stylesheets="/styles/global.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.DeliveryInfoScreenController">
+<BorderPane fx:id="deliveryInfoPane" styleClass="main-layout" prefHeight="-1.0" prefWidth="-1.0"  xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.DeliveryInfoScreenController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>

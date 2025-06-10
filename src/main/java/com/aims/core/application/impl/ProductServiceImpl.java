@@ -1,10 +1,12 @@
 package com.aims.core.application.impl; // Or com.aims.core.application.services.impl;
 
 import com.aims.core.application.services.IProductService;
+import com.aims.core.application.services.IProductManagerAuditService;
 import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
+import com.aims.core.entities.LP;
 import com.aims.core.infrastructure.database.dao.IProductDAO;
 import com.aims.core.shared.exceptions.ValidationException; // Assuming you have these custom exceptions
 import com.aims.core.shared.exceptions.ResourceNotFoundException; // Assuming you have these custom exceptions
@@ -19,7 +21,7 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements IProductService {
 
     private final IProductDAO productDAO;
-    // private final IUserActivityLogService userActivityLogService; // For manager daily limits
+    private final IProductManagerAuditService auditService;
 
     private static final float VAT_RATE = 0.10f; // 10% VAT
     private static final float MIN_PRICE_PERCENTAGE_OF_VALUE = 0.30f;
@@ -30,9 +32,9 @@ public class ProductServiceImpl implements IProductService {
     // private static final int MAX_PRICE_UPDATES_PER_DAY_PER_PRODUCT = 2;
 
 
-    public ProductServiceImpl(IProductDAO productDAO /*, IUserActivityLogService userActivityLogService */) {
+    public ProductServiceImpl(IProductDAO productDAO, IProductManagerAuditService auditService) {
         this.productDAO = productDAO;
-        // this.userActivityLogService = userActivityLogService;
+        this.auditService = auditService;
     }
 
     private void validateProductPrice(Product product) throws ValidationException {
@@ -64,6 +66,16 @@ public class ProductServiceImpl implements IProductService {
         return products.stream().map(this::addVAT).collect(Collectors.toList());
     }
 
+    /**
+     * Gets the current manager ID from the session or context.
+     * In a real application, this would get the ID from the authenticated session.
+     * For now, we'll use a placeholder that can be overridden.
+     */
+    private String getCurrentManagerId() {
+        // TODO: In a real application, get this from authentication context/session
+        // For now, return a default manager ID - this should be injected from the controller
+        return "DEFAULT_MANAGER_001";
+    }
 
     // --- Product Management (for Product Managers) ---
 
@@ -71,10 +83,18 @@ public class ProductServiceImpl implements IProductService {
     public Book addBook(Book book) throws SQLException, ValidationException {
         if (book == null) throw new ValidationException("Book data cannot be null.");
         validateProductPrice(book);
-        // TODO: Check Product Manager daily ADD limits if applicable (problem statement says unlimited adds [cite: 522])
-        // userActivityLogService.checkAddLimit(managerId); // Example
+        // ADD operations are unlimited per problem statement
         book.setEntryDate(LocalDate.now()); // Set entry date
         productDAO.addBookDetails(book); // This DAO method should handle base product and book details
+        
+        // Log the operation
+        try {
+            auditService.logOperation("SYSTEM", "ADD", book.getProductId(), "Added new Book: " + book.getTitle());
+        } catch (SQLException e) {
+            // Log error but don't fail the operation
+            System.err.println("Failed to log ADD operation: " + e.getMessage());
+        }
+        
         return productDAO.getById(book.getProductId()) instanceof Book ? (Book) productDAO.getById(book.getProductId()) : null; // Re-fetch to confirm
     }
 
@@ -84,6 +104,14 @@ public class ProductServiceImpl implements IProductService {
         validateProductPrice(cd);
         cd.setEntryDate(LocalDate.now());
         productDAO.addCDDetails(cd);
+        
+        // Log the operation
+        try {
+            auditService.logOperation("SYSTEM", "ADD", cd.getProductId(), "Added new CD: " + cd.getTitle());
+        } catch (SQLException e) {
+            System.err.println("Failed to log ADD operation: " + e.getMessage());
+        }
+        
         return productDAO.getById(cd.getProductId()) instanceof CD ? (CD) productDAO.getById(cd.getProductId()) : null;
     }
 
@@ -93,7 +121,32 @@ public class ProductServiceImpl implements IProductService {
         validateProductPrice(dvd);
         dvd.setEntryDate(LocalDate.now());
         productDAO.addDVDDetails(dvd);
+        
+        // Log the operation
+        try {
+            auditService.logOperation("SYSTEM", "ADD", dvd.getProductId(), "Added new DVD: " + dvd.getTitle());
+        } catch (SQLException e) {
+            System.err.println("Failed to log ADD operation: " + e.getMessage());
+        }
+        
         return productDAO.getById(dvd.getProductId()) instanceof DVD ? (DVD) productDAO.getById(dvd.getProductId()) : null;
+    }
+
+    @Override
+    public LP addLP(LP lp) throws SQLException, ValidationException {
+        if (lp == null) throw new ValidationException("LP data cannot be null.");
+        validateProductPrice(lp);
+        lp.setEntryDate(LocalDate.now());
+        productDAO.addLPDetails(lp);
+        
+        // Log the operation
+        try {
+            auditService.logOperation("SYSTEM", "ADD", lp.getProductId(), "Added new LP: " + lp.getTitle());
+        } catch (SQLException e) {
+            System.err.println("Failed to log ADD operation: " + e.getMessage());
+        }
+        
+        return productDAO.getById(lp.getProductId()) instanceof LP ? (LP) productDAO.getById(lp.getProductId()) : null;
     }
 
     @Override
@@ -104,9 +157,14 @@ public class ProductServiceImpl implements IProductService {
         if (!(existingProduct instanceof Book)) throw new ValidationException("Product ID " + book.getProductId() + " is not a Book.");
 
         validateProductPrice(book);
-        // TODO: Check Product Manager daily UPDATE limits for product type/ID
-        // userActivityLogService.checkUpdateDeleteLimit(managerId, 1);
+        // Check Product Manager daily UPDATE limits
+        String managerId = getCurrentManagerId();
+        auditService.checkDailyOperationLimit(managerId, 1);
         productDAO.updateBookDetails(book);
+        
+        // Log the operation
+        auditService.logOperation(managerId, "UPDATE", book.getProductId(), "Updated Book: " + book.getTitle());
+        
         return (Book) productDAO.getById(book.getProductId());
     }
 
@@ -118,8 +176,14 @@ public class ProductServiceImpl implements IProductService {
         if (!(existingProduct instanceof CD)) throw new ValidationException("Product ID " + cd.getProductId() + " is not a CD.");
 
         validateProductPrice(cd);
-        // TODO: Check Product Manager daily UPDATE limits
+        // Check Product Manager daily UPDATE limits
+        String managerId = getCurrentManagerId();
+        auditService.checkDailyOperationLimit(managerId, 1);
         productDAO.updateCDDetails(cd);
+        
+        // Log the operation
+        auditService.logOperation(managerId, "UPDATE", cd.getProductId(), "Updated CD: " + cd.getTitle());
+        
         return (CD) productDAO.getById(cd.getProductId());
     }
 
@@ -131,9 +195,34 @@ public class ProductServiceImpl implements IProductService {
         if (!(existingProduct instanceof DVD)) throw new ValidationException("Product ID " + dvd.getProductId() + " is not a DVD.");
 
         validateProductPrice(dvd);
-        // TODO: Check Product Manager daily UPDATE limits
+        // Check Product Manager daily UPDATE limits
+        String managerId = getCurrentManagerId();
+        auditService.checkDailyOperationLimit(managerId, 1);
         productDAO.updateDVDDetails(dvd);
+        
+        // Log the operation
+        auditService.logOperation(managerId, "UPDATE", dvd.getProductId(), "Updated DVD: " + dvd.getTitle());
+        
         return (DVD) productDAO.getById(dvd.getProductId());
+    }
+
+    @Override
+    public LP updateLP(LP lp) throws SQLException, ValidationException, ResourceNotFoundException {
+        if (lp == null || lp.getProductId() == null) throw new ValidationException("LP data and ID cannot be null.");
+        Product existingProduct = productDAO.getById(lp.getProductId());
+        if (existingProduct == null) throw new ResourceNotFoundException("LP with ID " + lp.getProductId() + " not found for update.");
+        if (!(existingProduct instanceof LP)) throw new ValidationException("Product ID " + lp.getProductId() + " is not an LP.");
+
+        validateProductPrice(lp);
+        // Check Product Manager daily UPDATE limits
+        String managerId = getCurrentManagerId();
+        auditService.checkDailyOperationLimit(managerId, 1);
+        productDAO.updateLPDetails(lp);
+        
+        // Log the operation
+        auditService.logOperation(managerId, "UPDATE", lp.getProductId(), "Updated LP: " + lp.getTitle());
+        
+        return (LP) productDAO.getById(lp.getProductId());
     }
 
     @Override
@@ -148,13 +237,15 @@ public class ProductServiceImpl implements IProductService {
         Product existingProduct = productDAO.getById(productId);
         if (existingProduct == null) throw new ResourceNotFoundException("Product with ID " + productId + " not found for deletion.");
 
-        // TODO: Check Product Manager daily DELETE limits
-        // userActivityLogService.checkUpdateDeleteLimit(managerId, 1);
+        // Check Product Manager daily DELETE limits
+        auditService.checkDailyOperationLimit(managerId, 1);
 
         // DB constraint ON DELETE RESTRICT for productID in ORDER_ITEM will prevent deletion if product is in an order.
         // This will manifest as an SQLException from the DAO, which should be caught and potentially re-thrown as ValidationException.
         try {
             productDAO.delete(productId);
+            // Log the successful deletion
+            auditService.logOperation(managerId, "DELETE", productId, "Deleted product: " + existingProduct.getTitle());
         } catch (SQLException e) {
             // Check for specific constraint violation error code if possible
             // For now, re-throw a generic validation message. A more specific check on e.getErrorCode() or message is better.
@@ -172,8 +263,8 @@ public class ProductServiceImpl implements IProductService {
             throw new ValidationException("Cannot delete more than " + MAX_DELETIONS_AT_ONCE + " products at once."); // [cite: 521]
         }
 
-        // TODO: Check Product Manager daily DELETE limits for the total count
-        // userActivityLogService.checkUpdateDeleteLimit(managerId, productIds.size());
+        // Check Product Manager daily DELETE limits for the total count
+        auditService.checkDailyOperationLimit(managerId, productIds.size());
 
         List<String> errors = new ArrayList<>();
         for (String productId : productIds) {
@@ -198,8 +289,8 @@ public class ProductServiceImpl implements IProductService {
             throw new ResourceNotFoundException("Product with ID " + productId + " not found.");
         }
 
-        // TODO: Check Product Manager daily PRICE UPDATE limits for this specific product
-        // userActivityLogService.checkPriceUpdateLimit(managerId, productId); [cite: 536]
+        // Check Product Manager daily PRICE UPDATE limits for this specific product
+        auditService.checkPriceUpdateLimit(managerId, productId);
 
         // Validate new price against product value
         if (newPriceExclVAT < product.getValueAmount() * MIN_PRICE_PERCENTAGE_OF_VALUE ||
@@ -214,8 +305,14 @@ public class ProductServiceImpl implements IProductService {
             ); // [cite: 537]
         }
 
+        float oldPrice = product.getPrice();
         product.setPrice(newPriceExclVAT);
         productDAO.updateBaseProduct(product); // Assuming price is on base product table
+        
+        // Log the price update
+        auditService.logOperation(managerId, "PRICE_UPDATE", productId,
+            String.format("Price updated from %.2f to %.2f for %s", oldPrice, newPriceExclVAT, product.getTitle()));
+        
         return productDAO.getById(productId);
     }
 

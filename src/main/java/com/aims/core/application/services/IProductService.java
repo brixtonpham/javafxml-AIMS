@@ -4,6 +4,7 @@ import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
+import com.aims.core.entities.LP;
 // import com.aims.core.dtos.ProductDTO; // Consider DTOs for creation/updates
 // import com.aims.core.dtos.BookDTO;
 // import com.aims.core.dtos.CDDTO;
@@ -57,6 +58,16 @@ public interface IProductService {
     DVD addDVD(DVD dvd) throws SQLException, ValidationException;
 
     /**
+     * Adds a new LP product to the system.
+     *
+     * @param lp The LP object to add.
+     * @return The created LP.
+     * @throws SQLException If a database error occurs.
+     * @throws ValidationException If business rules are violated.
+     */
+    LP addLP(LP lp) throws SQLException, ValidationException;
+
+    /**
      * Updates an existing Book product.
      * Validates price constraints and update frequency as per business rules.
      *
@@ -91,7 +102,18 @@ public interface IProductService {
     DVD updateDVD(DVD dvd) throws SQLException, ValidationException, ResourceNotFoundException;
 
     /**
-     * Retrieves a product by its ID. Returns the specific subtype (Book, CD, DVD).
+     * Updates an existing LP product.
+     *
+     * @param lp The LP object with updated details.
+     * @return The updated LP.
+     * @throws SQLException If a database error occurs.
+     * @throws ValidationException If business rules are violated.
+     * @throws ResourceNotFoundException If the product to update is not found.
+     */
+    LP updateLP(LP lp) throws SQLException, ValidationException, ResourceNotFoundException;
+
+    /**
+     * Retrieves a product by its ID. Returns the specific subtype (Book, CD, DVD, LP).
      *
      * @param productId The ID of the product.
      * @return The Product object (Book, CD, or DVD) or null if not found.

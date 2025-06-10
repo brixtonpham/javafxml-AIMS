@@ -251,10 +251,28 @@ public class HomeScreenController implements MainLayoutController.IChildControll
             if (productService == null) {
                 // Attempt to get service from ServiceFactory or dependency injection
                 System.err.println("Attempting to recover ProductService...");
-                // productService = ServiceFactory.getProductService(); // Uncomment if available
+                com.aims.core.shared.ServiceFactory serviceFactory = com.aims.core.shared.ServiceFactory.getInstance();
+                if (serviceFactory != null) {
+                    productService = serviceFactory.getProductService();
+                    System.out.println("ProductService recovered successfully: " + (productService != null));
+                } else {
+                    System.err.println("ServiceFactory is null, cannot recover ProductService");
+                }
+            }
+            
+            if (cartService == null) {
+                System.err.println("Attempting to recover CartService...");
+                com.aims.core.shared.ServiceFactory serviceFactory = com.aims.core.shared.ServiceFactory.getInstance();
+                if (serviceFactory != null) {
+                    cartService = serviceFactory.getCartService();
+                    System.out.println("CartService recovered successfully: " + (cartService != null));
+                } else {
+                    System.err.println("ServiceFactory is null, cannot recover CartService");
+                }
             }
         } catch (Exception e) {
             System.err.println("Failed to recover services: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -399,13 +417,17 @@ public class HomeScreenController implements MainLayoutController.IChildControll
     
     private List<Product> loadProductsFromDatabase() throws SQLException {
         List<Product> products = new ArrayList<>();
-        String dbPath = "src/main/resources/aims_database.db";
+        
+        // Use DatabaseConfig instead of hardcoded path
+        com.aims.core.infrastructure.config.DatabaseConfig dbConfig =
+            com.aims.core.infrastructure.config.DatabaseConfig.getInstance();
+        String dbUrl = dbConfig.getDatabaseUrl();
         
         String sql = "SELECT productID, title, category, price, quantityInStock, description, imageURL, productType " +
                     "FROM PRODUCT " +
                     "ORDER BY title";
         
-        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        try (Connection conn = DriverManager.getConnection(dbUrl);
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             

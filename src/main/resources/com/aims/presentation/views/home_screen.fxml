@@ -12,115 +12,130 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane fx:id="homeScreenPane"
-            styleClass="responsive-border-pane, fill-parent, fullscreen-content, responsive-fullscreen"
+            styleClass="main-border-pane"
             maxHeight="Infinity"
             maxWidth="Infinity"
-            minHeight="0"
-            minWidth="0"
-            prefHeight="-1"
-            prefWidth="-1"
+            minHeight="800.0"
+            minWidth="1800.0"
+            prefHeight="-1.0"
+            prefWidth="-1.0"
             xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.aims.core.presentation.controllers.HomeScreenController">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+    
     <top>
-        <VBox styleClass="responsive-vbox-compact, top-section-optimized"
-              alignment="CENTER"
-              maxWidth="Infinity"
-              fillWidth="true"
-              VBox.vgrow="NEVER"
-              HBox.hgrow="ALWAYS">
+        <VBox spacing="10.0" alignment="TOP_CENTER">
             <padding>
-                <Insets bottom="15.0" left="25.0" right="25.0" top="15.0" />
+                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>
+            
+            <!-- Welcome Message -->
             <Label text="Welcome to AIMS - Your Internet Media Store!" 
-                   styleClass="center-content"
+                   styleClass="header-title"
                    alignment="CENTER" 
-                   maxWidth="Infinity" 
-                   style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;">
+                   maxWidth="Infinity">
                 <VBox.margin>
                     <Insets bottom="10.0" />
                 </VBox.margin>
             </Label>
-            <HBox styleClass="responsive-search-container"
-                  alignment="CENTER"
-                  maxWidth="Infinity"
-                  minWidth="600.0"
-                  VBox.vgrow="NEVER"
-                  HBox.hgrow="ALWAYS">
+            
+            <!-- Search Container -->
+            <HBox spacing="10.0" alignment="CENTER" maxWidth="Infinity">
+                <!-- Search Field -->
                 <TextField fx:id="searchField" 
-                          styleClass="responsive-search-field"
                           promptText="Search products by title..." 
+                          maxWidth="Infinity"
+                          prefWidth="-1.0"
                           HBox.hgrow="ALWAYS" 
-                          onAction="#handleSearchAction"/>
+                          onAction="#handleSearchAction">
+                </TextField>
+                
+                <!-- Category ComboBox -->
                 <ComboBox fx:id="categoryComboBox" 
-                         styleClass="responsive-filter-combo"
                          promptText="All Categories" 
-                         HBox.hgrow="NEVER"/>
+                         HBox.hgrow="NEVER">
+                </ComboBox>
+                
+                <!-- Sort ComboBox -->
                 <ComboBox fx:id="sortByPriceComboBox" 
-                         styleClass="responsive-filter-combo"
                          promptText="Sort by Price" 
-                         HBox.hgrow="NEVER"/>
+                         HBox.hgrow="NEVER">
+                </ComboBox>
+                
+                <!-- Search Button -->
                 <Button text="Search" 
-                       styleClass="responsive-primary-button"
+                       styleClass="primary-button"
                        onAction="#handleSearchAction" 
+                       minWidth="80.0"
                        HBox.hgrow="NEVER"/>
             </HBox>
         </VBox>
     </top>
+    
     <center>
         <ScrollPane fx:id="scrollPane"
-                    styleClass="responsive-scroll-pane-expanded"
+                    styleClass="scroll-pane"
                     fitToWidth="true"
-                    fitToHeight="true"
-                    hbarPolicy="AS_NEEDED"
+                    fitToHeight="false"
+                    hbarPolicy="NEVER"
                     vbarPolicy="AS_NEEDED"
                     maxHeight="Infinity"
                     maxWidth="Infinity"
-                    prefHeight="-1"
-                    prefWidth="-1"
-                    BorderPane.alignment="CENTER"
-                    VBox.vgrow="ALWAYS">
+                    prefHeight="-1.0"
+                    prefWidth="-1.0">
+            
             <FlowPane fx:id="productFlowPane"
-                      styleClass="responsive-product-grid-enhanced"
                       alignment="TOP_CENTER"
                       maxWidth="Infinity"
-                      maxHeight="Infinity"
                       columnHalignment="CENTER"
-                      hgap="20"
-                      vgap="20"
-                      prefWrapLength="-1"
-                      prefHeight="-1"
-                      prefWidth="-1">
+                      hgap="20.0"
+                      vgap="20.0">
                 <padding>
-                    <Insets bottom="20.0" left="30.0" right="30.0" top="20.0" />
+                    <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
                 </padding>
             </FlowPane>
         </ScrollPane>
     </center>
+    
     <bottom>
-        <HBox fx:id="paginationControls"
-              styleClass="responsive-hbox, responsive-spacing-compact"
-              alignment="CENTER"
-              minHeight="45.0"
-              maxWidth="Infinity"
-              VBox.vgrow="NEVER"
-              HBox.hgrow="ALWAYS">
+        <VBox spacing="15.0" alignment="CENTER" minHeight="80.0">
             <padding>
-                <Insets bottom="10.0" left="25.0" right="25.0" top="10.0" />
+                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>
-            <Button fx:id="prevPageButton" 
-                   text="Previous" 
-                   styleClass="responsive-button"
-                   onAction="#handlePrevPageAction"/>
-            <Label fx:id="currentPageLabel" 
-                  text="Page 1/X" 
-                  styleClass="center-content"
+            
+            <!-- Pagination Controls -->
+            <HBox fx:id="paginationControls"
+                  spacing="20.0" 
                   alignment="CENTER" 
-                  style="-fx-font-size: 14px;"/>
-            <Button fx:id="nextPageButton" 
-                   text="Next" 
-                   styleClass="responsive-button"
-                   onAction="#handleNextPageAction"/>
-        </HBox>
+                  maxWidth="Infinity">
+                
+                <!-- Previous Button -->
+                <Button fx:id="prevPageButton" 
+                       text="Previous" 
+                       styleClass="secondary-button"
+                       onAction="#handlePrevPageAction"
+                       minWidth="100.0">
+                </Button>
+                
+                <!-- Page Label -->
+                <Label fx:id="currentPageLabel" 
+                      text="Page 1/X" 
+                      styleClass="text-bold"
+                      alignment="CENTER"
+                      HBox.hgrow="ALWAYS">
+                </Label>
+                
+                <!-- Next Button -->
+                <Button fx:id="nextPageButton" 
+                       text="Next" 
+                       styleClass="primary-button"
+                       onAction="#handleNextPageAction"
+                       minWidth="100.0">
+                </Button>
+            </HBox>
+        </VBox>
     </bottom>
 </BorderPane>

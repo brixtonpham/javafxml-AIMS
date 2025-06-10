@@ -33,6 +33,7 @@ public class ServiceFactory {
     private IPaymentMethodDAO paymentMethodDAO;
     private IPaymentTransactionDAO paymentTransactionDAO;
     private ICardDetailsDAO cardDetailsDAO;
+    private IProductManagerAuditDAO productManagerAuditDAO;
     
     // External Service Adapters
     private IVNPayAdapter vnPayAdapter;
@@ -47,6 +48,7 @@ public class ServiceFactory {
     private INotificationService notificationService;
     private IPaymentService paymentService;
     private IOrderService orderService;
+    private IProductManagerAuditService productManagerAuditService;
     
     private ServiceFactory() {
         initializeDependencies();
@@ -67,6 +69,7 @@ public class ServiceFactory {
         deliveryInfoDAO = new DeliveryInfoDAOImpl();
         invoiceDAO = new InvoiceDAOImpl();
         cardDetailsDAO = new CardDetailsDAOImpl();
+        productManagerAuditDAO = new ProductManagerAuditDAOImpl();
         
         // DAOs with dependencies
         userRoleAssignmentDAO = new UserRoleAssignmentDAOImpl();
@@ -81,8 +84,11 @@ public class ServiceFactory {
         vnPayAdapter = new StubVNPayAdapter();
         emailSenderAdapter = new StubEmailSenderAdapter();
         
-        // Services (simple ones first)
-        productService = new ProductServiceImpl(productDAO);
+        // Initialize audit service before ProductService
+        productManagerAuditService = new ProductManagerAuditServiceImpl(productManagerAuditDAO);
+        
+        // Services (ProductService needs audit service)
+        productService = new ProductServiceImpl(productDAO, productManagerAuditService);
         authenticationService = new AuthenticationServiceImpl(userAccountDAO, userRoleAssignmentDAO);
         cartService = new CartServiceImpl(cartDAO, cartItemDAO, productDAO, userAccountDAO);
         deliveryCalculationService = new DeliveryCalculationServiceImpl();
@@ -94,16 +100,16 @@ public class ServiceFactory {
         // Services with many dependencies
         userAccountService = new UserAccountServiceImpl(userAccountDAO, roleDAO, userRoleAssignmentDAO, notificationService);
         orderService = new OrderServiceImpl(
-            orderEntityDAO, 
-            orderItemDAO, 
-            deliveryInfoDAO, 
-            invoiceDAO, 
-            productDAO, 
-            productService, 
-            cartService, 
-            paymentService, 
-            deliveryCalculationService, 
-            notificationService, 
+            orderEntityDAO,
+            orderItemDAO,
+            deliveryInfoDAO,
+            invoiceDAO,
+            productDAO,
+            productService,
+            cartService,
+            paymentService,
+            deliveryCalculationService,
+            notificationService,
             userAccountDAO
         );
     }
@@ -165,5 +171,9 @@ public class ServiceFactory {
 
     public IEmailSenderAdapter getEmailSenderAdapter() {
         return emailSenderAdapter;
+    }
+    
+    public IProductManagerAuditService getProductManagerAuditService() {
+        return productManagerAuditService;
     }
 }

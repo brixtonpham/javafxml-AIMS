@@ -4,7 +4,7 @@ import com.aims.core.application.services.IAuthenticationService;
 import com.aims.core.entities.UserAccount;
 import com.aims.core.entities.Role; // Để kiểm tra vai trò sau khi đăng nhập
 // import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.FXMLSceneManager;
 // import com.aims.core.application.dtos.UserSessionDTO; // Nếu AuthenticationService trả về DTO session
 import com.aims.core.shared.exceptions.AuthenticationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
@@ -35,17 +35,26 @@ public class LoginScreenController {
 
     // @Inject
     private IAuthenticationService authenticationService;
-    // private MainLayoutController mainLayoutController; // Để cập nhật menu hoặc điều hướng
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController; // Để cập nhật menu hoặc điều hướng
+    private FXMLSceneManager sceneManager;
     // private Stage currentStage; // Để có thể đóng cửa sổ login nếu nó là popup
 
     public LoginScreenController() {
         // authenticationService = new AuthenticationServiceImpl(...); // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setAuthenticationService(IAuthenticationService authenticationService) { this.authenticationService = authenticationService; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+    }
+    
+    public void setSceneManager(FXMLSceneManager sceneManager) {
+        this.sceneManager = sceneManager;
+    }
+    
+    public void setAuthenticationService(IAuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
+    
     // public void setCurrentStage(Stage stage) { this.currentStage = stage; }
 
 
@@ -67,65 +76,62 @@ public class LoginScreenController {
         }
         setErrorMessage("", false); // Clear previous errors
 
-        // if (authenticationService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Authentication service is not available.");
-        //     return;
-        // }
+        if (authenticationService == null) {
+            setErrorMessage("Authentication service is not available.", true);
+            return;
+        }
 
         try {
-            // UserAccount authenticatedUser = authenticationService.login(username, password);
-            // System.out.println("Login successful for user: " + authenticatedUser.getUsername());
+            UserAccount authenticatedUser = authenticationService.login(username, password);
+            System.out.println("Login successful for user: " + authenticatedUser.getUsername());
 
-            // // TODO: Lưu thông tin người dùng đăng nhập (ví dụ trong MainLayoutController hoặc một session manager)
-            // // mainLayoutController.setCurrentUser(authenticatedUser);
-            // // mainLayoutController.updateMenuVisibility();
+            // Save user information in MainLayoutController
+            if (mainLayoutController != null) {
+                mainLayoutController.setCurrentUser(authenticatedUser, authenticatedUser.getUserId());
+            }
 
-            // // Điều hướng đến dashboard tương ứng với vai trò
-            // Set<Role> roles = authenticatedUser.getRoleAssignments().stream()
-            //                            .map(UserRoleAssignment::getRole)
-            //                            .collect(Collectors.toSet()); // Lấy roles nếu entity UserAccount có getRoleAssignments()
+            // Navigate to appropriate dashboard based on role
+            Set<Role> roles = authenticatedUser.getRoleAssignments().stream()
+                                       .map(assignment -> assignment.getRole())
+                                       .collect(java.util.stream.Collectors.toSet());
 
-            // // Hoặc lấy roles từ IUserAccountService nếu cần:
-            // // Set<Role> roles = userAccountService.getUserRoles(authenticatedUser.getUserId());
+            boolean isAdmin = roles.stream().anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getRoleId()));
+            boolean isPm = roles.stream().anyMatch(role -> "PRODUCT_MANAGER".equalsIgnoreCase(role.getRoleId()));
 
+            if (isAdmin) {
+                if (mainLayoutController != null) {
+                    mainLayoutController.loadContent("/com/aims/presentation/views/admin_dashboard_screen.fxml");
+                    mainLayoutController.setHeaderTitle("Admin Dashboard");
+                    System.out.println("Navigated to Admin Dashboard");
+                }
+            } else if (isPm) {
+                if (mainLayoutController != null) {
+                    mainLayoutController.loadContent("/com/aims/presentation/views/pm_dashboard_screen.fxml");
+                    mainLayoutController.setHeaderTitle("Product Manager Dashboard");
+                    System.out.println("Navigated to PM Dashboard");
+                }
+            } else {
+                // User does not have sufficient privileges for admin/PM access
+                setErrorMessage("User does not have sufficient privileges for admin access.", true);
+                if (authenticationService != null) {
+                    authenticationService.logout(authenticatedUser.getUserId());
+                }
+                return;
+            }
 
-            // boolean isAdmin = roles.stream().anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getRoleId()));
-            // boolean isPm = roles.stream().anyMatch(role -> "PRODUCT_MANAGER".equalsIgnoreCase(role.getRoleId()));
-
-            // if (isAdmin) {
-            //     // mainLayoutController.loadContent(FXMLSceneManager.ADMIN_DASHBOARD_SCREEN);
-            //     // mainLayoutController.setHeaderTitle("Admin Dashboard");
-            // } else if (isPm) {
-            //     // mainLayoutController.loadContent(FXMLSceneManager.PM_DASHBOARD_SCREEN);
-            //     // mainLayoutController.setHeaderTitle("Product Manager Dashboard");
-            // } else {
-            //     // Vai trò không phù hợp để vào hệ thống quản trị
-            //     setErrorMessage("User does not have sufficient privileges.", true);
-            //     // authenticationService.logout(null); // Clear any partial login state if applicable
-            //     return;
-            // }
-
-            // if (currentStage != null) { // Nếu màn hình login là một cửa sổ riêng
-            //     currentStage.close();
-            // }
-
-
-            // --- Giả lập đăng nhập thành công để test navigation ---
-            System.out.println("Simulating successful login for: " + username);
-            setErrorMessage("Login Successful (Simulated)!", true);
+            // Clear login form after successful login
+            usernameField.clear();
+            passwordField.clear();
+            setErrorMessage("Login successful!", true);
             errorMessageLabel.setStyle("-fx-text-fill: green;");
-            // Giả sử điều hướng về home và mainLayout sẽ cập nhật menu
-            // if (mainLayoutController != null) {
-            //    mainLayoutController.navigateToHome(null);
-            // }
 
-
-        }
-        // catch (SQLException e) {
-        //     setErrorMessage("Database error during login. Please try again later.", true);
-        //     e.printStackTrace();
-        // }
-        catch (Exception e) { // Bắt các lỗi không mong muốn khác
+        } catch (AuthenticationException e) {
+            setErrorMessage("Invalid username or password.", true);
+            System.err.println("Authentication failed: " + e.getMessage());
+        } catch (SQLException e) {
+            setErrorMessage("Database error during login. Please try again later.", true);
+            e.printStackTrace();
+        } catch (Exception e) {
             setErrorMessage("An unexpected error occurred: " + e.getMessage(), true);
             e.printStackTrace();
         }
@@ -134,15 +140,16 @@ public class LoginScreenController {
     @FXML
     void handleCancelAction(ActionEvent event) {
         System.out.println("Login cancelled.");
-        // if (currentStage != null) { // Nếu màn hình login là một cửa sổ riêng
-        //     currentStage.close();
-        // } else if (mainLayoutController != null) { // Nếu là một phần của layout chính
-        //     mainLayoutController.navigateToHome(null); // Quay về trang chủ
-        // }
-        // Hoặc đơn giản là xóa các trường
+        
+        // Clear the form fields
         usernameField.clear();
         passwordField.clear();
         setErrorMessage("", false);
+        
+        // Navigate back to home screen
+        if (mainLayoutController != null) {
+            mainLayoutController.navigateToHome(); // Navigate to home screen
+        }
     }
 
     private void setErrorMessage(String message, boolean visible) {

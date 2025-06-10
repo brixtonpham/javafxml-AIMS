@@ -66,7 +66,7 @@ public class OrderSummaryController {
     @FXML
     private Button proceedToPaymentMethodButton;
 
-    // private MainLayoutController mainLayoutController;
+    private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
     private OrderEntity currentOrder;
     private static final float VAT_RATE = 0.10f;
@@ -77,9 +77,10 @@ public class OrderSummaryController {
         // Constructor
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) {
-    //     this.mainLayoutController = mainLayoutController;
-    // }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+    }
+    
     // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
 
     public void initialize() {
@@ -170,30 +171,51 @@ public class OrderSummaryController {
     @FXML
     void handleBackToDeliveryInfoAction(ActionEvent event) {
         System.out.println("Back to Delivery Info action triggered");
-        // if (sceneManager != null && mainLayoutController != null && currentOrder != null) {
-        //     DeliveryInfoScreenController deliveryCtrl = (DeliveryInfoScreenController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.DELIVERY_INFO_SCREEN
-        //     );
-        //     deliveryCtrl.setOrderData(currentOrder); // Truyền lại đơn hàng để prefill hoặc chỉnh sửa
-        //     deliveryCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Delivery Information");
-        // }
+        
+        if (mainLayoutController != null && currentOrder != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/delivery_info_screen.fxml");
+                mainLayoutController.setHeaderTitle("Delivery Information");
+                
+                // TODO: Pass order data to delivery controller when setOrderData method is available
+                // if (controller instanceof DeliveryInfoScreenController) {
+                //     ((DeliveryInfoScreenController) controller).setOrderData(currentOrder);
+                // }
+                
+                System.out.println("Successfully navigated back to delivery info");
+            } catch (Exception e) {
+                System.err.println("Error navigating back to delivery info: " + e.getMessage());
+            }
+        } else {
+            System.err.println("MainLayoutController or order data not available for back navigation");
+        }
     }
 
     @FXML
     void handleProceedToPaymentMethodAction(ActionEvent event) {
         if (currentOrder == null) {
-            // AlertHelper.showErrorAlert("Error", "No order data to proceed with payment.");
+            System.err.println("No order data to proceed with payment");
             return;
         }
+        
         System.out.println("Proceed to Select Payment Method action triggered for Order ID: " + currentOrder.getOrderId());
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     PaymentMethodScreenController paymentMethodCtrl = (PaymentMethodScreenController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.PAYMENT_METHOD_SCREEN
-        //     );
-        //     paymentMethodCtrl.setOrderData(currentOrder);
-        //     paymentMethodCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Select Payment Method");
-        // }
+        
+        if (mainLayoutController != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_method_screen.fxml");
+                mainLayoutController.setHeaderTitle("Select Payment Method");
+                
+                // TODO: Pass order data to payment method controller when setOrderData method is available
+                // if (controller instanceof PaymentMethodScreenController) {
+                //     ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
+                // }
+                
+                System.out.println("Successfully navigated to payment method selection");
+            } catch (Exception e) {
+                System.err.println("Error navigating to payment method: " + e.getMessage());
+            }
+        } else {
+            System.err.println("MainLayoutController not available for navigation");
+        }
     }
 }

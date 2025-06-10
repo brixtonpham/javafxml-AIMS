@@ -52,8 +52,8 @@ public class OrderReviewController {
 
     // @Inject
     private IOrderService orderService;
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private com.aims.core.presentation.utils.FXMLSceneManager sceneManager;
 
     private OrderEntity currentOrderToReview;
     private String orderIdToLoad;
@@ -65,9 +65,20 @@ public class OrderReviewController {
         // orderService = new OrderServiceImpl(...); // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+        System.out.println("OrderReviewController.setMainLayoutController: MainLayoutController injected successfully");
+    }
+    
+    public void setSceneManager(com.aims.core.presentation.utils.FXMLSceneManager sceneManager) {
+        this.sceneManager = sceneManager;
+        System.out.println("OrderReviewController.setSceneManager: SceneManager injected successfully");
+    }
+    
+    public void setOrderService(IOrderService orderService) {
+        this.orderService = orderService;
+        System.out.println("OrderReviewController.setOrderService: OrderService injected successfully - Available: " + (orderService != null));
+    }
 
     public void setCurrentManagerId(String managerId) {
         this.currentManagerId = managerId;

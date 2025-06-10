@@ -15,13 +15,12 @@
 <?import javafx.scene.layout.VBox?>
 <BorderPane fx:id="productDetailPane"
             styleClass="responsive-product-detail-container, responsive-border-pane"
-            prefHeight="USE_COMPUTED_SIZE"
-            prefWidth="USE_COMPUTED_SIZE"
+            prefHeight="-1.0"
+            prefWidth="-1.0"
             maxHeight="Infinity"
             maxWidth="Infinity"
-            minHeight="400.0"
-            minWidth="600.0"
-            stylesheets="/styles/global.css, /styles/responsive.css, /styles/product-detail-responsive.css"
+            minHeight="800.0"
+            minWidth="1800.0"
             xmlns="http://javafx.com/javafx/17"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.aims.core.presentation.controllers.ProductDetailScreenController">
@@ -46,8 +45,8 @@
             <HBox fx:id="productDetailContentBox"
                   styleClass="responsive-product-detail-content"
                   alignment="TOP_CENTER"
-                  prefHeight="USE_COMPUTED_SIZE"
-                  prefWidth="USE_COMPUTED_SIZE"
+                  prefHeight="-1.0"
+                  prefWidth="-1.0"
                   maxHeight="Infinity"
                   maxWidth="Infinity">
                 

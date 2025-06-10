@@ -80,8 +80,8 @@ public class CustomerOrderDetailController {
 
     // @Inject
     private IOrderService orderService;
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private com.aims.core.presentation.utils.FXMLSceneManager sceneManager;
 
     private OrderEntity currentOrder;
     private String orderIdToLoad;
@@ -94,10 +94,25 @@ public class CustomerOrderDetailController {
         // orderService = new OrderServiceImpl(...); // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
-    // public void setCurrentCustomerId(String customerId) { this.currentCustomerId = customerId; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+        System.out.println("CustomerOrderDetailController.setMainLayoutController: MainLayoutController injected successfully");
+    }
+    
+    public void setSceneManager(com.aims.core.presentation.utils.FXMLSceneManager sceneManager) {
+        this.sceneManager = sceneManager;
+        System.out.println("CustomerOrderDetailController.setSceneManager: SceneManager injected successfully");
+    }
+    
+    public void setOrderService(IOrderService orderService) {
+        this.orderService = orderService;
+        System.out.println("CustomerOrderDetailController.setOrderService: OrderService injected successfully - Available: " + (orderService != null));
+    }
+    
+    public void setCurrentCustomerId(String customerId) {
+        this.currentCustomerId = customerId;
+        System.out.println("CustomerOrderDetailController.setCurrentCustomerId: Customer ID set to: " + customerId);
+    }
 
 
     public void initialize() {
