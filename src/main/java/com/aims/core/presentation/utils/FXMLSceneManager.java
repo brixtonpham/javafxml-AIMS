@@ -283,9 +283,9 @@ public class FXMLSceneManager {
             LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
             containerPane.getChildren().setAll(loaded.parent);
             return loaded.controller;
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
             e.printStackTrace();
-            // AlertHelper.showErrorDialog("Navigation Error", "Could not load screen.", fxmlPath + "\n" + e.getMessage());
+            AlertHelper.showErrorDialog("Navigation Error", "Could not load screen: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1), "An error occurred while trying to display the page.", e);
             System.err.println("Error loading FXML into pane: " + fxmlPath + " - " + e.getMessage());
             return null;
         }
@@ -334,9 +334,9 @@ public class FXMLSceneManager {
             
             dialogStage.showAndWait(); // Use show() if you don't want to block
             return loaded.controller;
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
             e.printStackTrace();
-            // AlertHelper.showErrorDialog("Window Load Error", "Could not open window.", title + "\n" + e.getMessage());
+            AlertHelper.showErrorDialog("Window Load Error", "Could not open window: " + title, "An error occurred while trying to display the window.", e);
             System.err.println("Error loading FXML into new window: " + fxmlPath + " - " + e.getMessage());
             return null;
         }
@@ -374,9 +374,10 @@ public class FXMLSceneManager {
             primaryStage.setScene(scene);
             primaryStage.show();
             return loaded.controller;
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
             e.printStackTrace();
-             System.err.println("Error switching primary scene: " + fxmlPath + " - " + e.getMessage());
+            AlertHelper.showErrorDialog("Scene Switch Error", "Could not switch to scene: " + title, "An error occurred while trying to display the new scene.", e);
+            System.err.println("Error switching primary scene: " + fxmlPath + " - " + e.getMessage());
             return null;
         }
     }
@@ -430,7 +431,12 @@ public class FXMLSceneManager {
                 mainLayoutController.setHeaderTitle(title);
             }
         } else {
-            System.err.println("FXMLSceneManager.loadContentWithHistory: Failed to load controller for " + fxmlPath);
+            System.err.println("FXMLSceneManager.loadContentWithHistory: Failed to load controller for " + fxmlPath + ". Error dialog should have been shown by loadFXMLIntoPane.");
+            // Potentially navigate to a safe screen like home if mainLayoutController is available
+            if (mainLayoutController != null) {
+                // Consider if navigating home here is always the right action or if it could cause loops.
+                // For now, rely on the error dialog and the calling method to handle the null controller.
+            }
         }
         
         return controller;
@@ -484,13 +490,25 @@ public class FXMLSceneManager {
                 System.out.println("FXMLSceneManager.navigateBack: Successfully navigated back to " + previousContext.getScreenPath());
                 return true;
             } else {
-                System.err.println("FXMLSceneManager.navigateBack: Failed to load controller for " + previousContext.getScreenPath());
+                System.err.println("FXMLSceneManager.navigateBack: Failed to load controller for " + previousContext.getScreenPath() + ". Error dialog should have been shown by loadFXMLIntoPane.");
+                // If loading the previous screen fails, it's problematic.
+                // We might try to pop again or go home. For now, return false.
                 return false;
             }
             
-        } catch (Exception e) {
+        } catch (Exception e) { // Catch any other unexpected errors during back navigation logic
             System.err.println("FXMLSceneManager.navigateBack: Error during back navigation: " + e.getMessage());
             e.printStackTrace();
+            AlertHelper.showErrorDialog("Navigation Error", "Could not navigate back.", "An unexpected error occurred.", e);
+            // Attempt to go to home screen as a last resort if mainLayoutController is available
+            if (mainLayoutController != null && mainLayoutController.getContentPane() != null) {
+                 try {
+                    System.out.println("FXMLSceneManager.navigateBack: Attempting to navigate to home screen after error.");
+                    mainLayoutController.navigateToHome(); // Assuming MainLayoutController has a navigateToHome method
+                 } catch (Exception ex) {
+                    System.err.println("FXMLSceneManager.navigateBack: Failed to navigate to home screen after error: " + ex.getMessage());
+                 }
+            }
             return false;
         }
     }
@@ -563,17 +581,26 @@ public class FXMLSceneManager {
                 // Use reflection to call restoreSearchContext if it exists
                 try {
                     java.lang.reflect.Method restoreMethod = searchController.getClass().getMethod(
-                        "restoreSearchContext", String.class, String.class, int.class);
+                        "restoreSearchContext", String.class, String.class, String.class, int.class); // Added String.class for sortBy
                     restoreMethod.invoke(searchController,
                         context.getSearchTerm(),
                         context.getCategoryFilter(),
+                        context.getSortBy(), // Pass sortBy
                         context.getCurrentPage());
                     System.out.println("FXMLSceneManager.restoreScreenContext: Successfully restored ProductSearchResultsController context");
                 } catch (NoSuchMethodException e) {
-                    System.out.println("FXMLSceneManager.restoreScreenContext: ProductSearchResultsController doesn't have restoreSearchContext method yet");
+                    System.out.println("FXMLSceneManager.restoreScreenContext: ProductSearchResultsController restoreSearchContext method signature mismatch or not found: " + e.getMessage());
                 } catch (Exception e) {
                     System.err.println("FXMLSceneManager.restoreScreenContext: Error restoring ProductSearchResultsController context: " + e.getMessage());
                 }
+            }
+            // Check for AdminProductListController and restore its context
+            else if (controller instanceof com.aims.core.presentation.controllers.AdminProductListController) {
+                System.out.println("FXMLSceneManager.restoreScreenContext: Restoring AdminProductListController context");
+                com.aims.core.presentation.controllers.AdminProductListController adminProductListController =
+                    (com.aims.core.presentation.controllers.AdminProductListController) controller;
+                adminProductListController.restoreContext(context); // Call the new restoreContext method
+                System.out.println("FXMLSceneManager.restoreScreenContext: Successfully called restoreContext for AdminProductListController");
             }
             else {
                 System.out.println("FXMLSceneManager.restoreScreenContext: No specific context restoration for " + controller.getClass().getSimpleName());

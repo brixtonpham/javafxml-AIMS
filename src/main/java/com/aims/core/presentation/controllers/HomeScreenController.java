@@ -524,36 +524,31 @@ public class HomeScreenController implements MainLayoutController.IChildControll
         
         if (mainLayoutController != null) {
             try {
-                // Store current search context before navigating
-                storeNavigationContext();
-                
-                // Load the product detail screen using history-aware navigation
-                Object controller = null;
-                
-                // Check if MainLayoutController has loadContentWithHistory method
-                try {
-                    java.lang.reflect.Method loadWithHistoryMethod = mainLayoutController.getClass().getMethod("loadContentWithHistory", String.class, String.class);
-                    controller = loadWithHistoryMethod.invoke(mainLayoutController, "/com/aims/presentation/views/product_detail_screen.fxml", "Product Details");
-                    System.out.println("HomeScreenController.navigateToProductDetail: Used history-aware navigation");
-                } catch (NoSuchMethodException e) {
-                    // Fallback to regular navigation
-                    controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
-                    System.out.println("HomeScreenController.navigateToProductDetail: Used fallback navigation");
-                } catch (Exception e) {
-                    System.err.println("HomeScreenController.navigateToProductDetail: Error in history-aware navigation: " + e.getMessage());
-                    controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
+                // Preserve current search state in FXMLSceneManager's currentContext
+                com.aims.core.presentation.utils.FXMLSceneManager sceneManager = com.aims.core.presentation.utils.FXMLSceneManager.getInstance();
+                String apiSortBy = "title"; // Default
+                if (currentSortBy != null) {
+                    if ("ASC".equals(currentSortBy)) {
+                        apiSortBy = "price_asc";
+                    } else if ("DESC".equals(currentSortBy)) {
+                        apiSortBy = "price_desc";
+                    }
                 }
+                sceneManager.preserveSearchContext(currentSearchTerm, currentCategoryFilter, apiSortBy, currentPage);
+                System.out.println("HomeScreenController.navigateToProductDetail: Preserved context - Term: " + currentSearchTerm + ", Cat: " + currentCategoryFilter + ", Sort: " + apiSortBy + ", Page: " + currentPage);
+
+                // Load the product detail screen using history-aware navigation
+                Object controller = mainLayoutController.loadContentWithHistory(
+                    com.aims.core.shared.constants.FXMLPaths.PRODUCT_DETAIL_SCREEN,
+                    "Product Details"
+                );
                 
                 if (controller instanceof ProductDetailScreenController detailController) {
-                    // Inject dependencies
-                    detailController.setMainLayoutController(mainLayoutController);
-                    detailController.setProductService(this.productService);
-                    detailController.setCartService(this.cartService);
-                    
-                    // Set the product ID to load
+                    // Dependencies like ProductService, CartService, MainLayoutController, SceneManager
+                    // should be injected by FXMLSceneManager or MainLayoutController during loadContentWithHistory.
+                    // We just need to set the specific product ID.
                     detailController.setProductId(productId);
-                    
-                    System.out.println("Navigation to product detail completed successfully");
+                    System.out.println("HomeScreenController.navigateToProductDetail: Product ID set on ProductDetailScreenController.");
                 } else {
                     System.err.println("Failed to cast controller to ProductDetailScreenController");
                 }

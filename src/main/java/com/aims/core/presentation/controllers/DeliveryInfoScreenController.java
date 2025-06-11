@@ -8,7 +8,7 @@ import com.aims.core.entities.OrderEntity; // Service có thể trả về Order
 import com.aims.core.entities.DeliveryInfo; // Để tạo đối tượng gửi đi
 import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.Product;
-// import com.aims.presentation.utils.AlertHelper;
+import com.aims.core.presentation.utils.AlertHelper; // Added import
 // import com.aims.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.exceptions.ValidationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
@@ -133,7 +133,7 @@ public class DeliveryInfoScreenController {
             //     populateForm(order.getDeliveryInfo());
             // }
         } else {
-            // AlertHelper.showErrorAlert("Error", "No order data received to proceed.");
+            AlertHelper.showErrorDialog("Error", "No Order Data", "No order data received to proceed.");
             System.err.println("DeliveryInfoScreen: No order data received.");
             // Disable form or navigate back
         }
@@ -175,28 +175,67 @@ public class DeliveryInfoScreenController {
     @FXML
     void handleRushOrderToggle(ActionEvent event) {
         boolean selected = rushOrderCheckBox.isSelected();
-        rushOrderDetailsBox.setVisible(selected);
-        rushOrderDetailsBox.setManaged(selected);
         rushOrderEligibilityLabel.setText(""); // Clear previous message
 
         if (selected) {
-            DeliveryInfo tempDeliveryInfo = buildDeliveryInfoFromForm(false); // Build without rush time first
-            if (deliveryService != null && !deliveryService.isRushDeliveryAddressEligible(tempDeliveryInfo)) {
-                rushOrderEligibilityLabel.setText("Warning: Your selected address may not be eligible for rush delivery. It's available for inner Hanoi districts only.");
-            } else if (deliveryService == null) {
-                 rushOrderEligibilityLabel.setText("Warning: Could not verify rush delivery eligibility (service unavailable).");
+            // First, check basic eligibility (address, item support)
+            if (currentOrder == null) {
+                AlertHelper.showErrorDialog("Error", "Order Data Missing", "Cannot determine rush eligibility without order data.");
+                rushOrderCheckBox.setSelected(false);
+                return;
             }
-            // Check if any item is eligible (this logic should be more robust based on product properties)
-            boolean anyItemSupportsRush = currentOrder.getOrderItems().stream().anyMatch(OrderItem::isEligibleForRushDelivery);
-            if (!anyItemSupportsRush) {
-                rushOrderEligibilityLabel.setText(rushOrderEligibilityLabel.getText() + "\nWarning: No items in your order are eligible for rush delivery.");
-                rushOrderCheckBox.setSelected(false); // Uncheck if no items eligible
+            DeliveryInfo tempDeliveryInfo = buildDeliveryInfoFromForm(false); // Build without rush time first
+            
+            boolean addressEligible = deliveryService != null && deliveryService.isRushDeliveryAddressEligible(tempDeliveryInfo);
+            boolean itemsEligible = currentOrder.getOrderItems().stream().anyMatch(OrderItem::isEligibleForRushDelivery);
+            String eligibilityMessage = "";
+
+            if (deliveryService == null) {
+                eligibilityMessage += "Warning: Could not verify rush delivery address eligibility (service unavailable).\n";
+            } else if (!addressEligible) {
+                eligibilityMessage += "Warning: Your selected address may not be eligible for rush delivery (inner Hanoi districts only).\n";
+            }
+            if (!itemsEligible) {
+                eligibilityMessage += "Warning: No items in your order are eligible for rush delivery.\n";
+            }
+
+            if (!eligibilityMessage.isEmpty()) {
+                rushOrderEligibilityLabel.setText(eligibilityMessage.trim());
+                rushOrderCheckBox.setSelected(false); // Force uncheck
+                rushOrderDetailsBox.setVisible(false);
+                rushOrderDetailsBox.setManaged(false);
+                calculateAndUpdateShippingFee();
+                return; // Stop further processing for rush order
+            }
+
+            // If basic eligibility passes, show the options dialog
+            // The dialog itself handles date/time selection.
+            // It returns true if user confirms with valid selections, false otherwise.
+            boolean rushConfirmedAndConfigured = AlertHelper.showRushOrderOptionsDialog(
+                "Select Rush Delivery Time Slot.\n" + 
+                "Please note: Additional fees may apply and will be calculated."
+                // We might pass a consumer here to get back the selected date/time if needed
+                // For now, assume the dialog sets some shared state or the user sets it on this screen
+            );
+
+            if (rushConfirmedAndConfigured) {
+                // User confirmed rush order from dialog, make details box visible
+                // The date/time pickers on this screen are now primary for setting the rush time
+                rushOrderDetailsBox.setVisible(true);
+                rushOrderDetailsBox.setManaged(true);
+            } else {
+                // User cancelled the rush order dialog or didn't make valid selections
+                rushOrderCheckBox.setSelected(false); // Uncheck the box
                 rushOrderDetailsBox.setVisible(false);
                 rushOrderDetailsBox.setManaged(false);
             }
+        } else { // Rush order checkbox was unchecked
+            rushOrderDetailsBox.setVisible(false);
+            rushOrderDetailsBox.setManaged(false);
         }
-        calculateAndUpdateShippingFee();
+        calculateAndUpdateShippingFee(); // Recalculate fee based on new rush status
     }
+
 
     @FXML
     void handleProvinceCityChange(ActionEvent event){
@@ -221,18 +260,18 @@ public class DeliveryInfoScreenController {
         if (rushOrderCheckBox.isSelected() && includeRushTime) {
             LocalDate date = rushDeliveryDatePicker.getValue();
             String timeSlot = rushDeliveryTimeComboBox.getValue();
-            if (date != null && timeSlot != null) {
+            if (date != null && timeSlot != null && !timeSlot.trim().isEmpty()) {
                 try {
                     // Assuming time slot is "HH:00 - HH+2:00", take the start time.
                     int startHour = Integer.parseInt(timeSlot.substring(0, 2));
                     info.setRequestedRushDeliveryTime(LocalDateTime.of(date, LocalTime.of(startHour, 0)));
                 } catch (NumberFormatException e) {
-                    // AlertHelper.showErrorAlert("Invalid Time", "Please select a valid time slot for rush delivery.");
+                    AlertHelper.showErrorDialog("Invalid Time", "Rush Delivery Time Error", "Please select a valid time slot for rush delivery.");
                     System.err.println("Invalid rush delivery time slot: " + timeSlot);
                     return null; // Indicate error
                 }
             } else if (includeRushTime) { // If includeRushTime is true, these fields are required
-                 // AlertHelper.showErrorAlert("Missing Information", "Please select date and time for rush delivery.");
+                 AlertHelper.showErrorDialog("Missing Information", "Rush Delivery Details Missing", "Please select date and time for rush delivery.");
                  System.err.println("Missing date/time for rush delivery.");
                  return null; // Indicate error
             }
@@ -260,14 +299,14 @@ public class DeliveryInfoScreenController {
         try {
             float fee = orderService.calculateShippingFee(currentOrder.getOrderId(), tempDeliveryInfo, rushOrderCheckBox.isSelected());
             shippingFeeLabel.setText(String.format("Shipping Fee: %,.0f VND", fee));
-            float totalAmount = currentOrder.getTotalProductPriceInclVAT() + fee;
+            float totalAmount = currentOrder.getTotalProductPriceInclVAT() + fee; // VAT is already in totalProductPriceInclVAT
             totalAmountLabel.setText(String.format("TOTAL AMOUNT: %,.0f VND", totalAmount));
             proceedToPaymentButton.setDisable(false);
             setErrorMessage("", false);
         } catch (SQLException | ResourceNotFoundException | ValidationException e) {
             shippingFeeLabel.setText("Shipping Fee: Error");
             totalAmountLabel.setText("TOTAL AMOUNT: Error");
-            // AlertHelper.showErrorAlert("Fee Calculation Error", "Could not calculate shipping fee: " + e.getMessage());
+            AlertHelper.showErrorDialog("Fee Calculation Error", "Service Error", "Could not calculate shipping fee: " + e.getMessage());
             setErrorMessage("Could not calculate shipping fee: " + e.getMessage(), true);
             proceedToPaymentButton.setDisable(true);
             e.printStackTrace();
@@ -278,6 +317,9 @@ public class DeliveryInfoScreenController {
         errorMessageLabel.setText(message);
         errorMessageLabel.setVisible(visible);
         errorMessageLabel.setManaged(visible);
+        if (visible) {
+            errorMessageLabel.setStyle("-fx-text-fill: red;");
+        }
     }
 
 
@@ -302,18 +344,14 @@ public class DeliveryInfoScreenController {
     @FXML
     void handleProceedToPaymentAction(ActionEvent event) {
         if (currentOrder == null || orderService == null) {
-            // AlertHelper.showErrorAlert("Error", "Order data is missing.");
+            AlertHelper.showErrorDialog("Error", "Order Data Missing", "Order data is missing. Cannot proceed.");
             return;
         }
         setErrorMessage("", false);
 
         DeliveryInfo deliveryInfo = buildDeliveryInfoFromForm(true); // Get full info including rush time
-        if (deliveryInfo == null && rushOrderCheckBox.isSelected()){ // Error building DTO, likely missing rush time
-            setErrorMessage("Please select date and time if requesting rush delivery.", true);
-            return;
-        }
-        if (deliveryInfo == null) { // General error building DTO
-            setErrorMessage("Please ensure all delivery details are correct.", true);
+        if (deliveryInfo == null){ // Error building DTO, specific error shown by buildDeliveryInfoFromForm
+            // setErrorMessage("Please ensure all delivery details are correct.", true); // Redundant if buildDeliveryInfoFromForm shows specific error
             return;
         }
 
@@ -324,18 +362,19 @@ public class DeliveryInfoScreenController {
 
             System.out.println("Proceed to Payment action triggered for Order ID: " + currentOrder.getOrderId());
             // Navigate to payment method selection screen
-            // if (sceneManager != null && mainLayoutController != null) {
-            // PaymentMethodScreenController paymentCtrl = (PaymentMethodScreenController) sceneManager.loadFXMLIntoPane(
-            // mainLayoutController.getContentPane(), FXMLSceneManager.PAYMENT_METHOD_SCREEN
-            // );
-            // paymentCtrl.setOrderData(currentOrder); // Pass the updated order
-            // paymentCtrl.setMainLayoutController(mainLayoutController);
-            // mainLayoutController.setHeaderTitle("Select Payment Method");
-            // }
+            if (mainLayoutController != null) {
+                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_method_screen.fxml");
+                 mainLayoutController.setHeaderTitle("Select Payment Method");
+                 if (controller instanceof PaymentMethodScreenController) {
+                     ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
+                 }
+            } else {
+                 AlertHelper.showErrorDialog("Navigation Error", "System Error", "Cannot navigate to payment screen.");
+            }
 
         } catch (SQLException | ResourceNotFoundException | ValidationException e) {
             e.printStackTrace();
-            // AlertHelper.showErrorAlert("Error Processing Delivery Info", e.getMessage());
+            AlertHelper.showErrorDialog("Error Processing Delivery Info", "Service Error", e.getMessage());
             setErrorMessage("Error: " + e.getMessage(), true);
         }
     }

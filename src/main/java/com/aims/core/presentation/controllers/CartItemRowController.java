@@ -59,9 +59,11 @@ public class CartItemRowController {
                      isUpdatingSpinner = true;
                      quantitySpinner.getValueFactory().setValue(oldValue); // Revert
                      isUpdatingSpinner = false;
+                     // Consider uncommenting or replacing AlertHelper.showWarningAlert for better user feedback.
                 }
                 else {
                     parentCartScreenController.handleUpdateQuantityFromRow(this.cartItem, newValue);
+                    updateTotalItemPrice(); // Update total price after successful quantity change
                 }
             }
         };
@@ -99,11 +101,11 @@ public class CartItemRowController {
             try {
                 productImageView.setImage(new Image(cartItem.getImageUrl(), true));
             } catch (Exception e) {
-                System.err.println("Error loading image for cart item: " + e.getMessage());
-                // Load placeholder
+                System.err.println("Error loading image for cart item ("+ cartItem.getTitle() +"): " + e.getMessage());
+                loadPlaceholderImage();
             }
         } else {
-            // Load placeholder
+            loadPlaceholderImage();
         }
         
         if (cartItem.getQuantity() > cartItem.getAvailableStock()) {
@@ -125,6 +127,34 @@ public class CartItemRowController {
     void handleRemoveItemAction(ActionEvent event) {
         if (this.cartItem != null && this.parentCartScreenController != null) {
             parentCartScreenController.handleRemoveItemFromRow(this.cartItem);
+        }
+    }
+
+    private void loadPlaceholderImage() {
+        try {
+            // Assuming placeholder is in src/main/resources/images/product_placeholder.png
+            java.io.InputStream placeholderStream = getClass().getResourceAsStream("/images/product_placeholder.png");
+            if (placeholderStream == null) {
+                 // Fallback to assets directory if the above is not found.
+                placeholderStream = getClass().getResourceAsStream("/assets/images/product_placeholder.png");
+            }
+
+            if (placeholderStream == null) {
+                System.err.println("Error loading placeholder image for cart item: Resource not found at /images/product_placeholder.png or /assets/images/product_placeholder.png");
+                return;
+            }
+            Image placeholder = new Image(placeholderStream);
+            if (placeholder.isError()) {
+                String errorMessage = "Error loading placeholder image from resource for cart item.";
+                if (placeholder.getException() != null) {
+                    errorMessage += " Exception: " + placeholder.getException().getMessage();
+                }
+                System.err.println(errorMessage);
+            } else {
+                productImageView.setImage(placeholder);
+            }
+        } catch (Exception e) {
+            System.err.println("Unexpected error in loadPlaceholderImage (CartItemRowController): " + e.getMessage());
         }
     }
 }

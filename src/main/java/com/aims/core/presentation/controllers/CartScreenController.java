@@ -6,7 +6,7 @@ import com.aims.core.application.services.ICartService;
 import com.aims.core.entities.Product; // For creating DTOs if service returns entities
 import com.aims.core.entities.Cart; // If service returns Cart entity
 import com.aims.core.entities.CartItem; // If service returns CartItem entity
-// import com.aims.presentation.utils.AlertHelper;
+import com.aims.core.presentation.utils.AlertHelper; // Added import
 // import com.aims.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.exceptions.InventoryException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
@@ -250,7 +250,12 @@ public class CartScreenController implements MainLayoutController.IChildControll
         
         boolean hasStockIssues = currentCartItemDTOs.stream().anyMatch(item -> !item.isStockSufficient());
         if (hasStockIssues) {
+            // The stock insufficient dialog will be shown by updateCartTotalsAndState if called,
+            // or if not, this warning label is a fallback.
+            // For checkout, we strictly prevent proceeding if issues exist.
             setStockWarning("Please resolve stock issues in your cart before proceeding.", true);
+            // Explicitly call updateCartTotalsAndState to ensure dialog is shown if not already.
+            updateCartTotalsAndState(); 
             return;
         }
 
@@ -306,13 +311,22 @@ public class CartScreenController implements MainLayoutController.IChildControll
      * This method recalculates totals from current DTOs and updates UI accordingly.
      */
     private void updateCartTotalsAndState() {
-        if (currentCartItemDTOs.isEmpty()) {
-            displayEmptyCart();
+        if (cartService == null) { // Ensure cartService is available
+            System.err.println("CartService is null in updateCartTotalsAndState. Cannot update.");
+            setStockWarning("Cart service unavailable. Cannot update cart status.", true);
+            checkoutButton.setDisable(true);
+            return;
+        }
+        if (cartSessionId == null || cartSessionId.isEmpty()) {
+             System.err.println("CartSessionId is null in updateCartTotalsAndState. Cannot update.");
+            setStockWarning("Cart session invalid. Cannot update cart status.", true);
+            checkoutButton.setDisable(true);
             return;
         }
 
+
         try {
-            // Reload cart data from database to get updated quantities
+            // Reload cart data from database to get updated quantities and stock levels
             Cart cartEntity = cartService.getCart(cartSessionId);
             if (cartEntity == null || cartEntity.getItems() == null || cartEntity.getItems().isEmpty()) {
                 displayEmptyCart();
@@ -351,6 +365,27 @@ public class CartScreenController implements MainLayoutController.IChildControll
             checkoutButton.setDisable(hasStockIssues);
 
             if (hasStockIssues) {
+                // Collect messages for the dialog
+                List<String> insufficientItemMessages = currentCartItemDTOs.stream()
+                    .filter(item -> !item.isStockSufficient())
+                    .map(item -> String.format("%s (Requested: %d, Available: %d)",
+                                               item.getTitle(), item.getQuantity(), item.getAvailableStock()))
+                    .collect(Collectors.toList());
+
+                // Show the dialog
+                AlertHelper.showStockInsufficientDialog(insufficientItemMessages,
+                    () -> { // onUpdateCart action: User chose to update cart (e.g., stay on cart screen)
+                        System.out.println("User chose to update cart from stock insufficient dialog.");
+                        // The cart screen already reflects the issues, and quantities can be adjusted there.
+                    },
+                    () -> { // onCancelProcess action: User chose to cancel (e.g., go back or clear problematic items)
+                        System.out.println("User chose to cancel/modify order process from stock insufficient dialog.");
+                        // For now, ensure checkout is disabled and a warning is present.
+                        setStockWarning("Checkout disabled due to stock issues. Please update your cart or clear problematic items.", true);
+                        checkoutButton.setDisable(true); 
+                    });
+                
+                // Also keep the local warning label for immediate feedback on the screen.
                 setStockWarning("One or more items have insufficient stock. Please update quantities.", true);
             } else {
                 setStockWarning("", false);
@@ -362,7 +397,7 @@ public class CartScreenController implements MainLayoutController.IChildControll
             e.printStackTrace();
             System.err.println("Error updating cart totals: " + e.getMessage());
             setStockWarning("Error updating cart: " + e.getMessage(), true);
-        } catch (Exception e) {
+        } catch (Exception e) { // Catch any other unexpected exceptions
             e.printStackTrace();
             System.err.println("Unexpected error updating cart totals: " + e.getMessage());
             setStockWarning("Error updating cart: " + e.getMessage(), true);

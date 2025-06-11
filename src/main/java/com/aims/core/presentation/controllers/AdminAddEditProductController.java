@@ -7,8 +7,8 @@ import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
 import com.aims.core.enums.ProductType;
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.AlertHelper; // Assuming this will be used later
+import com.aims.core.presentation.utils.FXMLSceneManager;
 
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -69,23 +69,23 @@ public class AdminAddEditProductController {
     private TextField dvdGenreField;
 
 
-    // @Inject
+    // @Inject // TODO: Inject through ServiceFactory or constructor
     private IProductService productService;
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private FXMLSceneManager sceneManager;
 
     private Product productToEdit; // Nếu là edit mode
     private String currentManagerId; // TODO: Set this from login session
 
 
     public AdminAddEditProductController() {
-        // productService = new ProductServiceImpl(...); // DI
+        // productService = new ProductServiceImpl(...); // DI // TODO: Inject through ServiceFactory or constructor
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setProductService(IProductService productService) { this.productService = productService; }
-    // public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
+    public void setProductService(IProductService productService) { this.productService = productService; }
+    public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
 
 
     public void initialize() {
@@ -399,10 +399,16 @@ public class AdminAddEditProductController {
     @FXML
     void handleBackToListAction(ActionEvent event) {
         System.out.println("Back to Product List action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.ADMIN_PRODUCT_LIST_SCREEN);
-        //     mainLayoutController.setHeaderTitle("Product Management");
-        // }
+        if (mainLayoutController != null) {
+            // Use navigateBack to potentially restore previous screen state (e.g., filters on product list)
+            boolean navigatedBack = mainLayoutController.navigateBack();
+            if (!navigatedBack) {
+                // Fallback if navigateBack fails or is not applicable (e.g. no history)
+                System.out.println("navigateBack failed, falling back to loadContent for Admin Product List.");
+                mainLayoutController.loadContent("/com/aims/presentation/views/admin_product_list_screen.fxml");
+                mainLayoutController.setHeaderTitle("Product Management");
+            }
+        }
     }
 
     private void setErrorMessage(String message, boolean isError) {

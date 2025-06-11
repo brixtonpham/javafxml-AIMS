@@ -37,7 +37,7 @@ public class ChangePasswordController {
 
     // @Inject
     private IUserAccountService userAccountService;
-    // private MainLayoutController mainLayoutController; // Để điều hướng sau khi thành công
+    private MainLayoutController mainLayoutController; // Để điều hướng sau khi thành công
     // private FXMLSceneManager sceneManager;
     // private Stage dialogStage; // Nếu đây là dialog
 
@@ -49,7 +49,7 @@ public class ChangePasswordController {
     }
 
     // public void setUserAccountService(IUserAccountService userAccountService) { this.userAccountService = userAccountService; }
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
     // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
     // public void setDialogStage(Stage dialogStage) { this.dialogStage = dialogStage; }
 

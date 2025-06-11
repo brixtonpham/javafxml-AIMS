@@ -23,7 +23,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.aims.core.presentation.utils.FXMLSceneManager; // Added for navigation
+import com.aims.core.shared.constants.FXMLPaths; // Added for FXML paths
+
 public class ProductSearchResultsController {
+
+    private MainLayoutController mainLayoutController;
+    private FXMLSceneManager sceneManager;
 
     @FXML
     private Label searchResultsTitleLabel;
@@ -68,6 +74,12 @@ public class ProductSearchResultsController {
 
     public void setCartService(ICartService cartService) {
         this.cartService = cartService;
+    }
+
+    public void setMainLayoutController(MainLayoutController mainLayoutController) {
+        this.mainLayoutController = mainLayoutController;
+        // FXMLSceneManager is a singleton, get instance directly
+        this.sceneManager = FXMLSceneManager.getInstance();
     }
 
     public void initialize() {
@@ -183,6 +195,10 @@ public class ProductSearchResultsController {
                     if (cartService != null) {
                         cardController.setCartService(cartService);
                     }
+                    // Pass this controller to the card controller for navigation purposes
+                    cardController.setProductSearchResultsController(this);
+                    cardController.setMainLayoutController(mainLayoutController); // Ensure card has main layout for fallback
+
                     productFlowPane.getChildren().add(productCardNode);
 
                 } catch (IOException e) {
@@ -245,5 +261,101 @@ public class ProductSearchResultsController {
             currentPage++;
             loadSearchedProducts();
         }
+    }
+
+    @FXML
+    void handleNavigateHome(ActionEvent event) {
+        if (mainLayoutController != null) {
+            // Use loadContentWithHistory to ensure proper context handling and history tracking
+            mainLayoutController.loadContentWithHistory(FXMLPaths.HOME_SCREEN, "Home");
+        } else {
+            System.err.println("ProductSearchResultsController: MainLayoutController is null. Cannot navigate to home.");
+            // Optionally, show an error dialog to the user
+        }
+    }
+
+    /**
+     * Navigates to the product detail screen, preserving the current search context.
+     * @param productId The ID of the product to display.
+     */
+    public void navigateToProductDetail(String productId) {
+        if (mainLayoutController != null && sceneManager != null) {
+            // Preserve current search state
+            String searchTerm = searchField.getText() != null ? searchField.getText().trim() : initialSearchTerm;
+            String category = categoryComboBox.getValue() != null ? categoryComboBox.getValue() : initialCategory;
+            if ("All Categories".equals(category)) category = null;
+
+            String sortByValue = sortByPriceComboBox.getValue();
+            String sortByApiValue = "title"; // default
+            if (sortByValue != null) {
+                switch (sortByValue) {
+                    case "Price: Low to High":
+                        sortByApiValue = "price_asc"; // Or however your API/NavigationContext expects it
+                        break;
+                    case "Price: High to Low":
+                        sortByApiValue = "price_desc";
+                        break;
+                }
+            }
+            
+            sceneManager.preserveSearchContext(searchTerm, category, sortByApiValue, currentPage);
+
+            // Navigate to product detail screen
+            // The FXMLSceneManager's loadContentWithHistory will push the current (search results)
+            // context onto the history stack before loading the new screen.
+            Object controller = mainLayoutController.loadContentWithHistory(FXMLPaths.PRODUCT_DETAIL_SCREEN, "Product Details");
+            if (controller instanceof ProductDetailScreenController detailController) {
+                detailController.setProductId(productId); // Product ID is set after loading
+            }
+        } else {
+            System.err.println("ProductSearchResultsController: MainLayoutController or SceneManager is null. Cannot navigate to product detail.");
+        }
+    }
+
+    /**
+     * Restores the search context when navigating back to this screen.
+     * Called by FXMLSceneManager.
+     * @param searchTerm The search term to restore.
+     * @param categoryFilter The category filter to restore.
+     * @param sortBy The sort criteria to restore.
+     * @param page The page number to restore.
+     */
+    public void restoreSearchContext(String searchTerm, String categoryFilter, String sortBy, int page) {
+        System.out.println("ProductSearchResultsController: Restoring search context...");
+        System.out.println("  Search Term: " + searchTerm);
+        System.out.println("  Category: " + categoryFilter);
+        System.out.println("  SortBy: " + sortBy);
+        System.out.println("  Page: " + page);
+
+        this.initialSearchTerm = searchTerm;
+        this.initialCategory = categoryFilter;
+        this.currentPage = page > 0 ? page : 1;
+
+        if (searchField != null) {
+            searchField.setText(searchTerm != null ? searchTerm : "");
+        }
+        if (categoryComboBox != null) {
+            categoryComboBox.setValue(categoryFilter != null && !categoryFilter.isEmpty() ? categoryFilter : "All Categories");
+        }
+        if (sortByPriceComboBox != null) {
+            if ("price_asc".equalsIgnoreCase(sortBy)) {
+                sortByPriceComboBox.setValue("Price: Low to High");
+            } else if ("price_desc".equalsIgnoreCase(sortBy)) {
+                sortByPriceComboBox.setValue("Price: High to Low");
+            } else {
+                sortByPriceComboBox.setValue("Default");
+            }
+        }
+        
+        // Update title label based on restored criteria
+        if (this.initialSearchTerm != null && !this.initialSearchTerm.isEmpty()) {
+            searchResultsTitleLabel.setText("Search Results for: \"" + this.initialSearchTerm + "\"");
+        } else if (this.initialCategory != null && !this.initialCategory.isEmpty()) {
+            searchResultsTitleLabel.setText("Products in Category: " + this.initialCategory);
+        } else {
+            searchResultsTitleLabel.setText("Search Results");
+        }
+
+        loadSearchedProducts();
     }
 }

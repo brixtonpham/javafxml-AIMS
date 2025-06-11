@@ -6,6 +6,7 @@ import com.aims.core.presentation.utils.FXMLSceneManager; // Your scene manageme
 import com.aims.core.presentation.utils.ResponsiveLayoutManager;
 import com.aims.core.presentation.utils.ScreenDetectionService;
 import com.aims.core.shared.ServiceFactory;
+import com.aims.core.presentation.utils.AlertHelper; // Added import
 // import com.aims.shared.constants.FXMLPaths; // Your FXML paths constants
 
 import javafx.event.ActionEvent;
@@ -479,9 +480,11 @@ public class MainLayoutController { // This could be your BaseScreenController o
                 System.out.println("MainLayoutController.loadContent: FULL-SCREEN layout enforcement completed for: " + fxmlPath);
                 
                 return childController;
-            } catch (IOException e) {
+            } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
                 e.printStackTrace();
-                setFooterStatus("Error loading page: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1));
+                String screenName = fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1);
+                AlertHelper.showErrorDialog("Navigation Error", "Could not load page: " + screenName, "An error occurred while trying to display the page.", e);
+                setFooterStatus("Error loading page: " + screenName);
                 return null;
             }
         }
@@ -633,7 +636,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
     }
 
     @FXML
-    void navigateToHome() { // Made public to be callable from initialize or other controllers
+    public void navigateToHome() { // Made public to be callable from initialize or other controllers
         // loadContent(FXMLPaths.HOME_SCREEN);
         loadContent("/com/aims/presentation/views/home_screen.fxml");
         setHeaderTitle("AIMS Home");

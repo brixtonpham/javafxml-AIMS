@@ -6,8 +6,8 @@ import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.DeliveryInfo;
 import com.aims.core.entities.PaymentTransaction;
 import com.aims.core.enums.OrderStatus;
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.AlertHelper;
+import com.aims.core.presentation.utils.FXMLSceneManager;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
+import javafx.scene.control.ButtonType;
 
 public class OrderReviewController {
 
@@ -214,17 +216,19 @@ public class OrderReviewController {
             return;
         }
         setErrorMessage("", false);
-        // boolean confirmed = AlertHelper.showConfirmationDialog("Approve Order", "Are you sure you want to approve order #" + currentOrderToReview.getOrderId() + "?");
-        // if (!confirmed) return;
-        System.out.println("Attempting to approve order: " + currentOrderToReview.getOrderId()); // Replace with actual confirmation
+        boolean confirmed = AlertHelper.showConfirmationDialog("Approve Order",
+                "Are you sure you want to approve order #" + currentOrderToReview.getOrderId() + "?");
+        if (!confirmed) return;
+
+        // System.out.println("Attempting to approve order: " + currentOrderToReview.getOrderId());
 
         try {
             orderService.approveOrder(currentOrderToReview.getOrderId(), currentManagerId);
-            // AlertHelper.showInfoAlert("Order Approved", "Order #" + currentOrderToReview.getOrderId() + " has been approved.");
+            AlertHelper.showInformationDialog("Order Approved", "Order #" + currentOrderToReview.getOrderId() + " has been approved.");
             loadOrderDetailsForReview(); // Refresh to show new status and disable buttons
         } catch (Exception e) { // Catch SQLException, ResourceNotFoundException, ValidationException, InventoryException
             e.printStackTrace();
-            // AlertHelper.showErrorAlert("Approval Failed", "Could not approve order: " + e.getMessage());
+            AlertHelper.showErrorDialog("Approval Failed", "Error Approving Order", "Could not approve order: " + e.getMessage());
             setErrorMessage("Approval failed: " + e.getMessage(), true);
         }
     }
@@ -238,24 +242,25 @@ public class OrderReviewController {
         String reason = rejectionReasonArea.getText();
         if (reason == null || reason.trim().isEmpty()) {
             setErrorMessage("Rejection reason is required.", true);
-            // AlertHelper.showWarningAlert("Reason Required", "Please provide a reason for rejecting the order.");
+            AlertHelper.showWarningDialog("Reason Required", "Missing Information", "Please provide a reason for rejecting the order.");
             return;
         }
         setErrorMessage("", false);
 
-        // boolean confirmed = AlertHelper.showConfirmationDialog("Reject Order",
-        //         "Are you sure you want to reject order #" + currentOrderToReview.getOrderId() + "?\nReason: " + reason);
-        // if (!confirmed) return;
-         System.out.println("Attempting to reject order: " + currentOrderToReview.getOrderId()); // Replace with actual confirmation
+        boolean confirmedReject = AlertHelper.showConfirmationDialog("Reject Order",
+                "Are you sure you want to reject order #" + currentOrderToReview.getOrderId() + "?\nReason: " + reason);
+        if (!confirmedReject) return;
+
+        // System.out.println("Attempting to reject order: " + currentOrderToReview.getOrderId());
 
 
         try {
             orderService.rejectOrder(currentOrderToReview.getOrderId(), currentManagerId, reason);
-            // AlertHelper.showInfoAlert("Order Rejected", "Order #" + currentOrderToReview.getOrderId() + " has been rejected.");
+            AlertHelper.showInformationDialog("Order Rejected", "Order #" + currentOrderToReview.getOrderId() + " has been rejected.");
             loadOrderDetailsForReview(); // Refresh
         } catch (Exception e) { // Catch SQLException, ResourceNotFoundException, ValidationException, PaymentException
             e.printStackTrace();
-            // AlertHelper.showErrorAlert("Rejection Failed", "Could not reject the order: " + e.getMessage());
+            AlertHelper.showErrorDialog("Rejection Failed", "Error Rejecting Order", "Could not reject the order: " + e.getMessage());
             setErrorMessage("Rejection failed: " + e.getMessage(), true);
         }
     }
@@ -263,10 +268,10 @@ public class OrderReviewController {
     @FXML
     void handleBackToListAction(ActionEvent event) {
         System.out.println("Back to Pending Orders List action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.PM_PENDING_ORDERS_LIST_SCREEN);
-        //     mainLayoutController.setHeaderTitle("Pending Orders Review");
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            mainLayoutController.loadContent(com.aims.core.shared.constants.FXMLPaths.PM_PENDING_ORDERS_LIST_SCREEN); // Assuming FXMLPaths.PM_PENDING_ORDERS_LIST_SCREEN
+            mainLayoutController.setHeaderTitle("Pending Orders Review");
+        }
     }
 
     private void setErrorMessage(String message, boolean isError) {

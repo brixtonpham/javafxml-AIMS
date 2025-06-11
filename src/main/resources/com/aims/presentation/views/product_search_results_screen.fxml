@@ -27,6 +27,7 @@
                 <ComboBox fx:id="categoryComboBox" promptText="All Categories" styleClass="filter-combo"/>
                 <ComboBox fx:id="sortByPriceComboBox" promptText="Sort by Price" styleClass="filter-combo"/>
                 <Button text="Search" styleClass="primary-button" onAction="#handleSearchAction" />
+                <Button text="Home" styleClass="secondary-button" onAction="#handleNavigateHome" />
             </HBox>
         </VBox>
     </top>

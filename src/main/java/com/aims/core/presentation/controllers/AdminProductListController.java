@@ -4,8 +4,9 @@ import com.aims.core.application.dtos.ProductDTO; // Hoặc Entity Product
 import com.aims.core.application.services.IProductService;
 import com.aims.core.entities.Product;
 import com.aims.core.enums.ProductType;
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.AlertHelper; // Assuming this will be used later for delete confirmation etc.
+import com.aims.core.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.NavigationContext; // Added import
 import com.aims.core.shared.utils.SearchResult;
 
 
@@ -63,10 +64,10 @@ public class AdminProductListController {
     @FXML
     private Button nextPageButton;
 
-    // @Inject
+    // @Inject // TODO: Inject through ServiceFactory or constructor
     private IProductService productService;
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private FXMLSceneManager sceneManager;
 
     private ObservableList<Product> productObservableList = FXCollections.observableArrayList();
     private int currentPage = 1;
@@ -77,17 +78,17 @@ public class AdminProductListController {
     private String currentManagerId; // TODO: Set this from login session
 
     public AdminProductListController() {
-        // productService = new ProductServiceImpl(...); // DI
+        // productService = new ProductServiceImpl(...); // DI // TODO: Inject through ServiceFactory or constructor
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setProductService(IProductService productService) { this.productService = productService; }
-    // public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
+    public void setProductService(IProductService productService) { this.productService = productService; }
+    public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
 
 
     public void initialize() {
-        // sceneManager = FXMLSceneManager.getInstance();
+        // sceneManager should be injected via setter by FXMLSceneManager or MainLayoutController
         setupTableColumns();
         typeFilterComboBox.setItems(FXCollections.observableArrayList(ProductType.values()));
         // TODO: Load categories for filter from productService or a distinct list from products
@@ -237,28 +238,111 @@ public class AdminProductListController {
     @FXML
     void handleAddNewProductAction(ActionEvent event) {
         System.out.println("Add New Product action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     AdminAddEditProductController addEditCtrl = (AdminAddEditProductController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.ADMIN_ADD_EDIT_PRODUCT_SCREEN
-        //     );
-        //     addEditCtrl.setProductToEdit(null); // null for adding new product
-        //     addEditCtrl.setMainLayoutController(mainLayoutController);
-        //     addEditCtrl.setCurrentManagerId(this.currentManagerId);
-        //     mainLayoutController.setHeaderTitle("Add New Product");
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            // For context preservation on back navigation, use loadContentWithHistory
+            // String currentSearchTerm = searchField.getText();
+            // String currentCategory = categoryFilterComboBox.getValue();
+            // ProductType currentType = typeFilterComboBox.getValue();
+            // NavigationContext listContext = new NavigationContext(FXMLSceneManager.ADMIN_PRODUCT_LIST_SCREEN, "Product Management");
+            // listContext.addParam("searchTerm", currentSearchTerm);
+            // listContext.addParam("category", currentCategory);
+            // listContext.addParam("productType", currentType != null ? currentType.name() : null);
+            // listContext.addParam("page", String.valueOf(currentPage));
+            // FXMLSceneManager.getInstance().preserveContext(listContext); // Or similar mechanism
+            preserveCurrentListContext(); // Save current filters/page before navigating
+
+            AdminAddEditProductController addEditCtrl = (AdminAddEditProductController) mainLayoutController.loadContentWithHistory(
+                "/com/aims/presentation/views/admin_add_edit_product_screen.fxml",
+                "Add New Product"
+            );
+
+            if (addEditCtrl != null) {
+                addEditCtrl.setProductToEdit(null); // null for adding new product
+                addEditCtrl.setCurrentManagerId(this.currentManagerId);
+            }
+        }
     }
 
     private void handleEditProductAction(Product product) {
         System.out.println("Edit action for product: " + product.getTitle());
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     AdminAddEditProductController addEditCtrl = (AdminAddEditProductController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.ADMIN_ADD_EDIT_PRODUCT_SCREEN
-        //     );
-        //     addEditCtrl.setProductToEdit(product); // Pass the product to edit
-        //     addEditCtrl.setMainLayoutController(mainLayoutController);
-        //     addEditCtrl.setCurrentManagerId(this.currentManagerId);
-        //     mainLayoutController.setHeaderTitle("Edit Product - " + product.getTitle());
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            preserveCurrentListContext(); // Save current filters/page before navigating
+
+            String newTitle = "Edit Product - " + product.getTitle();
+            AdminAddEditProductController addEditCtrl = (AdminAddEditProductController) mainLayoutController.loadContentWithHistory(
+                "/com/aims/presentation/views/admin_add_edit_product_screen.fxml",
+                newTitle
+            );
+
+            if (addEditCtrl != null) {
+                addEditCtrl.setProductToEdit(product); // Pass the product to edit
+                addEditCtrl.setCurrentManagerId(this.currentManagerId);
+            }
+        }
+    }
+
+    private void preserveCurrentListContext() {
+        if (sceneManager == null) {
+            System.err.println("AdminProductListController: SceneManager is null, cannot preserve context.");
+            return;
+        }
+
+        String searchTerm = searchField.getText() != null ? searchField.getText() : "";
+        String category = categoryFilterComboBox.getValue();
+        ProductType currentType = typeFilterComboBox.getValue();
+        String productTypeName = currentType != null ? currentType.name() : null; // Use this for the 'sort' parameter hack
+
+        // Use FXMLSceneManager's method to update its currentContext
+        // This currentContext will then be pushed to history by loadContentWithHistory
+        sceneManager.preserveSearchContext(searchTerm, category, productTypeName, currentPage);
+
+        System.out.println("AdminProductListController: Preserved context via FXMLSceneManager: " +
+                           "Search=' " + searchTerm +
+                           "', Category='" + category +
+                           "', TypeAsSort='" + productTypeName +
+                           "', Page=" + currentPage);
+    }
+
+    /**
+     * Restores the state of the product list from a NavigationContext.
+     * This method would be called by FXMLSceneManager when navigating back to this screen.
+     * @param context The navigation context containing the state to restore.
+     */
+    public void restoreContext(NavigationContext context) {
+        if (context == null) {
+            System.err.println("AdminProductListController: NavigationContext is null, cannot restore.");
+            return;
+        }
+
+        System.out.println("AdminProductListController: Attempting to restore context.");
+
+        searchField.setText(context.getSearchTerm() != null ? context.getSearchTerm() : "");
+        categoryFilterComboBox.setValue(context.getCategoryFilter());
+
+        String typeName = context.getSortBy(); // Retrieve ProductType name from 'sortBy' field
+        if (typeName != null && !typeName.isEmpty()) {
+            try {
+                typeFilterComboBox.setValue(ProductType.valueOf(typeName));
+            } catch (IllegalArgumentException e) {
+                System.err.println("AdminProductListController: Invalid ProductType '" + typeName + "' in context's sortBy field.");
+                typeFilterComboBox.setValue(null);
+            }
+        } else {
+            typeFilterComboBox.setValue(null);
+        }
+
+        currentPage = context.getCurrentPage();
+        if (currentPage < 1) { // Ensure page is at least 1
+            currentPage = 1;
+        }
+
+        System.out.println("AdminProductListController: Restored context to: " +
+                           "Search='" + searchField.getText() +
+                           "', Category='" + categoryFilterComboBox.getValue() +
+                           "', Type='" + typeFilterComboBox.getValue() +
+                           "', Page=" + currentPage);
+
+        loadProducts(); // Reload products with restored filters and page
     }
 
     private void handleDeleteProductAction(Product product) {

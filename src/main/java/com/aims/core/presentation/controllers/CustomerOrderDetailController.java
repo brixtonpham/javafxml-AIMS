@@ -8,8 +8,11 @@ import com.aims.core.entities.Invoice;
 import com.aims.core.entities.PaymentTransaction;
 import com.aims.core.enums.OrderStatus;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.AlertHelper;
+import com.aims.core.presentation.utils.FXMLSceneManager;
+import com.aims.core.shared.constants.FXMLPaths; // For FXML paths
+import java.util.Optional; // For AlertHelper confirmation
+import javafx.scene.control.ButtonType; // For AlertHelper confirmation
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -132,7 +135,7 @@ public class CustomerOrderDetailController {
 
     private void loadOrderDetails() {
         if (orderIdToLoad == null || orderService == null) {
-            // AlertHelper.showErrorAlert("Error", "Order ID is missing or service is unavailable.");
+            AlertHelper.showErrorDialog("Error", "Service Unavailable", "Order ID is missing or order service is unavailable.");
             errorMessageLabel.setText("Cannot load order details.");
             errorMessageLabel.setVisible(true);
             return;
@@ -141,7 +144,7 @@ public class CustomerOrderDetailController {
         try {
             this.currentOrder = orderService.getOrderDetails(orderIdToLoad); // Service should load all related entities
             if (currentOrder == null) {
-                // AlertHelper.showErrorAlert("Not Found", "Order with ID " + orderIdToLoad + " not found.");
+                AlertHelper.showErrorDialog("Not Found", "Order Not Found", "Order with ID " + orderIdToLoad + " could not be found.");
                 errorMessageLabel.setText("Order not found.");
                 errorMessageLabel.setVisible(true);
                 return;
@@ -150,7 +153,7 @@ public class CustomerOrderDetailController {
 
         } catch (SQLException | ResourceNotFoundException e) {
             e.printStackTrace();
-            // AlertHelper.showErrorAlert("Error Loading Order", "Could not retrieve order details: " + e.getMessage());
+            AlertHelper.showErrorDialog("Error Loading Order", "Database/Service Error", "Could not retrieve order details: " + e.getMessage());
              errorMessageLabel.setText("Error loading order: " + e.getMessage());
              errorMessageLabel.setVisible(true);
         }
@@ -257,28 +260,32 @@ public class CustomerOrderDetailController {
     @FXML
     void handleCancelOrderAction(ActionEvent event) {
         if (currentOrder == null || orderService == null) {
-            // AlertHelper.showErrorAlert("Error", "Order data or service is unavailable.");
+            AlertHelper.showErrorDialog("Error", "Unavailable Data", "Order data or service is unavailable for cancellation.");
             return;
         }
 
-        // boolean confirmed = AlertHelper.showConfirmationDialog("Cancel Order",
-        //         "Are you sure you want to cancel order #" + currentOrder.getOrderId() + "? This action cannot be undone.");
-        // if (!confirmed) {
-        //     return;
-        // }
-        System.out.println("Attempting to cancel order: " + currentOrder.getOrderId()); // Replace with actual confirmation
+        boolean confirmed = AlertHelper.showConfirmationDialog("Cancel Order",
+                "Are you sure you want to cancel order #" + currentOrder.getOrderId() + "? This action cannot be undone.");
+        if (!confirmed) {
+            return;
+        }
+        // System.out.println("Attempting to cancel order: " + currentOrder.getOrderId());
 
         // TODO: Get actual currentCustomerId (e.g., from a session manager or if this screen requires login)
-        // String customerIdForAuth = currentOrder.getUserAccount() != null ? currentOrder.getUserAccount().getUserId() : "guest_or_unknown";
-        String customerIdForAuth = "customer_placeholder_id"; // Replace this
+        // For now, using the one set via setCurrentCustomerId or a placeholder if not set
+        String customerIdForAuth = this.currentCustomerId != null ? this.currentCustomerId : "customer_placeholder_id";
+        if ("customer_placeholder_id".equals(customerIdForAuth) && currentOrder.getUserAccount() != null) {
+            customerIdForAuth = currentOrder.getUserAccount().getUserId(); // Fallback if not set directly
+        }
+
 
         try {
             orderService.cancelOrder(currentOrder.getOrderId(), customerIdForAuth);
-            // AlertHelper.showInfoAlert("Order Cancelled", "Order #" + currentOrder.getOrderId() + " has been successfully cancelled.");
+            AlertHelper.showInformationDialog("Order Cancelled", "Order #" + currentOrder.getOrderId() + " has been successfully cancelled.");
             loadOrderDetails(); // Refresh to show updated status
         } catch (Exception e) { // Catch general exception for now
             e.printStackTrace();
-            // AlertHelper.showErrorAlert("Cancellation Failed", "Could not cancel the order: " + e.getMessage());
+            AlertHelper.showErrorDialog("Cancellation Failed", "Error During Cancellation", "Could not cancel the order: " + e.getMessage());
             errorMessageLabel.setText("Cancellation failed: " + e.getMessage());
             errorMessageLabel.setVisible(true);
         }
@@ -287,9 +294,9 @@ public class CustomerOrderDetailController {
     @FXML
     void handleBackToHomeAction(ActionEvent event) {
         System.out.println("Back to Home action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.HOME_SCREEN);
-        //     mainLayoutController.setHeaderTitle("AIMS Home");
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            mainLayoutController.loadContent(FXMLPaths.HOME_SCREEN); // Using FXMLPaths constant
+            mainLayoutController.setHeaderTitle("AIMS Home");
+        }
     }
 }

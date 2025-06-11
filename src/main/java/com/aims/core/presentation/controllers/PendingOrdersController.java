@@ -3,8 +3,8 @@ package com.aims.core.presentation.controllers;
 import com.aims.core.application.services.IOrderService;
 import com.aims.core.entities.OrderEntity;
 import com.aims.core.enums.OrderStatus;
-// import com.aims.presentation.utils.AlertHelper;
-// import com.aims.presentation.utils.FXMLSceneManager;
+import com.aims.core.presentation.utils.AlertHelper;
+import com.aims.core.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.utils.SearchResult; // Assuming SearchResult utility
 
 import javafx.beans.property.SimpleIntegerProperty;
@@ -49,8 +49,8 @@ public class PendingOrdersController {
 
     // @Inject
     private IOrderService orderService;
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
+    private MainLayoutController mainLayoutController;
+    private com.aims.core.presentation.utils.FXMLSceneManager sceneManager;
 
     private ObservableList<OrderEntity> pendingOrdersList = FXCollections.observableArrayList();
     private int currentPage = 1;
@@ -62,14 +62,14 @@ public class PendingOrdersController {
         // orderService = new OrderServiceImpl(...); // DI
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
-    // public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setSceneManager(com.aims.core.presentation.utils.FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
+    public void setOrderService(IOrderService orderService) { this.orderService = orderService; }
+    public void setCurrentManagerId(String managerId) { this.currentManagerId = managerId; }
 
 
     public void initialize() {
-        // sceneManager = FXMLSceneManager.getInstance();
+        sceneManager = com.aims.core.presentation.utils.FXMLSceneManager.getInstance();
         setupTableColumns();
         loadPendingOrders();
     }
@@ -158,26 +158,26 @@ public class PendingOrdersController {
     }
 
     private void loadPendingOrders() {
-        // if (orderService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Order service is not available.");
-        //     return;
-        // }
-        // try {
-        //     SearchResult<OrderEntity> result = orderService.getOrdersByStatusForManager(
-        //             OrderStatus.PENDING_PROCESSING, currentPage, PAGE_SIZE
-        //     );
-        //     pendingOrdersList.setAll(result.results());
-        //     updatePaginationControls(result.currentPage(), result.totalPages(), result.totalResults());
-        //
-        //     if(result.results().isEmpty() && currentPage == 1){
-        //         pendingOrdersTableView.setPlaceholder(new Label("No orders are currently pending processing."));
-        //     }
-        //
-        // } catch (SQLException e) {
-        //     e.printStackTrace();
-        //     AlertHelper.showErrorAlert("Database Error", "Failed to load pending orders: " + e.getMessage());
-        // }
-        System.out.println("loadPendingOrders called for page: " + currentPage + " - Implement with actual service call.");
+        if (orderService == null) {
+            AlertHelper.showErrorDialog("Service Error", "Order Service Unavailable", "The order service is not properly initialized.");
+            return;
+        }
+        try {
+            SearchResult<OrderEntity> result = orderService.getOrdersByStatusForManager(
+                    OrderStatus.PENDING_PROCESSING, currentPage, PAGE_SIZE
+            );
+            pendingOrdersList.setAll(result.results());
+            updatePaginationControls(result.currentPage(), result.totalPages(), result.totalResults());
+
+            if(result.results().isEmpty() && currentPage == 1){
+                pendingOrdersTableView.setPlaceholder(new Label("No orders are currently pending processing."));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            AlertHelper.showErrorDialog("Database Error", "Failed to Load Orders", "Could not retrieve pending orders from the database: " + e.getMessage());
+        }
+        // System.out.println("loadPendingOrders called for page: " + currentPage + " - Implement with actual service call.");
         // Dummy data for testing UI
         // if (currentPage == 1) {
         //     OrderEntity o1 = new OrderEntity(); o1.setOrderId("ORD001"); o1.setOrderDate(LocalDateTime.now().minusHours(2)); o1.setTotalAmountPaid(150000f);
@@ -211,15 +211,17 @@ public class PendingOrdersController {
 
     private void handleReviewOrderAction(OrderEntity order) {
         System.out.println("Review action for order: " + order.getOrderId());
-        // if (sceneManager != null && mainLayoutController != null && currentManagerId != null) {
-        //     OrderReviewController reviewCtrl = (OrderReviewController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.PM_ORDER_REVIEW_SCREEN
-        //     );
-        //     reviewCtrl.setOrderToReview(order.getOrderId()); // Pass OrderID, controller will load details
-        //     reviewCtrl.setCurrentManagerId(this.currentManagerId);
-        //     reviewCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Review Order - #" + order.getOrderId());
-        // }
+        if (sceneManager != null && mainLayoutController != null && currentManagerId != null) {
+            OrderReviewController reviewCtrl = (OrderReviewController) sceneManager.loadFXMLIntoPane(
+                mainLayoutController.getContentPane(), com.aims.core.shared.constants.FXMLPaths.PM_ORDER_REVIEW_SCREEN // Assuming FXMLPaths.PM_ORDER_REVIEW_SCREEN
+            );
+            reviewCtrl.setOrderToReview(order.getOrderId()); // Pass OrderID, controller will load details
+            reviewCtrl.setCurrentManagerId(this.currentManagerId);
+            reviewCtrl.setMainLayoutController(mainLayoutController);
+            reviewCtrl.setOrderService(orderService); // Pass the service
+            reviewCtrl.setSceneManager(sceneManager); // Pass the scene manager
+            mainLayoutController.setHeaderTitle("Review Order - #" + order.getOrderId());
+        }
     }
 
     @FXML

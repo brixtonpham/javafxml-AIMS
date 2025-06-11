@@ -1,8 +1,10 @@
 package com.aims.core.presentation.controllers;
 
 import com.aims.core.entities.OrderEntity;
-// import com.aims.presentation.utils.FXMLSceneManager;
-// import com.aims.core.application.dtos.PaymentResultDTO; // Nếu dùng DTO để truyền kết quả
+import com.aims.core.presentation.utils.FXMLSceneManager;
+import com.aims.core.application.dtos.DeliveryInfoDTO; // Corrected path
+import com.aims.core.shared.constants.FXMLPaths; // For FXML scene constants
+// import com.aims.core.application.dtos.PaymentResultDTO; // If using DTO for result
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -47,13 +49,21 @@ public class PaymentResultScreenController {
     @FXML
     private Button viewOrderButton;
     @FXML
+    private Button tryPaymentAgainButton;
+    @FXML
+    private Button backToCartButton;
+    @FXML
+    private Button continueShoppingButton;
+    @FXML
     private GridPane detailsGrid;
 
+    private MainLayoutController mainLayoutController;
+    private FXMLSceneManager sceneManager;
+    private OrderEntity currentOrder; // Processed order (status might be updated)
+    private String localAimsTransactionId; // AIMS transaction ID
+    // private CartDTO cartContext; // CartDTO not found, will use OrderEntity or its parts
+    private DeliveryInfoDTO deliveryInfoContext; // To preserve delivery info for retrying payment
 
-    // private MainLayoutController mainLayoutController;
-    // private FXMLSceneManager sceneManager;
-    private OrderEntity currentOrder; // Đơn hàng đã được xử lý (có thể đã được cập nhật status)
-    private String localAimsTransactionId; // Mã giao dịch của AIMS
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // private Image successIcon;
@@ -63,8 +73,11 @@ public class PaymentResultScreenController {
         // Constructor
     }
 
-    // public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
-    // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
+    public void setMainLayoutController(MainLayoutController mainLayoutController) { this.mainLayoutController = mainLayoutController; }
+    public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
+    // public void setCartContext(CartDTO cartContext) { this.cartContext = cartContext; } // CartDTO not found
+    public void setDeliveryInfoContext(DeliveryInfoDTO deliveryInfoContext) { this.deliveryInfoContext = deliveryInfoContext; }
+
 
     public void initialize() {
         // try {
@@ -83,7 +96,7 @@ public class PaymentResultScreenController {
      * @param isSuccess True nếu thanh toán thành công.
      * @param message Thông điệp chung về kết quả.
      * @param gatewayData Dữ liệu trả về từ cổng thanh toán (ví dụ Map các tham số VNPay trả về).
-     * @param aimsTxnId Mã giao dịch của AIMS.
+     * @param aimsTxnId AIMS transaction ID.
      */
     public void setPaymentResult(OrderEntity order, boolean isSuccess, String message, Map<String, String> gatewayData, String aimsTxnId) {
         this.currentOrder = order;
@@ -97,6 +110,12 @@ public class PaymentResultScreenController {
             // if (successIcon != null) statusIconImageView.setImage(successIcon);
             viewOrderButton.setVisible(true);
             viewOrderButton.setManaged(true);
+            tryPaymentAgainButton.setVisible(false);
+            tryPaymentAgainButton.setManaged(false);
+            backToCartButton.setVisible(false);
+            backToCartButton.setManaged(false);
+            continueShoppingButton.setVisible(true);
+            continueShoppingButton.setManaged(true);
             populateSuccessDetails(gatewayData);
         } else {
             paymentStatusTitleLabel.setText("Payment Failed / Pending");
@@ -104,6 +123,12 @@ public class PaymentResultScreenController {
             // if (failureIcon != null) statusIconImageView.setImage(failureIcon);
             viewOrderButton.setVisible(false);
             viewOrderButton.setManaged(false);
+            tryPaymentAgainButton.setVisible(true);
+            tryPaymentAgainButton.setManaged(true);
+            backToCartButton.setVisible(true);
+            backToCartButton.setManaged(true);
+            continueShoppingButton.setVisible(true); // Still allow to go home
+            continueShoppingButton.setManaged(true);
             populateFailureDetails(gatewayData);
         }
     }
@@ -160,22 +185,71 @@ public class PaymentResultScreenController {
     void handleViewOrderDetailsAction(ActionEvent event) {
         if (currentOrder == null) return;
         System.out.println("View Order Details action triggered for order: " + currentOrder.getOrderId());
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     CustomerOrderDetailController detailCtrl = (CustomerOrderDetailController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.CUSTOMER_ORDER_DETAIL_SCREEN
-        //     );
-        //     detailCtrl.setOrderData(currentOrder); // Hoặc chỉ OrderID rồi controller tự load
-        //     detailCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle("Order Details - #" + currentOrder.getOrderId());
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            CustomerOrderDetailController detailCtrl = (CustomerOrderDetailController) sceneManager.loadFXMLIntoPane(
+                mainLayoutController.getContentPane(), FXMLPaths.CUSTOMER_ORDER_DETAIL_SCREEN
+            );
+            if (detailCtrl != null) {
+                detailCtrl.setOrderIdToLoad(currentOrder.getOrderId()); // Corrected method name
+                detailCtrl.setMainLayoutController(mainLayoutController);
+                detailCtrl.setSceneManager(sceneManager);
+                mainLayoutController.setHeaderTitle("Order Details - #" + currentOrder.getOrderId());
+            }
+        }
     }
 
     @FXML
     void handleContinueShoppingAction(ActionEvent event) {
         System.out.println("Continue Shopping action triggered");
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     mainLayoutController.loadContent(FXMLSceneManager.HOME_SCREEN);
-        //     mainLayoutController.setHeaderTitle("AIMS Home");
-        // }
+        if (sceneManager != null && mainLayoutController != null) {
+            mainLayoutController.loadContent(FXMLPaths.HOME_SCREEN); // Corrected: loadContent takes one argument
+            mainLayoutController.setHeaderTitle("AIMS Home");
+        }
+    }
+
+    @FXML
+    void handleTryPaymentAgainAction(ActionEvent event) {
+        System.out.println("Try Payment Again action triggered");
+        if (sceneManager != null && mainLayoutController != null && currentOrder != null) {
+            // Navigate to Payment Method screen, passing the currentOrder
+            PaymentMethodScreenController paymentCtrl = (PaymentMethodScreenController) sceneManager.loadFXMLIntoPane(
+                mainLayoutController.getContentPane(), FXMLPaths.PAYMENT_METHOD_SCREEN // Corrected FXML constant
+            );
+            if (paymentCtrl != null) {
+                paymentCtrl.setOrderData(this.currentOrder); // Pass the whole order
+                paymentCtrl.setMainLayoutController(mainLayoutController);
+                // paymentCtrl.setSceneManager(sceneManager); // Method not available in PaymentMethodScreenController
+                mainLayoutController.setHeaderTitle("Select Payment Method");
+            } else {
+                 System.err.println("Failed to load PaymentMethodScreenController.");
+                 // Optionally, navigate to Delivery Info if PaymentMethodScreen fails to load,
+                 // or if more context is needed before payment.
+                 DeliveryInfoScreenController deliveryCtrl = (DeliveryInfoScreenController) sceneManager.loadFXMLIntoPane(
+                        mainLayoutController.getContentPane(), FXMLPaths.DELIVERY_INFO_SCREEN // Corrected FXML constant
+                 );
+                 if (deliveryCtrl != null) {
+                    // deliveryCtrl.setCartData(this.cartContext); // No cartContext, and DeliveryInfoScreenController might not need it directly if it re-fetches or uses Order
+                    // deliveryCtrl.setOrderForCheckout(this.currentOrder); // Assuming a method to pass order context
+                    mainLayoutController.setHeaderTitle("Delivery Information");
+                 }
+            }
+        } else {
+            System.err.println("Cannot retry payment: SceneManager, MainLayoutController, or CurrentOrder is null.");
+        }
+    }
+
+    @FXML
+    void handleBackToCartAction(ActionEvent event) {
+        System.out.println("Back to Cart action triggered");
+        if (sceneManager != null && mainLayoutController != null) {
+            CartScreenController cartCtrl = (CartScreenController) sceneManager.loadFXMLIntoPane(
+                mainLayoutController.getContentPane(), FXMLPaths.CART_SCREEN // Corrected FXML constant
+            );
+            if (cartCtrl != null) {
+                cartCtrl.setMainLayoutController(mainLayoutController);
+                // cartCtrl.setSceneManager(sceneManager); // Method not available in CartScreenController
+                mainLayoutController.setHeaderTitle("Your Shopping Cart");
+            }
+        }
     }
 }

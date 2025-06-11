@@ -44,6 +44,8 @@ public class ProductCardController {
 
     // Biến để tham chiếu đến controller cha nếu cần gọi lại (ví dụ: refresh home screen sau khi thêm vào giỏ)
     private HomeScreenController homeScreenController;
+    private ProductSearchResultsController productSearchResultsController; // For cards on search results page
+    private String searchContext; // Added for preserving search context
 
 
     public ProductCardController() {
@@ -69,6 +71,19 @@ public class ProductCardController {
      */
     public void setHomeScreenController(HomeScreenController homeScreenController) {
         this.homeScreenController = homeScreenController;
+    }
+
+    public void setProductSearchResultsController(ProductSearchResultsController productSearchResultsController) {
+        this.productSearchResultsController = productSearchResultsController;
+    }
+
+    /**
+     * Sets the search context, e.g., the query string from a search results page.
+     * This context can be passed to the product detail screen.
+     * @param searchContext The search context string.
+     */
+    public void setSearchContext(String searchContext) {
+        this.searchContext = searchContext;
     }
 
     /**
@@ -113,11 +128,33 @@ public class ProductCardController {
 
     private void loadPlaceholderImage() {
         try {
-            // Image placeholder = new Image(getClass().getResourceAsStream("/assets/images/product_placeholder.png"));
-            // productImageView.setImage(placeholder);
-            // System.out.println("Loaded placeholder image for product card.");
-        } catch (Exception e) {
-            System.err.println("Error loading placeholder image: " + e.getMessage());
+            // The path "/assets/images/product_placeholder.png" assumes 'assets' is a root classpath directory.
+            // If 'assets/images/product_placeholder.png' is at the project root and not on classpath, this will fail.
+            // Consider moving it to src/main/resources/images/ and using "/images/product_placeholder.png".
+            java.io.InputStream placeholderStream = getClass().getResourceAsStream("/assets/images/product_placeholder.png");
+            if (placeholderStream == null) {
+                System.err.println("Error loading placeholder image: Resource /assets/images/product_placeholder.png not found.");
+                // Attempt to load from a path relative to 'src/main/resources' as a fallback
+                placeholderStream = getClass().getResourceAsStream("/images/product_placeholder.png"); // Common for resources
+                 if (placeholderStream == null) {
+                    System.err.println("Error loading placeholder image: Resource /images/product_placeholder.png also not found.");
+                    return;
+                 }
+            }
+            Image placeholder = new Image(placeholderStream);
+            if (placeholder.isError()) {
+                String errorMessage = "Error loading placeholder image from resource.";
+                if (placeholder.getException() != null) {
+                    errorMessage += " Exception: " + placeholder.getException().getMessage();
+                }
+                System.err.println(errorMessage);
+            } else {
+                productImageView.setImage(placeholder);
+                System.out.println("Loaded placeholder image for product card via getResourceAsStream.");
+            }
+        } catch (Exception e) { // Catch any other unexpected exceptions during the process
+            System.err.println("Unexpected error in loadPlaceholderImage: " + e.getMessage());
+            // e.printStackTrace(); // For more detailed debugging if needed during development
         }
     }
 
@@ -311,34 +348,25 @@ public class ProductCardController {
 
         if (mainLayoutController != null && product != null) {
             try {
-                System.out.println("ProductCardController.handleViewProductDetails: About to call loadContent for product_detail_screen.fxml");
-                
-                // Use MainLayoutController's loadContent method which handles service injection
-                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/product_detail_screen.fxml");
-                
-                System.out.println("ProductCardController.handleViewProductDetails: LoadContent returned controller: " + 
-                    (controller != null ? controller.getClass().getSimpleName() : "null"));
-                
-                // Set the product ID on the ProductDetailScreenController after ensuring services are ready
-                if (controller instanceof ProductDetailScreenController) {
-                    System.out.println("ProductCardController.handleViewProductDetails: Controller is ProductDetailScreenController, deferring product ID setting");
-                    ProductDetailScreenController detailController = (ProductDetailScreenController) controller;
-                    
-                    // Defer the setProductId call to ensure services are injected first
-                    javafx.application.Platform.runLater(() -> {
-                        System.out.println("ProductCardController.handleViewProductDetails: Setting product ID after service injection");
-                        detailController.setProductId(product.getProductId());
-                        System.out.println("ProductCardController.handleViewProductDetails: Product ID set on ProductDetailScreenController");
-                    });
+                if (productSearchResultsController != null) {
+                    System.out.println("ProductCardController.handleViewProductDetails: Navigating via ProductSearchResultsController");
+                    productSearchResultsController.navigateToProductDetail(product.getProductId());
+                } else if (homeScreenController != null) {
+                    System.out.println("ProductCardController.handleViewProductDetails: Navigating via HomeScreenController");
+                    homeScreenController.navigateToProductDetail(product.getProductId());
                 } else {
-                    System.err.println("ProductCardController.handleViewProductDetails: Controller is not ProductDetailScreenController, it's: " +
-                        (controller != null ? controller.getClass().getSimpleName() : "null"));
+                    // Fallback if no parent controller is set (should ideally not happen if cards are always part of a screen)
+                    System.out.println("ProductCardController.handleViewProductDetails: Fallback navigation via MainLayoutController directly");
+                    // This will use loadContentWithHistory, but the specific search context (term, filter, page)
+                    // from the search results screen won't be explicitly preserved by the ProductCardController itself.
+                    // The FXMLSceneManager will preserve the *current screen* (e.g., search results) in history.
+                    Object controller = mainLayoutController.loadContentWithHistory(com.aims.core.shared.constants.FXMLPaths.PRODUCT_DETAIL_SCREEN, "Product Details");
+                     if (controller instanceof ProductDetailScreenController detailController) {
+                        detailController.setProductId(product.getProductId());
+                    }
+                    mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
                 }
-                
-                // Update header title
-                System.out.println("ProductCardController.handleViewProductDetails: Updating header title");
-                mainLayoutController.setHeaderTitle("Product Details: " + product.getTitle());
-                System.out.println("ProductCardController.handleViewProductDetails: Navigation completed successfully");
+                System.out.println("ProductCardController.handleViewProductDetails: Navigation initiated for product: " + product.getTitle());
 
             } catch (Exception e) {
                 e.printStackTrace();

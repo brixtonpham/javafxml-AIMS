@@ -80,10 +80,31 @@ public class OrderItemRowController {
 
     private void loadPlaceholderImage() {
         try {
-            // Image placeholder = new Image(getClass().getResourceAsStream("/assets/images/product_placeholder.png"));
-            // productImageView.setImage(placeholder);
+            // Attempt to load from src/main/resources/images/
+            java.io.InputStream placeholderStream = getClass().getResourceAsStream("/images/product_placeholder.png");
+            
+            if (placeholderStream == null) {
+                // Fallback to assets directory if the above is not found.
+                placeholderStream = getClass().getResourceAsStream("/assets/images/product_placeholder.png");
+            }
+
+            if (placeholderStream == null) {
+                System.err.println("Error loading placeholder image for order item row: Resource not found at /images/product_placeholder.png or /assets/images/product_placeholder.png");
+                return;
+            }
+            
+            Image placeholder = new Image(placeholderStream);
+            if (placeholder.isError()) {
+                String errorMessage = "Error loading placeholder image from resource for order item row.";
+                if (placeholder.getException() != null) {
+                    errorMessage += " Exception: " + placeholder.getException().getMessage();
+                }
+                System.err.println(errorMessage);
+            } else {
+                productImageView.setImage(placeholder);
+            }
         } catch (Exception e) {
-            System.err.println("Error loading placeholder image for order item row: " + e.getMessage());
+            System.err.println("Unexpected error in loadPlaceholderImage (OrderItemRowController): " + e.getMessage());
         }
     }
 }

@@ -68,7 +68,9 @@
     <bottom>
         <HBox alignment="CENTER" spacing="20" styleClass="dashboard-actions" BorderPane.alignment="CENTER">
             <Button text="View Order Details" styleClass="secondary-button" onAction="#handleViewOrderDetailsAction" fx:id="viewOrderButton" visible="false" managed="false"/>
-            <Button text="Continue Shopping" styleClass="primary-button" onAction="#handleContinueShoppingAction" defaultButton="true"/>
+            <Button fx:id="tryPaymentAgainButton" text="Try Payment Again" styleClass="secondary-button" onAction="#handleTryPaymentAgainAction" visible="false" managed="false"/>
+            <Button fx:id="backToCartButton" text="Back to Cart" styleClass="secondary-button" onAction="#handleBackToCartAction" visible="false" managed="false"/>
+            <Button fx:id="continueShoppingButton" text="Continue Shopping" styleClass="primary-button" onAction="#handleContinueShoppingAction" defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>
