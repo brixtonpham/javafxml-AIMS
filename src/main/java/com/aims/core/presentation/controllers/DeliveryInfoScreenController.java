@@ -12,7 +12,8 @@ import com.aims.core.presentation.utils.AlertHelper; // Added import
 // import com.aims.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.exceptions.ValidationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
-
+import com.aims.core.utils.DeliveryInfoValidator;
+import com.aims.core.shared.ServiceFactory;
 
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -102,9 +103,22 @@ public class DeliveryInfoScreenController {
     public void initialize() {
         // TODO: Load danh sách tỉnh/thành vào provinceCityComboBox (từ DB hoặc config)
         provinceCityComboBox.setItems(FXCollections.observableArrayList("Hanoi", "Ho Chi Minh City", "Da Nang", "Other"));
-        provinceCityComboBox.setOnAction(event -> calculateAndUpdateShippingFee());
+        
+        // ENHANCED: Debounced listeners to prevent excessive calculations
+        javafx.animation.Timeline debounceTimer = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.millis(500), e -> calculateAndUpdateShippingFee())
+        );
+        debounceTimer.setCycleCount(1);
+        
+        provinceCityComboBox.setOnAction(event -> {
+            debounceTimer.stop();
+            debounceTimer.play();
+        });
 
-        addressArea.textProperty().addListener((obs, oldVal, newVal) -> calculateAndUpdateShippingFee());
+        addressArea.textProperty().addListener((obs, oldVal, newVal) -> {
+            debounceTimer.stop();
+            debounceTimer.play();
+        });
 
         // Setup time slots for rush delivery
         List<String> timeSlots = new ArrayList<>();
@@ -280,37 +294,81 @@ public class DeliveryInfoScreenController {
     }
 
     private void calculateAndUpdateShippingFee() {
-        if (currentOrder == null || orderService == null) {
-            shippingFeeLabel.setText("Shipping Fee: Error calculating");
-            totalAmountLabel.setText("TOTAL AMOUNT: Error");
-            proceedToPaymentButton.setDisable(true);
+        // ENHANCED: Check prerequisites before calculation
+        if (!canCalculateShipping()) {
+            displayShippingCalculationPending();
             return;
         }
+        
+        if (!ensureServicesAvailable()) {
+            handleCalculationError("Services unavailable. Please try again.");
+            return;
+        }
+        
         // Build a temporary DeliveryInfo from form to pass for calculation
-        DeliveryInfo tempDeliveryInfo = buildDeliveryInfoFromForm(false); // Don't need rush time for eligibility check here for fee calc
-        if (tempDeliveryInfo.getDeliveryProvinceCity() == null || tempDeliveryInfo.getDeliveryAddress() == null ||
-            tempDeliveryInfo.getDeliveryProvinceCity().trim().isEmpty() || tempDeliveryInfo.getDeliveryAddress().trim().isEmpty()) {
-            shippingFeeLabel.setText("Shipping Fee: Enter address");
-            totalAmountLabel.setText("TOTAL AMOUNT: Enter address");
-            proceedToPaymentButton.setDisable(true);
+        DeliveryInfo tempDeliveryInfo = buildDeliveryInfoFromForm(false);
+        if (tempDeliveryInfo == null) {
+            displayShippingCalculationPending();
             return;
         }
 
+        // Validate delivery info and order items before calculation
+        DeliveryInfoValidator.ValidationResult validation =
+            DeliveryInfoValidator.validateForCalculation(tempDeliveryInfo, currentOrder.getOrderItems());
+        
+        if (!validation.isValid()) {
+            handleCalculationError("Validation failed: " + validation.getErrorMessage());
+            return;
+        }
+        
         try {
-            float fee = orderService.calculateShippingFee(currentOrder.getOrderId(), tempDeliveryInfo, rushOrderCheckBox.isSelected());
+            // FIXED: Use preview method instead of modifying order state
+            float fee = orderService.calculateShippingFeePreview(
+                currentOrder.getOrderItems(),
+                tempDeliveryInfo,
+                rushOrderCheckBox.isSelected()
+            );
+            
+            // Success - update UI
             shippingFeeLabel.setText(String.format("Shipping Fee: %,.0f VND", fee));
-            float totalAmount = currentOrder.getTotalProductPriceInclVAT() + fee; // VAT is already in totalProductPriceInclVAT
+            float totalAmount = currentOrder.getTotalProductPriceInclVAT() + fee;
             totalAmountLabel.setText(String.format("TOTAL AMOUNT: %,.0f VND", totalAmount));
             proceedToPaymentButton.setDisable(false);
             setErrorMessage("", false);
-        } catch (SQLException | ResourceNotFoundException | ValidationException e) {
-            shippingFeeLabel.setText("Shipping Fee: Error");
-            totalAmountLabel.setText("TOTAL AMOUNT: Error");
-            AlertHelper.showErrorDialog("Fee Calculation Error", "Service Error", "Could not calculate shipping fee: " + e.getMessage());
-            setErrorMessage("Could not calculate shipping fee: " + e.getMessage(), true);
-            proceedToPaymentButton.setDisable(true);
+            
+        } catch (ValidationException e) {
+            handleCalculationError("Could not calculate shipping fee: " + e.getMessage());
+        } catch (Exception e) {
+            handleCalculationError("Unexpected error calculating shipping fee. Please try again.");
+            System.err.println("Unexpected shipping calculation error: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    // NEW: Smart validation method
+    private boolean canCalculateShipping() {
+        if (currentOrder == null || orderService == null) {
+            return false;
+        }
+        
+        // Check if minimum required fields are filled
+        String province = provinceCityComboBox.getValue();
+        String address = addressArea.getText();
+        
+        if (province == null || province.trim().isEmpty() ||
+            address == null || address.trim().isEmpty()) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // NEW: Display pending message instead of error
+    private void displayShippingCalculationPending() {
+        shippingFeeLabel.setText("Shipping Fee: Enter address to calculate");
+        totalAmountLabel.setText("TOTAL AMOUNT: Enter address to calculate");
+        proceedToPaymentButton.setDisable(true);
+        setErrorMessage("", false); // Clear any previous errors
     }
 
     private void setErrorMessage(String message, boolean visible) {
@@ -320,6 +378,48 @@ public class DeliveryInfoScreenController {
         if (visible) {
             errorMessageLabel.setStyle("-fx-text-fill: red;");
         }
+    }
+    
+    /**
+     * Ensures that required services are available for shipping calculation.
+     * Attempts automatic recovery if services are null.
+     */
+    private boolean ensureServicesAvailable() {
+        if (orderService == null || deliveryService == null) {
+            try {
+                ServiceFactory factory = ServiceFactory.getInstance();
+                if (orderService == null) {
+                    this.orderService = factory.getOrderService();
+                    System.out.println("DeliveryInfoScreenController: OrderService recovered from ServiceFactory");
+                }
+                if (deliveryService == null) {
+                    this.deliveryService = factory.getDeliveryCalculationService();
+                    System.out.println("DeliveryInfoScreenController: DeliveryService recovered from ServiceFactory");
+                }
+                
+                return orderService != null && deliveryService != null;
+            } catch (Exception e) {
+                System.err.println("Failed to initialize services: " + e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    /**
+     * Handles shipping calculation errors with consistent UI updates and logging.
+     */
+    private void handleCalculationError(String message) {
+        shippingFeeLabel.setText("Shipping Fee: Unable to calculate");
+        totalAmountLabel.setText("TOTAL AMOUNT: Please complete address");
+        proceedToPaymentButton.setDisable(true);
+        setErrorMessage("⚠️ " + message + " Please check your address details.", true);
+        
+        // Log for debugging
+        System.err.println("Shipping calculation error: " + message);
+        System.err.println("Order ID: " + (currentOrder != null ? currentOrder.getOrderId() : "null"));
+        System.err.println("OrderService available: " + (orderService != null));
+        System.err.println("DeliveryService available: " + (deliveryService != null));
     }
 
 
@@ -363,10 +463,10 @@ public class DeliveryInfoScreenController {
             System.out.println("Proceed to Payment action triggered for Order ID: " + currentOrder.getOrderId());
             // Navigate to payment method selection screen
             if (mainLayoutController != null) {
-                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_method_screen.fxml");
-                 mainLayoutController.setHeaderTitle("Select Payment Method");
-                 if (controller instanceof PaymentMethodScreenController) {
-                     ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
+                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
+                 mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
+                 if (controller instanceof OrderSummaryController) {
+                     ((OrderSummaryController) controller).setOrderData(currentOrder);
                  }
             } else {
                  AlertHelper.showErrorDialog("Navigation Error", "System Error", "Cannot navigate to payment screen.");

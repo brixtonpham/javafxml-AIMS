@@ -146,6 +146,15 @@ public interface IProductDAO {
     void updateStock(String productId, int newQuantity) throws SQLException;
 
     /**
+     * Updates the stock quantity of a product with optimistic locking.
+     * @param productId The ID of the product.
+     * @param newQuantity The new stock quantity.
+     * @param expectedVersion The expected version for optimistic locking.
+     * @throws SQLException If a database access error occurs or version mismatch.
+     */
+    void updateStockWithVersion(String productId, int newQuantity, Long expectedVersion) throws SQLException;
+
+    /**
      * Advanced search for products with filtering, sorting, and pagination.
      * @param keyword The search keyword (searches across title, description, category, and subtype-specific fields)
      * @param category The category filter (null or empty for all categories)

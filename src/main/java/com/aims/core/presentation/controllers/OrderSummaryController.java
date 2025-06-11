@@ -139,10 +139,15 @@ public class OrderSummaryController {
                     // Sử dụng FXML partial 'order_item_row.fxml' để hiển thị mỗi item
                     FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/order_item_row.fxml"));
                     Parent itemNode = loader.load();
-                    // Giả sử OrderItemRowController có phương thức setData(OrderItem item)
-                    // OrderItemRowController itemController = loader.getController();
-                    // itemController.setData(item);
-                    // Hoặc bạn có thể tạo Node bằng code JavaFX trực tiếp nếu partial phức tạp
+                    // Get the controller and set the data
+                    OrderItemRowController itemController = loader.getController();
+                    itemController.setData(item);
+                    orderItemsVBox.getChildren().add(itemNode);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.err.println("Error loading order_item_row.fxml: " + e.getMessage());
+                    // Fallback to manual creation if FXML loading fails
                     VBox itemBox = new VBox(2);
                     Label title = new Label(item.getProduct().getTitle() + " (x" + item.getQuantity() + ")");
                     title.setStyle("-fx-font-weight: bold;");
@@ -151,10 +156,6 @@ public class OrderSummaryController {
                                             item.getPriceAtTimeOfOrder() * item.getQuantity()));
                     itemBox.getChildren().addAll(title, price);
                     orderItemsVBox.getChildren().add(itemBox);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.err.println("Error loading order_item_row.fxml: " + e.getMessage());
                 }
             }
         }
@@ -177,10 +178,10 @@ public class OrderSummaryController {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/delivery_info_screen.fxml");
                 mainLayoutController.setHeaderTitle("Delivery Information");
                 
-                // TODO: Pass order data to delivery controller when setOrderData method is available
-                // if (controller instanceof DeliveryInfoScreenController) {
-                //     ((DeliveryInfoScreenController) controller).setOrderData(currentOrder);
-                // }
+                // Pass order data to delivery controller for editing and recalculation
+                if (controller instanceof DeliveryInfoScreenController) {
+                    ((DeliveryInfoScreenController) controller).setOrderData(currentOrder);
+                }
                 
                 System.out.println("Successfully navigated back to delivery info");
             } catch (Exception e) {
@@ -205,10 +206,10 @@ public class OrderSummaryController {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_method_screen.fxml");
                 mainLayoutController.setHeaderTitle("Select Payment Method");
                 
-                // TODO: Pass order data to payment method controller when setOrderData method is available
-                // if (controller instanceof PaymentMethodScreenController) {
-                //     ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
-                // }
+                // Pass order data to payment method controller
+                if (controller instanceof PaymentMethodScreenController) {
+                    ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
+                }
                 
                 System.out.println("Successfully navigated to payment method selection");
             } catch (Exception e) {

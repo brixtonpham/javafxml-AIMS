@@ -35,11 +35,26 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
 
     @Override
     public float calculateShippingFee(OrderEntity order, boolean isRushOrderRequested) throws ValidationException {
-        if (order == null || order.getOrderItems() == null || order.getOrderItems().isEmpty() || order.getDeliveryInfo() == null) {
-            throw new ValidationException("Order, order items, and delivery information are required for shipping calculation.");
+        // ENHANCED: More specific validation messages
+        if (order == null) {
+            throw new ValidationException("Order is required for shipping calculation.");
         }
-
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new ValidationException("Order must contain items for shipping calculation.");
+        }
+        if (order.getDeliveryInfo() == null) {
+            throw new ValidationException("Delivery information is required for shipping calculation.");
+        }
+        
         DeliveryInfo deliveryInfo = order.getDeliveryInfo();
+        
+        // ENHANCED: Validate delivery info fields specifically
+        if (deliveryInfo.getDeliveryProvinceCity() == null || deliveryInfo.getDeliveryProvinceCity().trim().isEmpty()) {
+            throw new ValidationException("Delivery province/city is required for shipping calculation.");
+        }
+        if (deliveryInfo.getDeliveryAddress() == null || deliveryInfo.getDeliveryAddress().trim().isEmpty()) {
+            throw new ValidationException("Delivery address is required for shipping calculation.");
+        }
         List<OrderItem> allItems = order.getOrderItems();
         float totalShippingFee = 0f;
 

@@ -558,6 +558,7 @@ public class MainLayoutController { // This could be your BaseScreenController o
                     CartScreenController cartController = (CartScreenController) childController;
                     
                     cartController.setCartService(serviceFactory.getCartService());
+                    cartController.setOrderService(serviceFactory.getOrderService());
                     cartController.setMainLayoutController(this);
                     
                     // Note: Removed optional method calls that don't exist yet
@@ -579,6 +580,16 @@ public class MainLayoutController { // This could be your BaseScreenController o
                     }
                     
                     System.out.println("MainLayoutController: ProductDetailScreenController enhanced injection completed - Services ready for product loading");
+                    
+                } else if (childController instanceof DeliveryInfoScreenController) {
+                    System.out.println("MainLayoutController: Enhanced injection for DeliveryInfoScreenController");
+                    DeliveryInfoScreenController deliveryController = (DeliveryInfoScreenController) childController;
+                    
+                    deliveryController.setMainLayoutController(this);
+                    deliveryController.setOrderService(serviceFactory.getOrderService());
+                    deliveryController.setDeliveryService(serviceFactory.getDeliveryCalculationService());
+                    
+                    System.out.println("MainLayoutController: DeliveryInfoScreenController enhanced injection completed");
                 }
                 // Add more controllers as needed
                 

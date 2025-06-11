@@ -3,9 +3,11 @@ package com.aims.core.presentation.controllers;
 import com.aims.core.application.dtos.CartItemDTO;
 // import com.aims.core.application.dtos.CartViewDTO; // Could be used by service to return all cart data
 import com.aims.core.application.services.ICartService;
+import com.aims.core.application.services.IOrderService;
 import com.aims.core.entities.Product; // For creating DTOs if service returns entities
 import com.aims.core.entities.Cart; // If service returns Cart entity
 import com.aims.core.entities.CartItem; // If service returns CartItem entity
+import com.aims.core.entities.OrderEntity; // For order creation
 import com.aims.core.presentation.utils.AlertHelper; // Added import
 // import com.aims.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.exceptions.InventoryException;
@@ -47,12 +49,16 @@ public class CartScreenController implements MainLayoutController.IChildControll
 
     // @Inject
     private ICartService cartService;
+    private IOrderService orderService;
     private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
 
     // This list can hold the DTOs that are bound or represented by the loaded FXML cards
     private ObservableList<CartItemDTO> currentCartItemDTOs = FXCollections.observableArrayList();
     private String cartSessionId; // Will be set using CartSessionManager
+    
+    // CRITICAL FIX: Add thread-safe updating flag to prevent infinite loops
+    private volatile boolean isUpdatingCart = false;
 
     public CartScreenController() {
         // cartService = new CartServiceImpl(...); // DI example
@@ -66,6 +72,10 @@ public class CartScreenController implements MainLayoutController.IChildControll
 
     public void setCartService(ICartService cartService) {
         this.cartService = cartService;
+    }
+    
+    public void setOrderService(IOrderService orderService) {
+        this.orderService = orderService;
     }
 
     // public void setCartSessionId(String cartSessionId) {
@@ -92,6 +102,12 @@ public class CartScreenController implements MainLayoutController.IChildControll
     }
 
     private void loadCartDetails() {
+        // CRITICAL FIX: Prevent concurrent cart operations
+        if (isUpdatingCart) {
+            System.out.println("loadCartDetails: Cart update already in progress, skipping");
+            return;
+        }
+        
         System.out.println("CartScreenController.loadCartDetails: Loading cart for session: " + cartSessionId);
         
         validateAndInitializeServices();
@@ -111,6 +127,8 @@ public class CartScreenController implements MainLayoutController.IChildControll
         }
         
         try {
+            isUpdatingCart = true;
+            
             Cart cartEntity = cartService.getCart(cartSessionId);
             
             cartItemsContainerVBox.getChildren().clear();
@@ -188,6 +206,8 @@ public class CartScreenController implements MainLayoutController.IChildControll
             System.err.println("Unexpected error loading cart: " + e.getMessage());
             displayEmptyCart();
             setStockWarning("Error loading cart: " + e.getMessage(), true);
+        } finally {
+            isUpdatingCart = false;
         }
     }
 
@@ -213,6 +233,17 @@ public class CartScreenController implements MainLayoutController.IChildControll
                 System.err.println("Failed to initialize CartService: " + e.getMessage());
             }
         }
+        
+        if (orderService == null) {
+            System.err.println("OrderService is null - attempting recovery");
+            try {
+                ServiceFactory serviceFactory = ServiceFactory.getInstance();
+                this.orderService = serviceFactory.getOrderService();
+                System.out.println("OrderService initialized from ServiceFactory: " + (orderService != null));
+            } catch (Exception e) {
+                System.err.println("Failed to initialize OrderService: " + e.getMessage());
+            }
+        }
     }
 
     private void setStockWarning(String message, boolean visible) {
@@ -221,8 +252,25 @@ public class CartScreenController implements MainLayoutController.IChildControll
         stockWarningLabel.setManaged(visible);
     }
 
+    /**
+     * Helper method to get current user ID for order creation.
+     * Returns null for guest checkout.
+     */
+    private String getCurrentUserId() {
+        if (mainLayoutController != null && mainLayoutController.getCurrentUser() != null) {
+            return mainLayoutController.getCurrentUser().getUserId();
+        }
+        return null; // Guest checkout
+    }
+
     @FXML
     void handleClearCartAction(ActionEvent event) {
+        // CRITICAL FIX: Prevent concurrent operations
+        if (isUpdatingCart) {
+            System.out.println("Cart update in progress, skipping clear request");
+            return;
+        }
+        
         if (cartService == null) {
             System.err.println("CartService unavailable");
             return;
@@ -232,12 +280,15 @@ public class CartScreenController implements MainLayoutController.IChildControll
         // TODO: Add AlertHelper.showConfirmationDialog when available
         // For now, proceed with clearing
         try {
+            isUpdatingCart = true;
             cartService.clearCart(cartSessionId);
             System.out.println("Cart cleared successfully");
             loadCartDetails(); // Refresh view
         } catch (SQLException | ResourceNotFoundException e) {
             System.err.println("Error clearing cart: " + e.getMessage());
             setStockWarning("Error clearing cart: " + e.getMessage(), true);
+        } finally {
+            isUpdatingCart = false;
         }
     }
 
@@ -255,106 +306,235 @@ public class CartScreenController implements MainLayoutController.IChildControll
             // For checkout, we strictly prevent proceeding if issues exist.
             setStockWarning("Please resolve stock issues in your cart before proceeding.", true);
             // Explicitly call updateCartTotalsAndState to ensure dialog is shown if not already.
-            updateCartTotalsAndState(); 
+            updateCartTotalsAndState();
             return;
         }
 
         System.out.println("Proceed to Checkout action triggered for cart: " + cartSessionId);
         
-        if (mainLayoutController != null) {
-            try {
-                // Navigate to delivery info screen
+        // Validate services before order creation
+        validateAndInitializeServices();
+        
+        if (orderService == null) {
+            System.err.println("OrderService is not available for checkout");
+            setStockWarning("Order service is temporarily unavailable. Please try again.", true);
+            return;
+        }
+        
+        try {
+            // Create order from cart items
+            String userId = getCurrentUserId();
+            System.out.println("Creating order from cart: " + cartSessionId + " for user: " + (userId != null ? userId : "guest"));
+            
+            OrderEntity createdOrder = orderService.initiateOrderFromCart(cartSessionId, userId);
+            
+            if (createdOrder == null) {
+                System.err.println("Order creation returned null");
+                setStockWarning("Failed to create order. Please try again.", true);
+                return;
+            }
+            
+            System.out.println("Order created successfully with ID: " + createdOrder.getOrderId());
+            
+            // Navigate to delivery info screen with the created order
+            if (mainLayoutController != null) {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/delivery_info_screen.fxml");
                 mainLayoutController.setHeaderTitle("Delivery Information");
                 
-                // TODO: Pass cart session ID to delivery info controller when the setCartSessionForOrder method is available
-                // if (controller instanceof DeliveryInfoScreenController) {
-                //     ((DeliveryInfoScreenController) controller).setCartSessionForOrder(this.cartSessionId);
-                // }
+                // Pass the created order to delivery info controller
+                if (controller instanceof DeliveryInfoScreenController) {
+                    DeliveryInfoScreenController deliveryController = (DeliveryInfoScreenController) controller;
+                    deliveryController.setOrderData(createdOrder);
+                    
+                    // Inject services into delivery controller
+                    try {
+                        ServiceFactory serviceFactory = ServiceFactory.getInstance();
+                        deliveryController.setOrderService(serviceFactory.getOrderService());
+                        deliveryController.setDeliveryService(serviceFactory.getDeliveryCalculationService());
+                        System.out.println("Services injected into DeliveryInfoScreenController");
+                    } catch (Exception serviceEx) {
+                        System.err.println("Error injecting services into DeliveryInfoScreenController: " + serviceEx.getMessage());
+                    }
+                    
+                    System.out.println("Order data passed to delivery info screen");
+                } else {
+                    System.err.println("Failed to cast controller to DeliveryInfoScreenController");
+                }
                 
-                System.out.println("Successfully navigated to delivery info screen");
-            } catch (Exception e) {
-                System.err.println("Error navigating to delivery info screen: " + e.getMessage());
-                setStockWarning("Error proceeding to checkout. Please try again.", true);
+                System.out.println("Successfully navigated to delivery info screen with order data");
+            } else {
+                System.err.println("MainLayoutController not available for navigation");
+                setStockWarning("Navigation error. Please refresh the page.", true);
             }
-        } else {
-            System.err.println("MainLayoutController not available for navigation");
-            setStockWarning("Navigation error. Please refresh the page.", true);
+            
+        } catch (SQLException e) {
+            System.err.println("Database error during order creation: " + e.getMessage());
+            e.printStackTrace();
+            setStockWarning("Database error during checkout. Please try again.", true);
+        } catch (ResourceNotFoundException e) {
+            System.err.println("Cart not found during order creation: " + e.getMessage());
+            e.printStackTrace();
+            setStockWarning("Cart data not found. Please refresh and try again.", true);
+        } catch (InventoryException e) {
+            System.err.println("Inventory issues during order creation: " + e.getMessage());
+            e.printStackTrace();
+            setStockWarning("Some items are no longer available. Please update your cart.", true);
+            // Refresh cart to show current stock status
+            loadCartDetails();
+        } catch (ValidationException e) {
+            System.err.println("Validation error during order creation: " + e.getMessage());
+            e.printStackTrace();
+            setStockWarning("Invalid cart data. Please refresh and try again.", true);
+        } catch (Exception e) {
+            System.err.println("Unexpected error during checkout: " + e.getMessage());
+            e.printStackTrace();
+            setStockWarning("Unexpected error during checkout. Please try again.", true);
         }
     }
 
     /**
      * Called by CartItemRowController when an item's quantity changes.
-     * CRITICAL FIX: Avoid full cart reload to prevent infinite loop.
+     * CRITICAL FIX: Prevent infinite loop with thread-safe updating flag.
      */
     public void handleUpdateQuantityFromRow(CartItemDTO itemDto, int newQuantity) {
+        // CRITICAL FIX: Prevent concurrent or recursive updates
+        if (isUpdatingCart) {
+            System.out.println("Cart update already in progress, skipping duplicate request");
+            return;
+        }
+        
         if (cartService == null) {
             System.err.println("CartService unavailable");
             return;
         }
+        
         try {
+            isUpdatingCart = true;
             System.out.println("Updating quantity for " + itemDto.getProductId() + " to " + newQuantity + " in cart " + cartSessionId);
+            
+            // Update the database
             cartService.updateItemQuantity(cartSessionId, itemDto.getProductId(), newQuantity);
             
-            // CRITICAL FIX: Instead of full reload, update only the specific UI components
-            updateCartTotalsAndState();
+            // CRITICAL FIX: Update only the specific item's data locally instead of full reload
+            updateSingleItemQuantity(itemDto, newQuantity);
+            
+            // CRITICAL FIX: Recalculate totals without triggering UI refresh loops
+            recalculateCartTotals();
+            
         } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
             System.err.println("Update quantity failed: " + e.getMessage());
             setStockWarning("Update failed: " + e.getMessage(), true);
             // Only reload on error to revert changes
             loadCartDetails();
+        } finally {
+            isUpdatingCart = false;
         }
     }
 
+    /**
+     * CRITICAL FIX: Update single item quantity in local DTO without full database reload.
+     */
+    private void updateSingleItemQuantity(CartItemDTO targetItem, int newQuantity) {
+        for (CartItemDTO item : currentCartItemDTOs) {
+            if (item.getProductId().equals(targetItem.getProductId())) {
+                // Update the quantity in the DTO
+                item.setQuantity(newQuantity);
+                System.out.println("Updated local DTO quantity for " + item.getTitle() + " to " + newQuantity);
+                break;
+            }
+        }
+    }
+    
+    /**
+     * CRITICAL FIX: Recalculate cart totals from current DTOs without database reload.
+     */
+    private void recalculateCartTotals() {
+        float grandTotalExclVAT = 0f;
+        boolean hasStockIssues = false;
+        
+        for (CartItemDTO item : currentCartItemDTOs) {
+            grandTotalExclVAT += item.getTotalPriceExclVAT();
+            if (!item.isStockSufficient()) {
+                hasStockIssues = true;
+            }
+        }
+        
+        // Update UI totals
+        totalCartPriceLabel.setText(String.format("Total (excl. VAT): %,.0f VND", grandTotalExclVAT));
+        checkoutButton.setDisable(hasStockIssues);
+        
+        if (hasStockIssues) {
+            setStockWarning("One or more items have insufficient stock. Please update quantities.", true);
+        } else {
+            setStockWarning("", false);
+        }
+        
+        System.out.println("Recalculated cart totals: " + grandTotalExclVAT + " VND, hasStockIssues: " + hasStockIssues);
+    }
+    
     /**
      * CRITICAL FIX: Update cart totals and state without full reload to prevent infinite loop.
      * This method recalculates totals from current DTOs and updates UI accordingly.
      */
     private void updateCartTotalsAndState() {
-        if (cartService == null) { // Ensure cartService is available
+        // CRITICAL FIX: Prevent recursive calls
+        if (isUpdatingCart) {
+            System.out.println("updateCartTotalsAndState: Already updating, skipping to prevent recursion");
+            return;
+        }
+        
+        if (cartService == null) {
             System.err.println("CartService is null in updateCartTotalsAndState. Cannot update.");
             setStockWarning("Cart service unavailable. Cannot update cart status.", true);
             checkoutButton.setDisable(true);
             return;
         }
         if (cartSessionId == null || cartSessionId.isEmpty()) {
-             System.err.println("CartSessionId is null in updateCartTotalsAndState. Cannot update.");
+            System.err.println("CartSessionId is null in updateCartTotalsAndState. Cannot update.");
             setStockWarning("Cart session invalid. Cannot update cart status.", true);
             checkoutButton.setDisable(true);
             return;
         }
 
-
         try {
-            // Reload cart data from database to get updated quantities and stock levels
-            Cart cartEntity = cartService.getCart(cartSessionId);
-            if (cartEntity == null || cartEntity.getItems() == null || cartEntity.getItems().isEmpty()) {
-                displayEmptyCart();
-                return;
-            }
+            isUpdatingCart = true;
+            
+            // CRITICAL FIX: Only reload from database if absolutely necessary
+            // First try to work with current DTOs, only reload if data is stale
+            if (currentCartItemDTOs.isEmpty()) {
+                // Reload cart data from database only if we have no current data
+                Cart cartEntity = cartService.getCart(cartSessionId);
+                if (cartEntity == null || cartEntity.getItems() == null || cartEntity.getItems().isEmpty()) {
+                    displayEmptyCart();
+                    return;
+                }
 
-            // Update the currentCartItemDTOs with fresh data from database
-            currentCartItemDTOs.clear();
+                // Update the currentCartItemDTOs with fresh data from database
+                currentCartItemDTOs.clear();
+                for (CartItem itemEntity : cartEntity.getItems()) {
+                    Product product = itemEntity.getProduct();
+                    if (product == null) {
+                        continue;
+                    }
+
+                    CartItemDTO dto = new CartItemDTO(
+                        product.getProductId(),
+                        product.getTitle(),
+                        itemEntity.getQuantity(),
+                        product.getPrice(),
+                        product.getImageUrl(),
+                        product.getQuantityInStock()
+                    );
+                    currentCartItemDTOs.add(dto);
+                }
+            }
+            
+            // Calculate totals from current DTOs
             float grandTotalExclVAT = 0f;
             boolean hasStockIssues = false;
 
-            for (CartItem itemEntity : cartEntity.getItems()) {
-                Product product = itemEntity.getProduct();
-                if (product == null) {
-                    continue;
-                }
-
-                CartItemDTO dto = new CartItemDTO(
-                    product.getProductId(),
-                    product.getTitle(),
-                    itemEntity.getQuantity(),
-                    product.getPrice(),
-                    product.getImageUrl(),
-                    product.getQuantityInStock()
-                );
-                currentCartItemDTOs.add(dto);
+            for (CartItemDTO dto : currentCartItemDTOs) {
                 grandTotalExclVAT += dto.getTotalPriceExclVAT();
-
                 if (!dto.isStockSufficient()) {
                     hasStockIssues = true;
                 }
@@ -372,20 +552,17 @@ public class CartScreenController implements MainLayoutController.IChildControll
                                                item.getTitle(), item.getQuantity(), item.getAvailableStock()))
                     .collect(Collectors.toList());
 
-                // Show the dialog
+                // Show the dialog only if not already updating to prevent dialog spam
                 AlertHelper.showStockInsufficientDialog(insufficientItemMessages,
-                    () -> { // onUpdateCart action: User chose to update cart (e.g., stay on cart screen)
+                    () -> { // onUpdateCart action
                         System.out.println("User chose to update cart from stock insufficient dialog.");
-                        // The cart screen already reflects the issues, and quantities can be adjusted there.
                     },
-                    () -> { // onCancelProcess action: User chose to cancel (e.g., go back or clear problematic items)
+                    () -> { // onCancelProcess action
                         System.out.println("User chose to cancel/modify order process from stock insufficient dialog.");
-                        // For now, ensure checkout is disabled and a warning is present.
                         setStockWarning("Checkout disabled due to stock issues. Please update your cart or clear problematic items.", true);
-                        checkoutButton.setDisable(true); 
+                        checkoutButton.setDisable(true);
                     });
                 
-                // Also keep the local warning label for immediate feedback on the screen.
                 setStockWarning("One or more items have insufficient stock. Please update quantities.", true);
             } else {
                 setStockWarning("", false);
@@ -397,30 +574,47 @@ public class CartScreenController implements MainLayoutController.IChildControll
             e.printStackTrace();
             System.err.println("Error updating cart totals: " + e.getMessage());
             setStockWarning("Error updating cart: " + e.getMessage(), true);
-        } catch (Exception e) { // Catch any other unexpected exceptions
+        } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Unexpected error updating cart totals: " + e.getMessage());
             setStockWarning("Error updating cart: " + e.getMessage(), true);
+        } finally {
+            isUpdatingCart = false;
         }
     }
 
     /**
      * Called by CartItemRowController when an item is to be removed.
+     * CRITICAL FIX: Prevent concurrent operations during removal.
      */
     public void handleRemoveItemFromRow(CartItemDTO itemDto) {
+        // CRITICAL FIX: Prevent concurrent operations
+        if (isUpdatingCart) {
+            System.out.println("Cart update in progress, skipping remove request");
+            return;
+        }
+        
         if (cartService == null) {
             System.err.println("CartService unavailable");
             return;
         }
-        // Confirmation might be handled inside the row controller or here
+        
         try {
+            isUpdatingCart = true;
             System.out.println("Removing item " + itemDto.getProductId() + " from cart " + cartSessionId);
             cartService.removeItemFromCart(cartSessionId, itemDto.getProductId());
-            loadCartDetails(); // Refresh the whole cart view
+            
+            // CRITICAL FIX: Remove item from local DTOs to prevent UI inconsistency
+            currentCartItemDTOs.removeIf(item -> item.getProductId().equals(itemDto.getProductId()));
+            
+            // Full reload is acceptable for removal as it's less frequent than quantity updates
+            loadCartDetails();
         } catch (SQLException | ResourceNotFoundException e) {
             System.err.println("Remove item failed: " + e.getMessage());
             setStockWarning("Remove failed: " + e.getMessage(), true);
             loadCartDetails(); // Revert UI by reloading
+        } finally {
+            isUpdatingCart = false;
         }
     }
 }

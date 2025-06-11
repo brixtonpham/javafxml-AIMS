@@ -11,6 +11,7 @@ import com.aims.core.entities.LP;
 // import com.aims.core.dtos.DVDDTO;
 import com.aims.core.shared.exceptions.ValidationException; // Assuming you have these custom exceptions
 import com.aims.core.shared.exceptions.ResourceNotFoundException; // Assuming you have these custom exceptions
+import com.aims.core.shared.exceptions.InventoryException; // For stock-related exceptions
 import com.aims.core.shared.utils.SearchResult; // Assuming a SearchResult utility class
 
 import java.sql.SQLException;
@@ -169,7 +170,7 @@ public interface IProductService {
      * @throws ValidationException if new stock would be negative (unless specifically allowed for backorders).
      * @throws ResourceNotFoundException If the product is not found.
      */
-    Product updateProductStock(String productId, int quantityChange) throws SQLException, ValidationException, ResourceNotFoundException;
+    Product updateProductStock(String productId, int quantityChange) throws SQLException, ValidationException, ResourceNotFoundException, InventoryException;
 
 
     // --- Product Viewing/Searching (for Customers) ---

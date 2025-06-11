@@ -53,6 +53,11 @@ public class Product {
     @Column(name = "productType", nullable = false, length = 50)
     private ProductType productType;
 
+    // Optimistic locking field for preventing race conditions
+    @Version
+    @Column(name = "version")
+    private Long version = 0L;
+
     // Relationship to OrderItem (one product can be in many order items)
     // MappedBy refers to the 'product' field in OrderItem entity
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -185,6 +190,14 @@ public class Product {
 
     public void setProductType(ProductType productType) {
         this.productType = productType;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public List<OrderItem> getOrderItems() {

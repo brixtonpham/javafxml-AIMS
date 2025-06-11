@@ -10,16 +10,22 @@ import com.aims.core.entities.LP;
 import com.aims.core.infrastructure.database.dao.IProductDAO;
 import com.aims.core.shared.exceptions.ValidationException; // Assuming you have these custom exceptions
 import com.aims.core.shared.exceptions.ResourceNotFoundException; // Assuming you have these custom exceptions
+import com.aims.core.shared.exceptions.InventoryException;
 import com.aims.core.shared.utils.SearchResult; // Assuming a SearchResult utility class
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class ProductServiceImpl implements IProductService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
+    
     private final IProductDAO productDAO;
     private final IProductManagerAuditService auditService;
 
@@ -27,6 +33,12 @@ public class ProductServiceImpl implements IProductService {
     private static final float MIN_PRICE_PERCENTAGE_OF_VALUE = 0.30f;
     private static final float MAX_PRICE_PERCENTAGE_OF_VALUE = 1.50f;
     private static final int MAX_DELETIONS_AT_ONCE = 10;
+    
+    // Retry configuration for optimistic locking
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final int BASE_RETRY_DELAY_MS = 100;
+    private static final int MAX_RETRY_DELAY_MS = 1000;
+    
     // Daily limits for product manager operations would be constants too
     // private static final int MAX_UPDATES_DELETES_PER_DAY = 30;
     // private static final int MAX_PRICE_UPDATES_PER_DAY_PER_PRODUCT = 2;
@@ -317,19 +329,74 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
-    public Product updateProductStock(String productId, int quantityChange) throws SQLException, ValidationException, ResourceNotFoundException {
-        Product product = productDAO.getById(productId);
-        if (product == null) {
-            throw new ResourceNotFoundException("Product with ID " + productId + " not found.");
+    public Product updateProductStock(String productId, int quantityChange) throws SQLException, ValidationException, ResourceNotFoundException, InventoryException {
+        return updateProductStockWithRetry(productId, quantityChange, MAX_RETRY_ATTEMPTS);
+    }
+    
+    /**
+     * Updates product stock with optimistic locking and retry mechanism
+     * @param productId Product to update
+     * @param quantityChange Change in quantity (positive for adding, negative for subtracting)
+     * @param attemptsLeft Number of retry attempts remaining
+     * @return Updated product
+     * @throws SQLException Database error
+     * @throws ValidationException Invalid operation
+     * @throws ResourceNotFoundException Product not found
+     * @throws InventoryException Stock operation failed after retries
+     */
+    private Product updateProductStockWithRetry(String productId, int quantityChange, int attemptsLeft)
+            throws SQLException, ValidationException, ResourceNotFoundException, InventoryException {
+        
+        if (attemptsLeft <= 0) {
+            throw new InventoryException("Failed to update stock after maximum retry attempts due to concurrent access. Please try again.");
         }
+        
+        try {
+            Product product = productDAO.getById(productId);
+            if (product == null) {
+                throw new ResourceNotFoundException("Product with ID " + productId + " not found.");
+            }
 
-        int newQuantity = product.getQuantityInStock() + quantityChange;
-        if (newQuantity < 0) {
-            throw new ValidationException("Stock quantity cannot be negative. Current stock: " + product.getQuantityInStock() + ", Change: " + quantityChange);
+            int newQuantity = product.getQuantityInStock() + quantityChange;
+            if (newQuantity < 0) {
+                throw new ValidationException("Stock quantity cannot be negative. Current stock: " +
+                                           product.getQuantityInStock() + ", Change: " + quantityChange);
+            }
+            
+            // Use optimistic locking for stock updates
+            productDAO.updateStockWithVersion(productId, newQuantity, product.getVersion());
+            product.setQuantityInStock(newQuantity);
+            product.setVersion(product.getVersion() + 1); // Increment version
+            
+            logger.info("Successfully updated stock for product {} by {} units. New stock: {}",
+                       productId, quantityChange, newQuantity);
+            
+            return product;
+            
+        } catch (SQLException e) {
+            // Check if this is an optimistic lock exception (version mismatch)
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("optimistic lock conflict")) {
+                // Handle optimistic lock exception with exponential backoff retry
+                logger.warn("Optimistic lock conflict updating stock for product {}. Attempts left: {}. Retrying...",
+                           productId, attemptsLeft - 1);
+                
+                // Exponential backoff with jitter
+                int delay = Math.min(BASE_RETRY_DELAY_MS * (MAX_RETRY_ATTEMPTS - attemptsLeft + 1), MAX_RETRY_DELAY_MS);
+                int jitter = ThreadLocalRandom.current().nextInt(0, delay / 2);
+                
+                try {
+                    Thread.sleep(delay + jitter);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new SQLException("Stock update interrupted", ie);
+                }
+                
+                return updateProductStockWithRetry(productId, quantityChange, attemptsLeft - 1);
+            } else {
+                // Re-throw other SQL exceptions
+                throw e;
+            }
         }
-        productDAO.updateStock(productId, newQuantity);
-        product.setQuantityInStock(newQuantity); // Update the in-memory object as well
-        return product;
     }
 
 

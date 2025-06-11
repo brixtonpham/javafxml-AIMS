@@ -73,6 +73,31 @@ public class CartServiceImpl implements ICartService {
         }
     }
 
+    /**
+     * Validates stock availability considering items already in cart
+     * @param product The product to validate
+     * @param requestedQuantity New quantity to add
+     * @param currentCartQuantity Quantity already in cart for this product
+     * @throws InventoryException if insufficient stock
+     */
+    private void validateStockAvailability(Product product, int requestedQuantity, int currentCartQuantity)
+            throws InventoryException {
+        int totalRequiredQuantity = currentCartQuantity + requestedQuantity;
+        
+        if (product.getQuantityInStock() < totalRequiredQuantity) {
+            logger.warn("Insufficient stock for product {} - Available: {}, In Cart: {}, Requested: {}, Total Required: {}",
+                       product.getProductId(), product.getQuantityInStock(), currentCartQuantity,
+                       requestedQuantity, totalRequiredQuantity);
+            
+            int availableToAdd = Math.max(0, product.getQuantityInStock() - currentCartQuantity);
+            
+            throw new InventoryException(String.format(
+                "Insufficient stock for %s. You have %d in cart, %d available in stock. You can add up to %d more items.",
+                product.getTitle(), currentCartQuantity, product.getQuantityInStock(), availableToAdd
+            ));
+        }
+    }
+
     @Override
     public Cart getCart(String cartSessionId) throws SQLException {
         if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
@@ -110,12 +135,8 @@ public class CartServiceImpl implements ICartService {
             throw new ResourceNotFoundException("Product with ID " + productId + " not found.");
         }
         
-        if (product.getQuantityInStock() < quantity) {
-            logger.warn("Insufficient stock for product {} - Available: {}, Requested: {}",
-                       productId, product.getQuantityInStock(), quantity);
-            throw new InventoryException("Insufficient stock for product " + product.getTitle() +
-                                        ". Available: " + product.getQuantityInStock() + ", Requested: " + quantity);
-        }
+        // Enhanced stock validation will be done after we determine if item exists in cart
+        // This prevents premature stock validation before considering existing cart quantities
 
         Cart cart = cartDAO.getBySessionId(cartSessionId);
         if (cart == null) {
@@ -135,21 +156,18 @@ public class CartServiceImpl implements ICartService {
 
         try {
             if (existingItem != null) {
+                // Use cart-aware stock validation for existing item update
+                validateStockAvailability(product, quantity, existingItem.getQuantity());
                 int newQuantity = existingItem.getQuantity() + quantity;
                 logger.info("Updating existing cart item - Product: {}, Old Quantity: {}, New Quantity: {}",
                            productId, existingItem.getQuantity(), newQuantity);
-                           
-                if (product.getQuantityInStock() < newQuantity) {
-                    logger.warn("Insufficient stock for updated quantity - Product: {}, Available: {}, Requested total: {}",
-                               productId, product.getQuantityInStock(), newQuantity);
-                    throw new InventoryException("Insufficient stock for product " + product.getTitle() +
-                                           ". Available: " + product.getQuantityInStock() +
-                                           ", Requested total: " + newQuantity);
-                }
+                
                 existingItem.setQuantity(newQuantity);
                 cartItemDAO.update(existingItem);
                 logger.info("Successfully updated cart item quantity");
             } else {
+                // Use cart-aware stock validation for new item (0 current quantity)
+                validateStockAvailability(product, quantity, 0);
                 logger.info("Adding new cart item - Cart Session: {}, Product: {}, Quantity: {}",
                            cartSessionId, productId, quantity);
                 CartItem newItem = new CartItem(cart, product, quantity);

@@ -1,5 +1,7 @@
 package com.aims.core.infrastructure.database;
 
+import com.aims.core.infrastructure.database.utils.DatabaseSchemaValidator;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -47,6 +49,13 @@ public class SQLiteConnector {
                 try (Statement stmt = this.connection.createStatement()) {
                     stmt.execute("PRAGMA foreign_keys = ON;");
                     // System.out.println("SQLiteConnector: PRAGMA foreign_keys = ON executed for " + dbUrlToUse);
+                }
+                
+                // Validate and repair schema after new connection
+                try {
+                    validateAndRepairSchema();
+                } catch (SQLException e) {
+                    System.err.println("SQLiteConnector: Schema validation failed, continuing with limited functionality: " + e.getMessage());
                 }
             } else {
                 // System.out.println("SQLiteConnector: Reusing existing connection to: " + this.currentDbUrl);
@@ -121,6 +130,27 @@ public class SQLiteConnector {
                 printSQLException(e);
                 this.currentDbUrl = "<error_getting_url>"; // Mark that URL couldn't be retrieved
             }
+        }
+    }
+
+    /**
+     * Validates the database schema and repairs it if necessary
+     * Specifically addresses the missing LP table issue that breaks search functionality
+     * @throws SQLException if schema validation or repair fails
+     */
+    public void validateAndRepairSchema() throws SQLException {
+        if (this.connection == null) {
+            throw new SQLException("No database connection available for schema validation");
+        }
+        
+        try {
+            if (!DatabaseSchemaValidator.validateSchema(this.connection)) {
+                System.out.println("SQLiteConnector: Schema issues detected, attempting repair...");
+                DatabaseSchemaValidator.repairSchema(this.connection);
+            }
+        } catch (SQLException e) {
+            System.err.println("SQLiteConnector: Schema validation/repair failed: " + e.getMessage());
+            throw e;
         }
     }
 

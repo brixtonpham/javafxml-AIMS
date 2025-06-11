@@ -97,6 +97,13 @@ public class PaymentProcessingScreenController {
     }
 
     /**
+     * Called from PaymentMethodScreenController to pass transaction data
+     */
+    public void setTransactionData(OrderEntity order, String aimsTransactionId) {
+        setPaymentData(order, aimsTransactionId, null);
+    }
+    
+    /**
      * Called from PaymentMethodScreenController or IPaymentService implementation
      * to pass data and the VNPay URL if applicable.
      */
@@ -221,36 +228,73 @@ public class PaymentProcessingScreenController {
         if (paymentStatusCheckTask != null && paymentStatusCheckTask.isRunning()) {
             paymentStatusCheckTask.cancel(true);
         }
-        // Update order status to PAYMENT_FAILED or CANCELLED if applicable
-        // if (currentOrder != null && orderService != null) {
-        //     try {
-        //         orderService.updateOrderStatus(currentOrder.getOrderId(), OrderStatus.PAYMENT_FAILED, currentOrder.getUserAccount() != null ? currentOrder.getUserAccount().getUserId() : "SYSTEM_CANCEL");
-        //     } catch (SQLException | ResourceNotFoundException | ValidationException e) {
-        //         // AlertHelper.showErrorAlert("Error", "Failed to update order status after cancellation: " + e.getMessage());
-        //         System.err.println("Failed to update order status for " + currentOrder.getOrderId() + " after payment cancel: " + e.getMessage());
-        //     }
-        // }
-        // Navigate back or to a payment failed screen
-        // if (sceneManager != null && mainLayoutController != null) {
-        //    mainLayoutController.loadContent(FXMLSceneManager.PAYMENT_RESULT_SCREEN); // Or cart screen
-        //    // Pass data to PaymentResultScreenController indicating cancellation
-        //    mainLayoutController.setHeaderTitle("Payment Cancelled");
-        // }
-        statusLabel.setText("Payment attempt cancelled.");
+        
+        // Navigate back to payment method screen so customer can try again
+        if (mainLayoutController != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_method_screen.fxml");
+                mainLayoutController.setHeaderTitle("Select Payment Method");
+                
+                // Pass order data back to payment method controller
+                if (controller instanceof PaymentMethodScreenController && currentOrder != null) {
+                    ((PaymentMethodScreenController) controller).setOrderData(currentOrder);
+                }
+                
+                System.out.println("Successfully navigated back to payment method selection after cancellation");
+            } catch (Exception e) {
+                System.err.println("Error navigating back to payment method: " + e.getMessage());
+                // Fallback: Navigate to order summary as alternative
+                try {
+                    Object summaryController = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
+                    mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
+                    
+                    if (summaryController instanceof OrderSummaryController && currentOrder != null) {
+                        ((OrderSummaryController) summaryController).setOrderData(currentOrder);
+                    }
+                    
+                    System.out.println("Fallback navigation to order summary successful");
+                } catch (Exception fallbackException) {
+                    System.err.println("Fallback navigation also failed: " + fallbackException.getMessage());
+                    statusLabel.setText("Payment cancelled. Please refresh to try again.");
+                }
+            }
+        } else {
+            System.err.println("MainLayoutController not available for cancel navigation");
+            statusLabel.setText("Payment cancelled. Please refresh to try again.");
+        }
+        
         progressIndicator.setVisible(false);
-        checkStatusButton.setVisible(false); // Hide manual check
+        checkStatusButton.setVisible(false);
     }
 
     private void navigateToPaymentResultScreen(boolean success, String message, Map<String, String> gatewayData) {
         System.out.println("Navigating to Payment Result Screen. Success: " + success + ", Message: " + message);
-        // if (sceneManager != null && mainLayoutController != null) {
-        //     PaymentResultScreenController resultCtrl = (PaymentResultScreenController) sceneManager.loadFXMLIntoPane(
-        //         mainLayoutController.getContentPane(), FXMLSceneManager.PAYMENT_RESULT_SCREEN
-        //     );
-        //     resultCtrl.setPaymentResult(currentOrder, success, message, gatewayData, aimsTransactionId);
-        //     resultCtrl.setMainLayoutController(mainLayoutController);
-        //     mainLayoutController.setHeaderTitle(success ? "Payment Successful" : "Payment Failed");
-        // }
+        
+        if (mainLayoutController != null) {
+            try {
+                Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_result_screen.fxml");
+                mainLayoutController.setHeaderTitle(success ? "Payment Successful" : "Payment Failed");
+                
+                // Pass payment result data to the result controller
+                if (controller instanceof PaymentResultScreenController) {
+                    ((PaymentResultScreenController) controller).setPaymentResult(currentOrder, success, message, gatewayData, aimsTransactionId);
+                }
+                
+                System.out.println("Successfully navigated to payment result screen");
+            } catch (Exception e) {
+                System.err.println("Error navigating to payment result screen: " + e.getMessage());
+                e.printStackTrace();
+                
+                // Fallback: Show error message on current screen
+                statusLabel.setText("Navigation error occurred. " + (success ? "Payment was successful" : "Payment failed") + ": " + message);
+                progressIndicator.setVisible(false);
+                checkStatusButton.setVisible(true);
+                cancelPaymentButton.setVisible(false);
+            }
+        } else {
+            System.err.println("MainLayoutController not available for navigation to payment result");
+            statusLabel.setText("System error: Cannot navigate to result screen. " + (success ? "Payment was successful" : "Payment failed"));
+        }
     }
 
     // private void handleVNPayCallback(Map<String, String> params) {

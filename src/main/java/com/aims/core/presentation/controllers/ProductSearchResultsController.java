@@ -183,7 +183,7 @@ public class ProductSearchResultsController {
                 return;
             }
 
-            // Create product cards
+            // Create product cards with dynamic sizing
             for (Product product : products) {
                 try {
                     FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/partials/product_card.fxml"));
@@ -199,6 +199,9 @@ public class ProductSearchResultsController {
                     cardController.setProductSearchResultsController(this);
                     cardController.setMainLayoutController(mainLayoutController); // Ensure card has main layout for fallback
 
+                    // Apply dynamic sizing based on screen dimensions
+                    applyDynamicCardSizing(productCardNode);
+
                     productFlowPane.getChildren().add(productCardNode);
 
                 } catch (IOException e) {
@@ -206,6 +209,9 @@ public class ProductSearchResultsController {
                     System.err.println("Error loading product card: " + e.getMessage());
                 }
             }
+            
+            // Apply responsive layout after all cards are loaded
+            javafx.application.Platform.runLater(() -> updateResponsiveLayout());
 
             updatePaginationControls(searchResult.totalPages(), (int) searchResult.totalResults());
 
@@ -357,5 +363,150 @@ public class ProductSearchResultsController {
         }
 
         loadSearchedProducts();
+    }
+
+    /**
+     * Apply dynamic sizing to product cards based on screen dimensions
+     */
+    private void applyDynamicCardSizing(Parent productCardNode) {
+        if (productFlowPane == null || productFlowPane.getScene() == null) {
+            return;
+        }
+        
+        try {
+            double containerWidth = productFlowPane.getWidth();
+            if (containerWidth <= 0 && productFlowPane.getScene() != null) {
+                containerWidth = productFlowPane.getScene().getWidth() - 100; // Account for margins
+            }
+            
+            if (containerWidth <= 0) {
+                containerWidth = 1200; // Default fallback width
+            }
+            
+            // Calculate optimal card dimensions
+            int columns = calculateOptimalColumns(containerWidth);
+            double availableWidth = containerWidth - 20; // Account for padding
+            double cardWidth = Math.max(280, (availableWidth - (columns - 1) * 10) / columns); // Account for gaps
+            
+            // Set preferred card dimensions
+            if (productCardNode instanceof javafx.scene.layout.VBox) {
+                javafx.scene.layout.VBox cardVBox = (javafx.scene.layout.VBox) productCardNode;
+                cardVBox.setPrefWidth(cardWidth);
+                cardVBox.setMaxWidth(cardWidth + 100); // Allow some flexibility
+                
+                // Scale card height proportionally
+                double cardHeight = Math.max(350, cardWidth * 1.3);
+                cardVBox.setPrefHeight(cardHeight);
+                cardVBox.setMaxHeight(cardHeight + 50);
+                
+                System.out.println("ProductSearchResultsController: Applied card size " + cardWidth + "x" + cardHeight + " for " + columns + " columns");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ProductSearchResultsController.applyDynamicCardSizing: Error applying dynamic sizing: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Update responsive layout for the entire product grid
+     */
+    private void updateResponsiveLayout() {
+        if (productFlowPane == null || productFlowPane.getScene() == null) {
+            return;
+        }
+        
+        try {
+            double containerWidth = productFlowPane.getScene().getWidth();
+            double containerHeight = productFlowPane.getScene().getHeight();
+            
+            System.out.println("ProductSearchResultsController.updateResponsiveLayout: Container size " + containerWidth + "x" + containerHeight);
+            
+            // Calculate optimal gap spacing based on screen size
+            double gap = containerWidth >= 2560 ? 8 :
+                        containerWidth >= 1920 ? 6 :
+                        containerWidth >= 1440 ? 5 :
+                        containerWidth >= 1024 ? 4 : 3;
+            
+            productFlowPane.setHgap(gap);
+            productFlowPane.setVgap(gap);
+            
+            // Update responsive style classes
+            updateResponsiveStyleClasses(containerWidth);
+            
+            // Re-apply sizing to all existing cards
+            for (javafx.scene.Node child : productFlowPane.getChildren()) {
+                if (child instanceof Parent) {
+                    applyDynamicCardSizing((Parent) child);
+                }
+            }
+            
+            System.out.println("ProductSearchResultsController.updateResponsiveLayout: Applied gap " + gap + "px for width " + containerWidth);
+            
+        } catch (Exception e) {
+            System.err.println("ProductSearchResultsController.updateResponsiveLayout: Error updating responsive layout: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Calculate optimal column count based on container width
+     */
+    private int calculateOptimalColumns(double width) {
+        if (width >= 2560) {
+            return 5; // Ultra-wide (5 columns)
+        } else if (width >= 1920) {
+            return 4; // Large Desktop (4 columns)
+        } else if (width >= 1440) {
+            return 4; // Desktop (4 columns)
+        } else if (width >= 1024) {
+            return 3; // Laptop (3 columns)
+        } else if (width >= 768) {
+            return 2; // Tablet (2 columns)
+        } else {
+            return 1; // Mobile (1 column)
+        }
+    }
+    
+    /**
+     * Update responsive style classes based on container width
+     */
+    private void updateResponsiveStyleClasses(double width) {
+        if (productFlowPane == null) {
+            return;
+        }
+        
+        // Remove existing responsive classes
+        productFlowPane.getStyleClass().removeIf(styleClass ->
+            styleClass.startsWith("responsive-") && (
+                styleClass.contains("mobile") ||
+                styleClass.contains("tablet") ||
+                styleClass.contains("desktop") ||
+                styleClass.contains("ultrawide")
+            )
+        );
+        
+        // Add appropriate responsive class
+        String responsiveClass = getResponsiveClassForWidth(width);
+        if (!productFlowPane.getStyleClass().contains(responsiveClass)) {
+            productFlowPane.getStyleClass().add(responsiveClass);
+        }
+    }
+    
+    /**
+     * Get the responsive CSS class for the given width
+     */
+    private String getResponsiveClassForWidth(double width) {
+        if (width >= 2560) {
+            return "responsive-ultrawide";
+        } else if (width >= 1920) {
+            return "responsive-large-desktop";
+        } else if (width >= 1440) {
+            return "responsive-desktop";
+        } else if (width >= 1024) {
+            return "responsive-laptop";
+        } else if (width >= 768) {
+            return "responsive-tablet";
+        } else {
+            return "responsive-mobile";
+        }
     }
 }

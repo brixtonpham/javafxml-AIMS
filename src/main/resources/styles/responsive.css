@@ -1,0 +1,263 @@
+/* =====================================================
+   AIMS RESPONSIVE FULLSCREEN PRODUCT GALLERY CSS
+   =====================================================
+   This CSS implements dynamic fullscreen product layouts
+   that scale cards to fill the entire available space
+   with minimal gaps and maximum space utilization.
+   ===================================================== */
+
+/* ====================
+   PRODUCT CARD RESPONSIVE SIZING
+   ==================== */
+
+/* Base responsive product card - expands to fill available width */
+.responsive-product-card-compact {
+    /* Dynamic width based on container size */
+    -fx-min-width: 280px;
+    -fx-pref-width: -1;        /* Allow expansion */
+    -fx-max-width: -1;         /* No width restriction */
+    
+    /* Height scales proportionally */
+    -fx-min-height: 320px;
+    -fx-pref-height: -1;
+    -fx-max-height: -1;
+    
+    /* Minimal internal spacing */
+    -fx-spacing: 8px;
+    -fx-padding: 8px;
+    
+    /* Visual styling */
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e1e8ed;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 4, 0, 0, 2);
+}
+
+.responsive-product-card-compact:hover {
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.2), 8, 0, 0, 4);
+    -fx-cursor: hand;
+}
+
+/* ====================
+   DYNAMIC IMAGE SIZING
+   ==================== */
+
+/* Product images scale with card size */
+.product-image {
+    /* Fill most of the card width/height */
+    -fx-fit-width: -1;         /* Scale with container */
+    -fx-fit-height: -1;        /* Scale with container */
+    -fx-preserve-ratio: true;
+    
+    /* Ensure proper scaling */
+    -fx-smooth: true;
+    
+    /* Maximum size constraints for very large screens */
+    -fx-max-width: 400px;
+    -fx-max-height: 400px;
+}
+
+/* ====================
+   FULLSCREEN LAYOUT CONTAINERS
+   ==================== */
+
+/* Main layout containers fill entire screen */
+.main-border-pane {
+    -fx-background-color: #f8f9fa;
+    -fx-padding: 0px;          /* Minimize edge padding */
+}
+
+.main-layout {
+    -fx-background-color: #f8f9fa;
+    -fx-padding: 0px;          /* Minimize edge padding */
+}
+
+/* Content areas expand to fill space */
+.content-area {
+    -fx-background-color: transparent;
+    -fx-padding: 2px;          /* Minimal padding */
+}
+
+/* Scroll panes fill available space */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0px;
+    
+    /* Remove scroll pane borders */
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
+/* ====================
+   RESPONSIVE BREAKPOINTS
+   ==================== */
+
+/* Large Desktop (1920px+) - Bigger cards, 3-4 columns */
+@media screen and (min-width: 1920px) {
+    .responsive-product-card-compact {
+        -fx-min-width: 450px;
+        -fx-pref-width: 500px;
+        -fx-min-height: 480px;
+    }
+    
+    .product-image {
+        -fx-max-width: 450px;
+        -fx-max-height: 450px;
+    }
+}
+
+/* Standard Desktop (1440px-1919px) - Medium cards, 3-4 columns */
+@media screen and (min-width: 1440px) and (max-width: 1919px) {
+    .responsive-product-card-compact {
+        -fx-min-width: 350px;
+        -fx-pref-width: 400px;
+        -fx-min-height: 420px;
+    }
+    
+    .product-image {
+        -fx-max-width: 380px;
+        -fx-max-height: 380px;
+    }
+}
+
+/* Laptop (1024px-1439px) - Standard cards, 3 columns */
+@media screen and (min-width: 1024px) and (max-width: 1439px) {
+    .responsive-product-card-compact {
+        -fx-min-width: 320px;
+        -fx-pref-width: 350px;
+        -fx-min-height: 380px;
+    }
+    
+    .product-image {
+        -fx-max-width: 320px;
+        -fx-max-height: 320px;
+    }
+}
+
+/* Ultra-wide (2560px+) - Maximum cards, 4-5 columns */
+@media screen and (min-width: 2560px) {
+    .responsive-product-card-compact {
+        -fx-min-width: 500px;
+        -fx-pref-width: 600px;
+        -fx-min-height: 520px;
+    }
+    
+    .product-image {
+        -fx-max-width: 550px;
+        -fx-max-height: 550px;
+    }
+}
+
+/* ====================
+   TEXT SCALING
+   ==================== */
+
+/* Product titles scale with card size */
+.product-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-text-alignment: center;
+    -fx-wrap-text: true;
+    -fx-max-width: -1;         /* Fill available width */
+}
+
+/* Scale text for larger screens */
+@media screen and (min-width: 1920px) {
+    .product-title {
+        -fx-font-size: 16px;
+    }
+}
+
+@media screen and (min-width: 2560px) {
+    .product-title {
+        -fx-font-size: 18px;
+    }
+}
+
+/* Product prices scale proportionally */
+.product-price {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e74c3c;
+    -fx-text-alignment: center;
+}
+
+@media screen and (min-width: 1920px) {
+    .product-price {
+        -fx-font-size: 17px;
+    }
+}
+
+@media screen and (min-width: 2560px) {
+    .product-price {
+        -fx-font-size: 19px;
+    }
+}
+
+/* ====================
+   BUTTON SCALING
+   ==================== */
+
+/* Add to cart buttons scale with card */
+.add-to-cart-button {
+    -fx-min-width: 120px;
+    -fx-pref-width: -1;        /* Fill available width */
+    -fx-max-width: -1;
+    -fx-font-size: 12px;
+    -fx-padding: 8px 16px;
+}
+
+@media screen and (min-width: 1920px) {
+    .add-to-cart-button {
+        -fx-min-width: 140px;
+        -fx-font-size: 14px;
+        -fx-padding: 10px 20px;
+    }
+}
+
+@media screen and (min-width: 2560px) {
+    .add-to-cart-button {
+        -fx-min-width: 160px;
+        -fx-font-size: 15px;
+        -fx-padding: 12px 24px;
+    }
+}
+
+/* ====================
+   UTILITY CLASSES
+   ==================== */
+
+/* Center content with minimal spacing */
+.center-content {
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* Remove all unnecessary spacing */
+.no-padding {
+    -fx-padding: 0px;
+}
+
+.minimal-padding {
+    -fx-padding: 2px;
+}
+
+/* Fullscreen expansion */
+.fullscreen-expand {
+    -fx-max-width: -1;
+    -fx-max-height: -1;
+    -fx-pref-width: -1;
+    -fx-pref-height: -1;
+}

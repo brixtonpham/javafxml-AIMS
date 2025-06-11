@@ -301,6 +301,9 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                     cardController.setMainLayoutController(mainLayoutController);
                 }
                 
+                // Apply dynamic sizing based on screen dimensions
+                applyDynamicCardSizing(cardNode);
+                
                 // Add to flow pane
                 productFlowPane.getChildren().add(cardNode);
                 
@@ -308,6 +311,13 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                 System.err.println("Error loading product card for: " + product.getTitle() + " - " + e.getMessage());
             }
         }
+        
+        // Apply responsive layout after all cards are loaded
+        javafx.application.Platform.runLater(() -> {
+            if (productFlowPane != null && productFlowPane.getScene() != null) {
+                updateResponsiveLayout(productFlowPane.getScene().getWidth(), productFlowPane.getScene().getHeight());
+            }
+        });
         
         System.out.println("HomeScreenController.populateProductCards: Successfully loaded " + productFlowPane.getChildren().size() + " product cards");
     }
@@ -774,6 +784,48 @@ public class HomeScreenController implements MainLayoutController.IChildControll
             return "responsive-large-desktop";
         } else {
             return "responsive-ultrawide";
+        }
+    }
+    
+    /**
+     * Apply dynamic sizing to product cards based on screen dimensions
+     */
+    private void applyDynamicCardSizing(Parent productCardNode) {
+        if (productFlowPane == null || productFlowPane.getScene() == null) {
+            return;
+        }
+        
+        try {
+            double containerWidth = productFlowPane.getWidth();
+            if (containerWidth <= 0 && productFlowPane.getScene() != null) {
+                containerWidth = productFlowPane.getScene().getWidth() - 100; // Account for margins
+            }
+            
+            if (containerWidth <= 0) {
+                containerWidth = 1200; // Default fallback width
+            }
+            
+            // Calculate optimal card dimensions using the existing method
+            int columns = calculateOptimalColumns(containerWidth);
+            double availableWidth = containerWidth - 20; // Account for padding
+            double cardWidth = Math.max(280, (availableWidth - (columns - 1) * 10) / columns); // Account for gaps
+            
+            // Set preferred card dimensions
+            if (productCardNode instanceof javafx.scene.layout.VBox) {
+                javafx.scene.layout.VBox cardVBox = (javafx.scene.layout.VBox) productCardNode;
+                cardVBox.setPrefWidth(cardWidth);
+                cardVBox.setMaxWidth(cardWidth + 100); // Allow some flexibility
+                
+                // Scale card height proportionally
+                double cardHeight = Math.max(350, cardWidth * 1.3);
+                cardVBox.setPrefHeight(cardHeight);
+                cardVBox.setMaxHeight(cardHeight + 50);
+                
+                System.out.println("HomeScreenController: Applied card size " + cardWidth + "x" + cardHeight + " for " + columns + " columns");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("HomeScreenController.applyDynamicCardSizing: Error applying dynamic sizing: " + e.getMessage());
         }
     }
 }

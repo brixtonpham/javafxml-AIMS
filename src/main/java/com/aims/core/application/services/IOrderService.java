@@ -1,6 +1,7 @@
 package com.aims.core.application.services;
 
 import com.aims.core.entities.OrderEntity;
+import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.DeliveryInfo; // Assuming direct use, or DTOs
 import com.aims.core.entities.PaymentTransaction; // For returning payment result details
 import com.aims.core.enums.OrderStatus;
@@ -66,6 +67,19 @@ public interface IOrderService {
      * @throws ValidationException If data required for calculation is missing or invalid.
      */
     float calculateShippingFee(String orderId, DeliveryInfo deliveryInfo, boolean isRushOrder) throws SQLException, ResourceNotFoundException, ValidationException;
+
+    /**
+     * Calculates shipping fee for preview without modifying order state.
+     * Used for real-time calculation in delivery info screen.
+     *
+     * @param items The list of order items to calculate shipping for.
+     * @param deliveryInfo The delivery information for calculation.
+     * @param isRushOrder Whether rush order fees should be considered.
+     * @return The calculated shipping fee.
+     * @throws ValidationException If data required for calculation is missing or invalid.
+     */
+    float calculateShippingFeePreview(List<OrderItem> items, DeliveryInfo deliveryInfo, boolean isRushOrder)
+        throws ValidationException;
 
     /**
      * Processes the payment for a confirmed order.

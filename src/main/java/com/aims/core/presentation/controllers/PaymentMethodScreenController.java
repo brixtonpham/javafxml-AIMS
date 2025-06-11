@@ -105,10 +105,10 @@ public class PaymentMethodScreenController {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
                 mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
                 
-                // TODO: Pass order data to summary controller when setOrderData method is available
-                // if (controller instanceof OrderSummaryController) {
-                //     ((OrderSummaryController) controller).setOrderData(currentOrder);
-                // }
+                // Pass order data to summary controller
+                if (controller instanceof OrderSummaryController) {
+                    ((OrderSummaryController) controller).setOrderData(currentOrder);
+                }
                 
                 System.out.println("Successfully navigated back to order summary");
             } catch (Exception e) {
@@ -203,14 +203,20 @@ public class PaymentMethodScreenController {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_processing_screen.fxml");
                 mainLayoutController.setHeaderTitle("Processing Payment...");
                 
-                // TODO: Pass transaction data to processing controller when setTransactionData method is available
-                // if (controller instanceof PaymentProcessingScreenController) {
-                //     ((PaymentProcessingScreenController) controller).setTransactionData(currentOrder, aimsTransactionId);
-                // }
+                // Pass transaction data to processing controller
+                if (controller instanceof PaymentProcessingScreenController) {
+                    PaymentProcessingScreenController processingController = (PaymentProcessingScreenController) controller;
+                    processingController.setMainLayoutController(mainLayoutController);
+                    processingController.setTransactionData(currentOrder, aimsTransactionId);
+                    System.out.println("Transaction data passed to processing controller successfully");
+                } else {
+                    System.err.println("Warning: Loaded controller is not PaymentProcessingScreenController");
+                }
                 
                 System.out.println("Successfully navigated to payment processing screen");
             } catch (Exception e) {
                 System.err.println("Error navigating to payment processing: " + e.getMessage());
+                e.printStackTrace();
                 setErrorMessage("Navigation error. Please try again.", true);
             }
         } else {

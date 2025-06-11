@@ -197,6 +197,26 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
+    public float calculateShippingFeePreview(List<OrderItem> items, DeliveryInfo deliveryInfo, boolean isRushOrder)
+            throws ValidationException {
+        // Validate input parameters
+        if (items == null || items.isEmpty()) {
+            throw new ValidationException("Order items are required for shipping calculation.");
+        }
+        if (deliveryInfo == null) {
+            throw new ValidationException("Delivery information is required for shipping calculation.");
+        }
+        
+        // Create temporary order for calculation without persisting
+        OrderEntity tempOrder = new OrderEntity();
+        tempOrder.setOrderItems(items);
+        tempOrder.setDeliveryInfo(deliveryInfo);
+        
+        // Calculate using the delivery calculation service
+        return deliveryCalculationService.calculateShippingFee(tempOrder, isRushOrder);
+    }
+
+    @Override
     public OrderEntity processPayment(String orderId, String paymentMethodId /*, PaymentDetailsDTO paymentDetails */)
             throws SQLException, ResourceNotFoundException, ValidationException, PaymentException, InventoryException {
         // // START TRANSACTION
@@ -244,7 +264,7 @@ public class OrderServiceImpl implements IOrderService {
             try {
                 // Using productService for stock update which might have additional logic
                 productService.updateProductStock(item.getProduct().getProductId(), -item.getQuantity());
-            } catch (ValidationException | ResourceNotFoundException e) {
+            } catch (ValidationException | ResourceNotFoundException | InventoryException e) {
                 // For now, log and potentially set order to a special error state.
                 System.err.println("CRITICAL: Payment succeeded for order " + orderId + " but failed to update stock for product " + item.getProduct().getProductId() + ". Reason: " + e.getMessage());
                 order.setOrderStatus(OrderStatus.PAYMENT_FAILED); // Or a more specific error status like ERROR_STOCK_UPDATE_FAILED
@@ -337,7 +357,7 @@ public class OrderServiceImpl implements IOrderService {
         for (OrderItem item : order.getOrderItems()) {
             try {
                 productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity()); // Add back
-            } catch (ValidationException | ResourceNotFoundException e) {
+            } catch (ValidationException | ResourceNotFoundException | InventoryException e) {
                 // Log this issue, as refund might have been processed
                 System.err.println("Warning: Order " + orderId + " cancelled, but failed to restore stock for product " + item.getProduct().getProductId() + ". Reason: " + e.getMessage());
             }

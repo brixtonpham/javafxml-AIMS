@@ -32,7 +32,12 @@ public class CartItemDTO {
     public void setTitle(String title) { this.title = title; }
 
     public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+        // CRITICAL FIX: Recalculate dependent fields when quantity changes
+        this.totalPriceExclVAT = this.unitPriceExclVAT * quantity;
+        this.stockSufficient = quantity <= availableStock;
+    }
 
     public float getUnitPriceExclVAT() { return unitPriceExclVAT; }
     public void setUnitPriceExclVAT(float unitPriceExclVAT) { this.unitPriceExclVAT = unitPriceExclVAT; }

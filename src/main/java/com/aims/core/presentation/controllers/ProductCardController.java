@@ -3,6 +3,9 @@ package com.aims.core.presentation.controllers;
 import com.aims.core.entities.Product;
 import com.aims.core.application.services.ICartService;
 import com.aims.core.presentation.utils.CartSessionManager;
+import com.aims.core.presentation.utils.StockLimitDialog;
+import com.aims.core.entities.Cart;
+import com.aims.core.entities.CartItem;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager; // For navigation
 // import com.aims.MainLayoutController; // To navigate
@@ -109,12 +112,19 @@ public class ProductCardController {
 
         updateAddToCartButtonState();
 
-        // Load image
+        // Load image with responsive sizing
+        loadProductImage();
+        
+        // Set up responsive image sizing after card is fully initialized
+        javafx.application.Platform.runLater(() -> updateImageSizeForCard());
+    }
+
+    /**
+     * Load product image with proper error handling and responsive sizing
+     */
+    private void loadProductImage() {
         if (product.getImageUrl() != null && !product.getImageUrl().trim().isEmpty()) {
             try {
-                // Giả sử getImageUrl() trả về một URL hợp lệ hoặc đường dẫn file resource
-                // Nếu là URL từ web: new Image(product.getImageUrl(), true) // true for background loading
-                // Nếu là resource trong project: new Image(getClass().getResourceAsStream(product.getImageUrl()))
                 Image image = new Image(product.getImageUrl(), true); // true for background loading
                 productImageView.setImage(image);
             } catch (Exception e) {
@@ -125,7 +135,7 @@ public class ProductCardController {
             loadPlaceholderImage();
         }
     }
-
+    
     private void loadPlaceholderImage() {
         try {
             // The path "/assets/images/product_placeholder.png" assumes 'assets' is a root classpath directory.
@@ -157,6 +167,47 @@ public class ProductCardController {
             // e.printStackTrace(); // For more detailed debugging if needed during development
         }
     }
+    
+    /**
+     * Update image size to scale with the card size for fullscreen responsiveness
+     */
+    private void updateImageSizeForCard() {
+        if (productCardVBox == null || productImageView == null) {
+            return;
+        }
+        
+        try {
+            double cardWidth = productCardVBox.getWidth();
+            double cardHeight = productCardVBox.getHeight();
+            
+            // If card dimensions are not set yet, use preferred width
+            if (cardWidth <= 0) {
+                cardWidth = productCardVBox.getPrefWidth();
+            }
+            if (cardHeight <= 0) {
+                cardHeight = productCardVBox.getPrefHeight();
+            }
+            
+            // Default fallback dimensions
+            if (cardWidth <= 0) cardWidth = 280;
+            if (cardHeight <= 0) cardHeight = 350;
+            
+            // Calculate optimal image size (roughly 60-70% of card width for good proportion)
+            double imageSize = Math.min(cardWidth * 0.7, cardHeight * 0.5);
+            imageSize = Math.max(imageSize, 150); // Minimum size
+            imageSize = Math.min(imageSize, 400); // Maximum size to prevent oversized images
+            
+            productImageView.setFitWidth(imageSize);
+            productImageView.setFitHeight(imageSize);
+            productImageView.setPreserveRatio(true);
+            productImageView.setSmooth(true);
+            
+            System.out.println("ProductCardController: Updated image size to " + imageSize + "x" + imageSize + " for card " + cardWidth + "x" + cardHeight);
+            
+        } catch (Exception e) {
+            System.err.println("ProductCardController.updateImageSizeForCard: Error updating image size: " + e.getMessage());
+        }
+    }
 
     private void updateAddToCartButtonState() {
         if (product.getQuantityInStock() <= 0) {
@@ -169,6 +220,35 @@ public class ProductCardController {
             addToCartButton.setDisable(false);
             productAvailabilityLabel.setText("Available: " + product.getQuantityInStock());
             productAvailabilityLabel.setStyle(""); // Reset style
+        }
+    }
+
+    /**
+     * Performs client-side cart validation before adding item to cart
+     */
+    private void performCartValidation(Product product, ICartService cartService, String cartSessionId)
+            throws SQLException, InventoryException {
+        
+        // Get current cart to check existing quantity
+        Cart currentCart = cartService.getCart(cartSessionId);
+        int currentQuantityInCart = 0;
+        
+        if (currentCart != null && currentCart.getItems() != null) {
+            for (CartItem item : currentCart.getItems()) {
+                if (item.getProduct().getProductId().equals(product.getProductId())) {
+                    currentQuantityInCart = item.getQuantity();
+                    break;
+                }
+            }
+        }
+        
+        // Check if we can add one more item
+        int availableToAdd = product.getQuantityInStock() - currentQuantityInCart;
+        if (availableToAdd <= 0) {
+            throw new InventoryException(String.format(
+                "Cannot add more %s to cart. You already have %d items (maximum available: %d)",
+                product.getTitle(), currentQuantityInCart, product.getQuantityInStock()
+            ));
         }
     }
 
@@ -200,6 +280,10 @@ public class ProductCardController {
         try {
             // Generate or get session ID using centralized session manager
             String currentCartSessionId = CartSessionManager.getOrCreateCartSessionId();
+            
+            // Perform client-side validation first
+            performCartValidation(product, cartService, currentCartSessionId);
+            
             cartService.addItemToCart(currentCartSessionId, product.getProductId(), 1);
             
             // Success feedback
@@ -226,8 +310,7 @@ public class ProductCardController {
             showErrorFeedback("Invalid request. Please try again.");
         } catch (InventoryException e) {
             System.err.println("Inventory error: " + e.getMessage());
-            updateOutOfStockState();
-            showErrorFeedback("Product is out of stock.");
+            handleInventoryException(e);
         } catch (Exception e) {
             System.err.println("Unexpected error adding to cart: " + e.getMessage());
             showErrorFeedback("An error occurred. Please try again.");
@@ -298,6 +381,44 @@ public class ProductCardController {
             }
         };
         new Thread(resetTask).start();
+    }
+
+    private void handleInventoryException(InventoryException e) {
+        String message = e.getMessage();
+        if (message.contains("Insufficient stock")) {
+            // Parse error message or use current product state for enhanced dialog
+            try {
+                String currentCartSessionId = CartSessionManager.getOrCreateCartSessionId();
+                Cart currentCart = cartService.getCart(currentCartSessionId);
+                int currentQuantityInCart = 0;
+                
+                if (currentCart != null && currentCart.getItems() != null) {
+                    for (CartItem item : currentCart.getItems()) {
+                        if (item.getProduct().getProductId().equals(product.getProductId())) {
+                            currentQuantityInCart = item.getQuantity();
+                            break;
+                        }
+                    }
+                }
+                
+                int availableToAdd = Math.max(0, product.getQuantityInStock() - currentQuantityInCart);
+                
+                if (product.getQuantityInStock() <= 0) {
+                    StockLimitDialog.showOutOfStockWarning(product.getTitle());
+                    updateOutOfStockState();
+                } else {
+                    StockLimitDialog.showStockLimitWarning(product.getTitle(), currentQuantityInCart,
+                                                         product.getQuantityInStock(), availableToAdd);
+                }
+            } catch (Exception ex) {
+                // Fallback to simple error message
+                showErrorFeedback("Cannot add more items to cart. Stock limit reached.");
+            }
+        } else {
+            // Generic inventory error
+            updateOutOfStockState();
+            showErrorFeedback("Product is out of stock.");
+        }
     }
 
     private void showErrorFeedback(String message) {
