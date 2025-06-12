@@ -218,9 +218,9 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void updateProductStock_success() throws SQLException, ValidationException, ResourceNotFoundException {
+    void updateProductStock_success() throws SQLException, ValidationException, ResourceNotFoundException, com.aims.core.shared.exceptions.InventoryException {
         when(productDAO.getById(sampleBook.getProductId())).thenReturn(sampleBook);
-        // Mock the behavior of productDAO.updateStock to reflect the stock change on the sampleBook object
+        // Mock the behavior of productDAO.updateStockWithVersion to reflect the stock change on the sampleBook object
         // This is important because the service method might return the same object instance or a new one
         // depending on its implementation, but we want to ensure our assertion uses the *updated* state.
         doAnswer(invocation -> {
@@ -230,7 +230,7 @@ class ProductServiceImplTest {
                 sampleBook.setQuantityInStock(newQuantity);
             }
             return null;
-        }).when(productDAO).updateStock(anyString(), anyInt());
+        }).when(productDAO).updateStockWithVersion(anyString(), anyInt(), anyLong());
 
         int initialStock = sampleBook.getQuantityInStock(); // e.g. 10
         int quantityChange = 5;
@@ -240,11 +240,11 @@ class ProductServiceImplTest {
         // The expected stock is the initial stock plus the change.
         assertEquals(initialStock + quantityChange, updatedProduct.getQuantityInStock());
         // Verify that the DAO was called to update the stock to the new correct value.
-        verify(productDAO, times(1)).updateStock(sampleBook.getProductId(), initialStock + quantityChange);
+        verify(productDAO, times(1)).updateStockWithVersion(sampleBook.getProductId(), initialStock + quantityChange, anyLong());
     }
 
     @Test
-    void updateProductStock_negativeResult_throwsValidationException() throws SQLException {
+    void updateProductStock_negativeResult_throwsValidationException() throws SQLException, com.aims.core.shared.exceptions.InventoryException {
         when(productDAO.getById(sampleBook.getProductId())).thenReturn(sampleBook);
         int quantityChange = -20; // Current stock is 10
         assertThrows(ValidationException.class, () -> productService.updateProductStock(sampleBook.getProductId(), quantityChange));

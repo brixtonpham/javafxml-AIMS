@@ -12,6 +12,7 @@ import com.aims.core.infrastructure.database.dao.IUserAccountDAO; // For fetchin
 import com.aims.core.shared.exceptions.ValidationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
 import com.aims.core.shared.exceptions.InventoryException; // For stock issues
+import com.aims.core.presentation.utils.ProductStateManager; // For state management
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,6 +181,21 @@ public class CartServiceImpl implements ICartService {
             cartDAO.saveOrUpdate(cart); // Update lastUpdated timestamp
             logger.info("Cart successfully updated for session: {}", cartSessionId);
 
+            // CRITICAL FIX: Notify ProductStateManager of product state changes
+            try {
+                Product updatedProduct = productDAO.getById(productId);
+                if (updatedProduct != null) {
+                    ProductStateManager.updateProduct(updatedProduct);
+                    logger.info("Updated product state for {} - Current stock: {}",
+                               productId, updatedProduct.getQuantityInStock());
+                } else {
+                    logger.warn("Could not refresh product state for {} - product not found", productId);
+                }
+            } catch (SQLException e) {
+                logger.error("Error refreshing product state for {}: {}", productId, e.getMessage());
+                // Don't fail the cart operation due to state management issues
+            }
+
             return getCart(cart.getCartSessionId()); // Return the refreshed cart
         } catch (SQLException e) {
             logger.error("Database error while adding item to cart - Session: {}, Product: {}, Error: {}",
@@ -216,6 +232,19 @@ public class CartServiceImpl implements ICartService {
         cart.getItems().remove(itemToRemove); // Remove from in-memory list
         cart.setLastUpdated(LocalDateTime.now());
         cartDAO.saveOrUpdate(cart);
+
+        // CRITICAL FIX: Notify ProductStateManager of product state changes
+        try {
+            Product updatedProduct = productDAO.getById(productId);
+            if (updatedProduct != null) {
+                ProductStateManager.updateProduct(updatedProduct);
+                logger.info("Updated product state for {} after removal - Current stock: {}",
+                           productId, updatedProduct.getQuantityInStock());
+            }
+        } catch (SQLException e) {
+            logger.error("Error refreshing product state for {}: {}", productId, e.getMessage());
+            // Don't fail the cart operation due to state management issues
+        }
 
         return getCart(cartSessionId);
     }
@@ -262,6 +291,19 @@ public class CartServiceImpl implements ICartService {
         cartItemDAO.update(itemToUpdate);
         cart.setLastUpdated(LocalDateTime.now());
         cartDAO.saveOrUpdate(cart);
+
+        // CRITICAL FIX: Notify ProductStateManager of product state changes
+        try {
+            Product updatedProduct = productDAO.getById(productId);
+            if (updatedProduct != null) {
+                ProductStateManager.updateProduct(updatedProduct);
+                logger.info("Updated product state for {} after quantity change - Current stock: {}",
+                           productId, updatedProduct.getQuantityInStock());
+            }
+        } catch (SQLException e) {
+            logger.error("Error refreshing product state for {}: {}", productId, e.getMessage());
+            // Don't fail the cart operation due to state management issues
+        }
 
         return getCart(cartSessionId);
     }

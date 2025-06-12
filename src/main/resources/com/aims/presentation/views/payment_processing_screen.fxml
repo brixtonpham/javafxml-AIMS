@@ -2,10 +2,12 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.web.WebView?>
 
 <BorderPane fx:id="paymentProcessingPane" prefHeight="-1.0" prefWidth="-1.0" minHeight="800.0" minWidth="1800.0" styleClass="main-layout" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentProcessingScreenController">
     <padding>
@@ -25,6 +27,19 @@
             <Label fx:id="instructionLabel" text="You might be redirected to VNPay's website. Do not close this window or navigate away unless instructed." styleClass="pagination-label" wrapText="true" textAlignment="CENTER"/>
             <Label fx:id="transactionRefLabel" text="Your AIMS Transaction ID: N/A" styleClass="form-input"/>
 
+            <!-- Manual URL controls for fallback -->
+            <Hyperlink fx:id="manualUrlLink" text="Click here to open payment page" styleClass="link" visible="false" managed="false">
+                <VBox.margin>
+                    <Insets top="10.0" />
+                </VBox.margin>
+            </Hyperlink>
+            
+            <Button fx:id="copyUrlButton" text="Copy Payment URL" styleClass="secondary-button" onAction="#handleCopyUrlAction" visible="false" managed="false">
+                <VBox.margin>
+                    <Insets top="5.0" />
+                </VBox.margin>
+            </Button>
+
             <Button fx:id="checkStatusButton" text="Check Payment Status Manually" styleClass="secondary-button" onAction="#handleCheckStatusAction" visible="false" managed="false">
                 <VBox.margin>
                     <Insets top="20.0" />
@@ -35,6 +50,13 @@
                     <Insets top="10.0" />
                 </VBox.margin>
             </Button>
+            
+            <!-- WebView for embedded payment (optional) -->
+            <WebView fx:id="vnPayWebView" prefHeight="600.0" prefWidth="800.0" visible="false" managed="false">
+                <VBox.margin>
+                    <Insets top="20.0" />
+                </VBox.margin>
+            </WebView>
         </VBox>
     </center>
 </BorderPane>

@@ -30,7 +30,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeliveryInfoScreenController {
+public class DeliveryInfoScreenController implements MainLayoutController.IChildController {
 
     @FXML
     private TextField nameField;
@@ -88,8 +88,10 @@ public class DeliveryInfoScreenController {
         // deliveryService = new DeliveryCalculationServiceImpl(...);
     }
 
+    @Override
     public void setMainLayoutController(MainLayoutController mainLayoutController) {
         this.mainLayoutController = mainLayoutController;
+        System.out.println("DeliveryInfoScreenController.setMainLayoutController: MainLayoutController injected successfully");
     }
     
     public void setOrderService(IOrderService orderService) {
@@ -443,39 +445,156 @@ public class DeliveryInfoScreenController {
 
     @FXML
     void handleProceedToPaymentAction(ActionEvent event) {
-        if (currentOrder == null || orderService == null) {
-            AlertHelper.showErrorDialog("Error", "Order Data Missing", "Order data is missing. Cannot proceed.");
+        // CRITICAL: Enhanced validation for MainLayoutController injection
+        if (mainLayoutController == null) {
+            System.err.println("CRITICAL_INJECTION_ERROR: MainLayoutController is null in DeliveryInfoScreenController");
+            System.err.println("This indicates a service injection failure that must be resolved immediately");
+            AlertHelper.showErrorDialog(
+                "System Error",
+                "Navigation Controller Missing",
+                "A critical system component is missing. Please refresh the page and try again.\n\nIf this error persists, please contact support."
+            );
+            
+            // Attempt emergency recovery
+            try {
+                com.aims.core.presentation.utils.FXMLSceneManager sceneManager =
+                    com.aims.core.presentation.utils.FXMLSceneManager.getInstance();
+                if (sceneManager != null) {
+                    this.mainLayoutController = sceneManager.getMainLayoutController();
+                    if (this.mainLayoutController != null) {
+                        System.out.println("RECOVERY_SUCCESS: MainLayoutController recovered from SceneManager");
+                    } else {
+                        System.err.println("RECOVERY_FAILED: SceneManager available but MainLayoutController is null");
+                    }
+                } else {
+                    System.err.println("RECOVERY_FAILED: Cannot recover MainLayoutController - SceneManager unavailable");
+                }
+            } catch (Exception e) {
+                System.err.println("RECOVERY_FAILED: Exception during MainLayoutController recovery: " + e.getMessage());
+            }
+            
+            // If recovery failed, stop processing
+            if (mainLayoutController == null) {
+                setErrorMessage("Critical system error. Please refresh the page.", true);
+                return;
+            }
+        }
+        
+        // ENHANCED: Comprehensive pre-validation before processing
+        if (currentOrder == null) {
+            System.err.println("PAYMENT_FLOW_ERROR: Order data is null");
+            AlertHelper.showErrorDialog("Error", "Order Data Missing", "Order data is missing. Please restart the order process.");
+            handleBackToCartAction(event);
             return;
         }
+        
+        if (orderService == null) {
+            System.err.println("PAYMENT_FLOW_ERROR: OrderService is null for order " + currentOrder.getOrderId());
+            setErrorMessage("Service unavailable. Please refresh and try again.", true);
+            return;
+        }
+        
         setErrorMessage("", false);
+        System.out.println("PAYMENT_FLOW: Processing delivery info for Order " + currentOrder.getOrderId());
+
+        // ENHANCED: Validate form data before building delivery info
+        String validationError = validateFormData();
+        if (validationError != null) {
+            setErrorMessage(validationError, true);
+            return;
+        }
 
         DeliveryInfo deliveryInfo = buildDeliveryInfoFromForm(true); // Get full info including rush time
-        if (deliveryInfo == null){ // Error building DTO, specific error shown by buildDeliveryInfoFromForm
-            // setErrorMessage("Please ensure all delivery details are correct.", true); // Redundant if buildDeliveryInfoFromForm shows specific error
+        if (deliveryInfo == null) {
+            System.err.println("PAYMENT_FLOW_ERROR: Failed to build delivery info from form for order " + currentOrder.getOrderId());
+            setErrorMessage("Please check all delivery details and try again.", true);
             return;
         }
 
+        // ENHANCED: Add processing indicator
+        proceedToPaymentButton.setDisable(true);
+        proceedToPaymentButton.setText("Processing...");
 
         try {
+            System.out.println("PAYMENT_FLOW: Calling setDeliveryInformation for order " + currentOrder.getOrderId());
+            
             // This call updates the order in the backend with delivery info and new total
             currentOrder = orderService.setDeliveryInformation(currentOrder.getOrderId(), deliveryInfo, rushOrderCheckBox.isSelected());
 
-            System.out.println("Proceed to Payment action triggered for Order ID: " + currentOrder.getOrderId());
+            System.out.println("PAYMENT_FLOW: Successfully set delivery info for Order " + currentOrder.getOrderId() +
+                             ", Total amount: " + currentOrder.getTotalAmountPaid());
+            
             // Navigate to payment method selection screen
             if (mainLayoutController != null) {
                  Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
                  mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
                  if (controller instanceof OrderSummaryController) {
                      ((OrderSummaryController) controller).setOrderData(currentOrder);
+                     System.out.println("PAYMENT_FLOW: Successfully navigated to order summary");
+                 } else {
+                     System.err.println("PAYMENT_FLOW_ERROR: OrderSummaryController not found");
                  }
             } else {
+                 System.err.println("PAYMENT_FLOW_ERROR: MainLayoutController is null");
                  AlertHelper.showErrorDialog("Navigation Error", "System Error", "Cannot navigate to payment screen.");
             }
 
-        } catch (SQLException | ResourceNotFoundException | ValidationException e) {
+        } catch (ValidationException e) {
+            System.err.println("PAYMENT_FLOW_VALIDATION_ERROR: " + e.getMessage() + " for order " + currentOrder.getOrderId());
             e.printStackTrace();
-            AlertHelper.showErrorDialog("Error Processing Delivery Info", "Service Error", e.getMessage());
-            setErrorMessage("Error: " + e.getMessage(), true);
+            setErrorMessage("Validation Error: " + e.getMessage(), true);
+            AlertHelper.showErrorDialog("Validation Error", "Please Check Your Information",
+                                      "There was an issue with your delivery information:\n\n" + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("PAYMENT_FLOW_DATABASE_ERROR: " + e.getMessage() + " for order " + currentOrder.getOrderId());
+            e.printStackTrace();
+            setErrorMessage("Database error. Please try again.", true);
+            AlertHelper.showErrorDialog("Database Error", "Temporary Issue",
+                                      "There was a temporary database issue. Please try again in a moment.");
+        } catch (ResourceNotFoundException e) {
+            System.err.println("PAYMENT_FLOW_RESOURCE_ERROR: " + e.getMessage() + " for order " + currentOrder.getOrderId());
+            e.printStackTrace();
+            setErrorMessage("Order not found. Please restart the order process.", true);
+            AlertHelper.showErrorDialog("Order Not Found", "Data Issue",
+                                      "Your order could not be found. Please restart the order process.");
+            handleBackToCartAction(event);
+        } catch (Exception e) {
+            System.err.println("PAYMENT_FLOW_UNEXPECTED_ERROR: " + e.getMessage() + " for order " + currentOrder.getOrderId());
+            e.printStackTrace();
+            setErrorMessage("Unexpected error. Please try again.", true);
+            AlertHelper.showErrorDialog("Unexpected Error", "System Issue",
+                                      "An unexpected error occurred. Please try again or contact support if the issue persists.");
+        } finally {
+            // ENHANCED: Reset button state
+            proceedToPaymentButton.setDisable(false);
+            proceedToPaymentButton.setText("Proceed to Payment");
         }
+    }
+    
+    /**
+     * ENHANCED: Validates form data before processing
+     */
+    private String validateFormData() {
+        if (nameField.getText() == null || nameField.getText().trim().isEmpty()) {
+            return "Recipient name is required.";
+        }
+        if (phoneField.getText() == null || phoneField.getText().trim().isEmpty()) {
+            return "Phone number is required.";
+        }
+        if (provinceCityComboBox.getValue() == null || provinceCityComboBox.getValue().trim().isEmpty()) {
+            return "Province/City selection is required.";
+        }
+        if (addressArea.getText() == null || addressArea.getText().trim().isEmpty()) {
+            return "Delivery address is required.";
+        }
+        if (rushOrderCheckBox.isSelected()) {
+            if (rushDeliveryDatePicker.getValue() == null) {
+                return "Rush delivery date is required.";
+            }
+            if (rushDeliveryTimeComboBox.getValue() == null || rushDeliveryTimeComboBox.getValue().trim().isEmpty()) {
+                return "Rush delivery time slot is required.";
+            }
+        }
+        return null; // No validation errors
     }
 }

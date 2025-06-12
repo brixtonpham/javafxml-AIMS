@@ -3,6 +3,7 @@ package com.aims.core.presentation.controllers;
 import com.aims.core.entities.Product;
 import com.aims.core.application.services.ICartService;
 import com.aims.core.presentation.utils.CartSessionManager;
+import com.aims.core.presentation.utils.ProductStateManager;
 import com.aims.core.presentation.utils.StockLimitDialog;
 import com.aims.core.entities.Cart;
 import com.aims.core.entities.CartItem;
@@ -25,7 +26,7 @@ import com.aims.core.shared.exceptions.ResourceNotFoundException;
 import com.aims.core.shared.exceptions.InventoryException;
 
 
-public class ProductCardController {
+public class ProductCardController implements ProductStateManager.ProductStateListener {
 
     @FXML
     private VBox productCardVBox;
@@ -42,6 +43,7 @@ public class ProductCardController {
 
     private Product product;
     private ICartService cartService; // Sẽ được inject hoặc set từ controller cha (HomeScreenController)
+    private com.aims.core.application.services.IProductService productService; // For refreshing product data
     private MainLayoutController mainLayoutController; // Để điều hướng khi click vào card
     // private FXMLSceneManager sceneManager;
 
@@ -49,10 +51,31 @@ public class ProductCardController {
     private HomeScreenController homeScreenController;
     private ProductSearchResultsController productSearchResultsController; // For cards on search results page
     private String searchContext; // Added for preserving search context
+    private boolean isStateListenerRegistered = false; // Track listener registration
 
 
     public ProductCardController() {
         // Constructor - services will be injected or set
+    }
+
+    // ProductStateManager.ProductStateListener implementation
+    @Override
+    public String getInterestedProductId() {
+        return product != null ? product.getProductId() : null;
+    }
+
+    @Override
+    public void onProductUpdated(Product updatedProduct) {
+        if (product != null && product.getProductId().equals(updatedProduct.getProductId())) {
+            System.out.println("ProductCard: Received state update for " + updatedProduct.getTitle() +
+                             " - Stock: " + updatedProduct.getQuantityInStock() +
+                             " (was: " + product.getQuantityInStock() + ")");
+            
+            // Update product data and refresh UI on JavaFX Application Thread
+            javafx.application.Platform.runLater(() -> {
+                setData(updatedProduct);
+            });
+        }
     }
 
     /**
@@ -60,6 +83,13 @@ public class ProductCardController {
      */
     public void setCartService(ICartService cartService) {
         this.cartService = cartService;
+    }
+
+    /**
+     * Setter cho ProductService, để refresh product data khi cần.
+     */
+    public void setProductService(com.aims.core.application.services.IProductService productService) {
+        this.productService = productService;
     }
 
     /**
@@ -90,6 +120,18 @@ public class ProductCardController {
     }
 
     /**
+     * Initialize method called by JavaFX after FXML loading
+     */
+    public void initialize() {
+        // Register for product state updates
+        if (!isStateListenerRegistered) {
+            ProductStateManager.addListener(this);
+            isStateListenerRegistered = true;
+            System.out.println("ProductCardController.initialize: Registered with ProductStateManager");
+        }
+    }
+
+    /**
      * Điền dữ liệu sản phẩm vào card.
      * @param product Đối tượng Product (đã bao gồm giá có VAT nếu hiển thị cho khách hàng).
      */
@@ -117,6 +159,11 @@ public class ProductCardController {
         
         // Set up responsive image sizing after card is fully initialized
         javafx.application.Platform.runLater(() -> updateImageSizeForCard());
+
+        // CRITICAL FIX: Update product state cache for consistency
+        if (product != null) {
+            ProductStateManager.updateProduct(product);
+        }
     }
 
     /**
@@ -290,9 +337,8 @@ public class ProductCardController {
             System.out.println("Successfully added " + product.getTitle() + " to cart");
             showSuccessFeedback();
 
-            // Update product stock and UI
-            product.setQuantityInStock(product.getQuantityInStock() - 1);
-            updateAddToCartButtonState();
+            // CRITICAL FIX: Refresh product data from database instead of local modification
+            refreshProductFromDatabase();
 
             // Notify parent controller if available
             if (homeScreenController != null) {
@@ -341,6 +387,55 @@ public class ProductCardController {
                 System.err.println("ProductCardController: Failed to initialize CartService: " + e.getMessage());
                 // Cart service failure will be handled by the calling method
             }
+        }
+        
+        if (productService == null) {
+            System.err.println("ProductCardController: ProductService is null - attempting to initialize from ServiceFactory");
+            try {
+                com.aims.core.shared.ServiceFactory serviceFactory = com.aims.core.shared.ServiceFactory.getInstance();
+                this.productService = serviceFactory.getProductService();
+                System.out.println("ProductCardController: ProductService initialized from ServiceFactory: " + (productService != null));
+            } catch (Exception e) {
+                System.err.println("ProductCardController: Failed to initialize ProductService: " + e.getMessage());
+                // Product service failure will be handled by the calling method
+            }
+        }
+    }
+
+    /**
+     * Refreshes product data from database to ensure consistency across UI components.
+     * This method prevents stock inconsistency issues between different views.
+     */
+    private void refreshProductFromDatabase() {
+        if (product == null || product.getProductId() == null) {
+            return;
+        }
+        
+        // Validate and initialize services if needed
+        validateAndInitializeServices();
+        
+        if (productService == null) {
+            System.err.println("ProductCardController.refreshProductFromDatabase: ProductService unavailable, cannot refresh");
+            return;
+        }
+        
+        try {
+            // Fetch fresh product data from database
+            Product refreshedProduct = productService.getProductById(product.getProductId());
+            if (refreshedProduct != null) {
+                System.out.println("ProductCardController.refreshProductFromDatabase: Refreshed " + refreshedProduct.getTitle() +
+                                 " - Stock: " + refreshedProduct.getQuantityInStock());
+                // Update UI with fresh data
+                setData(refreshedProduct);
+            } else {
+                System.err.println("ProductCardController.refreshProductFromDatabase: Product not found: " + product.getProductId());
+            }
+        } catch (SQLException e) {
+            System.err.println("ProductCardController.refreshProductFromDatabase: Database error: " + e.getMessage());
+            // Continue with existing data on error
+        } catch (Exception e) {
+            System.err.println("ProductCardController.refreshProductFromDatabase: Unexpected error: " + e.getMessage());
+            // Continue with existing data on error
         }
     }
 
@@ -495,6 +590,18 @@ public class ProductCardController {
             }
         } else {
             System.err.println("ProductCardController.handleViewProductDetails: MainLayoutController or product is null - cannot navigate");
+        }
+    }
+
+    /**
+     * Cleanup method to remove state listener when card is destroyed.
+     * This prevents memory leaks and should be called when the card is no longer needed.
+     */
+    public void cleanup() {
+        if (isStateListenerRegistered) {
+            ProductStateManager.removeListener(this);
+            isStateListenerRegistered = false;
+            System.out.println("ProductCardController.cleanup: Removed listener from ProductStateManager");
         }
     }
 }

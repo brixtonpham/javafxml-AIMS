@@ -35,26 +35,37 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
 
     @Override
     public float calculateShippingFee(OrderEntity order, boolean isRushOrderRequested) throws ValidationException {
-        // ENHANCED: More specific validation messages
+        // ENHANCED: More specific validation messages for better debugging
         if (order == null) {
-            throw new ValidationException("Order is required for shipping calculation.");
+            throw new ValidationException("Order is required for shipping calculation. Please ensure order data is properly loaded.");
         }
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-            throw new ValidationException("Order must contain items for shipping calculation.");
+            throw new ValidationException("Order must contain items for shipping calculation. Order ID: " +
+                                        (order.getOrderId() != null ? order.getOrderId() : "unknown"));
         }
         if (order.getDeliveryInfo() == null) {
-            throw new ValidationException("Delivery information is required for shipping calculation.");
+            throw new ValidationException("Delivery information is required for shipping calculation. " +
+                                        "Please set delivery details before calculating shipping. Order ID: " +
+                                        (order.getOrderId() != null ? order.getOrderId() : "unknown"));
         }
         
         DeliveryInfo deliveryInfo = order.getDeliveryInfo();
         
-        // ENHANCED: Validate delivery info fields specifically
+        // ENHANCED: Validate delivery info fields with more specific context
         if (deliveryInfo.getDeliveryProvinceCity() == null || deliveryInfo.getDeliveryProvinceCity().trim().isEmpty()) {
-            throw new ValidationException("Delivery province/city is required for shipping calculation.");
+            throw new ValidationException("Delivery province/city is required for shipping calculation. " +
+                                        "Please select a valid province/city from the dropdown.");
         }
         if (deliveryInfo.getDeliveryAddress() == null || deliveryInfo.getDeliveryAddress().trim().isEmpty()) {
-            throw new ValidationException("Delivery address is required for shipping calculation.");
+            throw new ValidationException("Delivery address is required for shipping calculation. " +
+                                        "Please enter a complete delivery address.");
         }
+        
+        // ENHANCED: Add logging for debugging shipping calculations
+        System.out.println("SHIPPING CALCULATION: Starting for Order " + order.getOrderId() +
+                          ", Rush requested: " + isRushOrderRequested +
+                          ", Province: " + deliveryInfo.getDeliveryProvinceCity() +
+                          ", Item count: " + order.getOrderItems().size());
         List<OrderItem> allItems = order.getOrderItems();
         float totalShippingFee = 0f;
 

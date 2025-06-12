@@ -109,6 +109,13 @@ public class FXMLSceneManager {
         
         System.out.println("FXMLSceneManager.injectServices: Starting service injection for " + controller.getClass().getSimpleName());
         
+        // ENHANCED: Validate injection prerequisites
+        boolean injectionPrerequisitesMet = validateInjectionPrerequisites(controller);
+        if (!injectionPrerequisitesMet) {
+            System.err.println("FXMLSceneManager.injectServices: CRITICAL - Injection prerequisites not met for " + controller.getClass().getSimpleName());
+            return;
+        }
+        
         // Check for controllers that have confirmed setter methods
         if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController) {
             System.out.println("FXMLSceneManager.injectServices: Detected HomeScreenController, injecting services...");
@@ -255,6 +262,107 @@ public class FXMLSceneManager {
             } catch (Exception e) {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderReviewController: " + e.getMessage());
                 e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.DeliveryInfoScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected DeliveryInfoScreenController, injecting services...");
+            com.aims.core.presentation.controllers.DeliveryInfoScreenController deliveryController =
+                (com.aims.core.presentation.controllers.DeliveryInfoScreenController) controller;
+            
+            try {
+                // Inject OrderService
+                com.aims.core.application.services.IOrderService orderService = serviceFactory.getOrderService();
+                if (orderService != null) {
+                    deliveryController.setOrderService(orderService);
+                    System.out.println("FXMLSceneManager.injectServices: OrderService injected into DeliveryInfoScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: OrderService is null, injection failed");
+                }
+                
+                // Inject DeliveryService
+                com.aims.core.application.services.IDeliveryCalculationService deliveryService = serviceFactory.getDeliveryCalculationService();
+                if (deliveryService != null) {
+                    deliveryController.setDeliveryService(deliveryService);
+                    System.out.println("FXMLSceneManager.injectServices: DeliveryCalculationService injected into DeliveryInfoScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: DeliveryCalculationService is null, injection failed");
+                }
+                
+                // Set additional dependencies if available
+                if (mainLayoutController != null) {
+                    deliveryController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into DeliveryInfoScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: MainLayoutController is null - CRITICAL INJECTION FAILURE");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into DeliveryInfoScreenController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.OrderSummaryController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected OrderSummaryController, injecting services...");
+            com.aims.core.presentation.controllers.OrderSummaryController orderSummaryController =
+                (com.aims.core.presentation.controllers.OrderSummaryController) controller;
+            
+            try {
+                // CRITICAL: Set MainLayoutController for navigation
+                if (mainLayoutController != null) {
+                    orderSummaryController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into OrderSummaryController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - MainLayoutController is null for OrderSummaryController");
+                }
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderSummaryController: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        else if (controller instanceof com.aims.core.presentation.controllers.PaymentMethodScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected PaymentMethodScreenController, injecting services...");
+            com.aims.core.presentation.controllers.PaymentMethodScreenController paymentMethodController =
+                (com.aims.core.presentation.controllers.PaymentMethodScreenController) controller;
+            
+            try {
+                // CRITICAL: Enhanced validation before injection
+                boolean injectionSuccessful = validatePaymentMethodControllerInjection(paymentMethodController);
+                if (!injectionSuccessful) {
+                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - PaymentMethodScreenController injection validation failed");
+                    return;
+                }
+                
+                // CRITICAL: Set MainLayoutController for navigation
+                if (mainLayoutController != null) {
+                    paymentMethodController.setMainLayoutController(mainLayoutController);
+                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into PaymentMethodScreenController");
+                } else {
+                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - MainLayoutController is null for PaymentMethodScreenController");
+                    throw new IllegalStateException("MainLayoutController is required for PaymentMethodScreenController navigation");
+                }
+                
+                // Inject PaymentService with enhanced error handling
+                try {
+                    com.aims.core.application.services.IPaymentService paymentService = serviceFactory.getPaymentService();
+                    if (paymentService != null) {
+                        paymentMethodController.setPaymentService(paymentService);
+                        System.out.println("FXMLSceneManager.injectServices: PaymentService injected into PaymentMethodScreenController");
+                    } else {
+                        System.out.println("FXMLSceneManager.injectServices: PaymentService is null - PaymentMethodScreenController will operate with limited functionality");
+                    }
+                } catch (Exception pe) {
+                    System.err.println("FXMLSceneManager.injectServices: PaymentService injection failed: " + pe.getMessage());
+                    // Continue without PaymentService - controller should handle gracefully
+                }
+                
+                // Validate post-injection state
+                validatePaymentMethodControllerPostInjection(paymentMethodController);
+                
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.injectServices: CRITICAL Error injecting services into PaymentMethodScreenController: " + e.getMessage());
+                e.printStackTrace();
+                // Attempt fallback recovery
+                attemptPaymentMethodControllerFallback(paymentMethodController);
             }
         }
         else {
@@ -668,5 +776,147 @@ public class FXMLSceneManager {
         sb.append("Current Context: ").append(currentContext != null ? currentContext.toString() : "null").append("\n");
         sb.append(navigationHistory.getDebugInfo());
         return sb.toString();
+    }
+    
+    /**
+     * ENHANCED: Validates that all prerequisites for service injection are met.
+     * This helps prevent injection failures and provides early warning of configuration issues.
+     *
+     * @param controller The controller to validate prerequisites for
+     * @return true if all prerequisites are met, false otherwise
+     */
+    private boolean validateInjectionPrerequisites(Object controller) {
+        if (controller == null) {
+            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: Controller is null");
+            return false;
+        }
+        
+        if (serviceFactory == null) {
+            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: CRITICAL - ServiceFactory is null");
+            System.err.println("This indicates a fundamental configuration problem that will cause injection failures");
+            return false;
+        }
+        
+        // Validate critical services are available
+        try {
+            if (serviceFactory.getProductService() == null) {
+                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - ProductService is null");
+            }
+            if (serviceFactory.getCartService() == null) {
+                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - CartService is null");
+            }
+            if (serviceFactory.getOrderService() == null) {
+                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - OrderService is null");
+            }
+            if (serviceFactory.getDeliveryCalculationService() == null) {
+                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - DeliveryCalculationService is null");
+            }
+        } catch (Exception e) {
+            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: ERROR accessing services: " + e.getMessage());
+            return false;
+        }
+        
+        // Special validation for controllers that require MainLayoutController
+        if (controller instanceof com.aims.core.presentation.controllers.DeliveryInfoScreenController ||
+            controller instanceof com.aims.core.presentation.controllers.ProductDetailScreenController ||
+            controller instanceof com.aims.core.presentation.controllers.PaymentProcessingScreenController ||
+            controller instanceof com.aims.core.presentation.controllers.CustomerOrderDetailController ||
+            controller instanceof com.aims.core.presentation.controllers.OrderReviewController ||
+            controller instanceof com.aims.core.presentation.controllers.OrderSummaryController ||
+            controller instanceof com.aims.core.presentation.controllers.PaymentMethodScreenController) {
+            
+            if (mainLayoutController == null) {
+                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: CRITICAL - MainLayoutController is null for " + controller.getClass().getSimpleName());
+                System.err.println("This will cause navigation failures and must be resolved immediately");
+                return false;
+            }
+        }
+        
+        System.out.println("FXMLSceneManager.validateInjectionPrerequisites: All prerequisites validated for " + controller.getClass().getSimpleName());
+        return true;
+    }
+    
+    /**
+     * Enhanced validation specifically for PaymentMethodScreenController injection.
+     * Validates that all critical dependencies are available before injection.
+     *
+     * @param controller The PaymentMethodScreenController to validate
+     * @return true if validation passes, false otherwise
+     */
+    private boolean validatePaymentMethodControllerInjection(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
+        System.out.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Starting validation");
+        
+        if (controller == null) {
+            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Controller is null");
+            return false;
+        }
+        
+        if (mainLayoutController == null) {
+            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: CRITICAL - MainLayoutController is null");
+            System.err.println("PaymentMethodScreenController requires MainLayoutController for navigation");
+            return false;
+        }
+        
+        if (serviceFactory == null) {
+            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: CRITICAL - ServiceFactory is null");
+            return false;
+        }
+        
+        System.out.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Validation passed");
+        return true;
+    }
+    
+    /**
+     * Post-injection validation for PaymentMethodScreenController.
+     * Ensures that critical dependencies were successfully injected.
+     *
+     * @param controller The PaymentMethodScreenController to validate
+     */
+    private void validatePaymentMethodControllerPostInjection(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
+        System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Starting post-injection validation");
+        
+        // Use reflection to verify MainLayoutController was set
+        try {
+            java.lang.reflect.Field mainLayoutField = controller.getClass().getDeclaredField("mainLayoutController");
+            mainLayoutField.setAccessible(true);
+            Object injectedMainLayout = mainLayoutField.get(controller);
+            
+            if (injectedMainLayout == null) {
+                System.err.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: CRITICAL - MainLayoutController injection failed");
+                throw new IllegalStateException("MainLayoutController injection failed for PaymentMethodScreenController");
+            } else {
+                System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: MainLayoutController injection verified");
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            System.err.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Could not verify injection: " + e.getMessage());
+        }
+        
+        System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Post-injection validation completed");
+    }
+    
+    /**
+     * Attempts fallback recovery for PaymentMethodScreenController when injection fails.
+     * Provides minimal functionality to prevent complete failure.
+     *
+     * @param controller The PaymentMethodScreenController to provide fallback for
+     */
+    private void attemptPaymentMethodControllerFallback(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
+        System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Attempting fallback recovery");
+        
+        try {
+            // Attempt to set MainLayoutController if available
+            if (mainLayoutController != null && controller != null) {
+                controller.setMainLayoutController(mainLayoutController);
+                System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: MainLayoutController set via fallback");
+            }
+            
+            // Log fallback state
+            System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Fallback recovery completed");
+            System.out.println("PaymentMethodScreenController will operate with limited functionality");
+            
+        } catch (Exception e) {
+            System.err.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Fallback recovery failed: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

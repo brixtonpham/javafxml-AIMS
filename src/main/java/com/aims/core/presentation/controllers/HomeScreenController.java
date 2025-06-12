@@ -97,8 +97,8 @@ public class HomeScreenController implements MainLayoutController.IChildControll
         sortByPriceComboBox.setItems(FXCollections.observableArrayList("Default Sort", "Price: Low to High", "Price: High to Low"));
         sortByPriceComboBox.setValue("Default Sort");
 
-        // Set fallback categories initially
-        categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Book", "CD", "DVD"));
+        // Set fallback product types initially
+        categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs", "LP Records"));
         categoryComboBox.setValue("All Categories");
 
         // Add listeners to automatically search/filter when combo box values change
@@ -127,17 +127,19 @@ public class HomeScreenController implements MainLayoutController.IChildControll
      * Called after services are injected to complete initialization
      */
     public void completeInitialization() {
-        // Load categories dynamically from productService
+        // Load product types dynamically from productService
         try {
             if (productService != null) {
-                List<String> categories = productService.getAllCategories();
-                categories.add(0, "All Categories"); // Add option for no filter
-                categoryComboBox.setItems(FXCollections.observableArrayList(categories));
+                List<String> productTypes = productService.getAllProductTypes();
+                productTypes.add(0, "All Categories"); // Add option for no filter
+                categoryComboBox.setItems(FXCollections.observableArrayList(productTypes));
                 categoryComboBox.setValue("All Categories");
             }
         } catch (SQLException e) {
-            // Keep fallback categories if service fails
-            System.err.println("Error loading categories: " + e.getMessage());
+            // Keep fallback product types if service fails
+            categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs", "LP Records"));
+            categoryComboBox.setValue("All Categories");
+            System.err.println("Error loading product types: " + e.getMessage());
         }
 
         loadProducts();
@@ -297,6 +299,9 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                 if (cartService != null) {
                     cardController.setCartService(cartService);
                 }
+                if (productService != null) {
+                    cardController.setProductService(productService);
+                }
                 if (mainLayoutController != null) {
                     cardController.setMainLayoutController(mainLayoutController);
                 }
@@ -404,7 +409,13 @@ public class HomeScreenController implements MainLayoutController.IChildControll
                     
                     // Set data for the product card
                     cardController.setData(product);
-                    // Set MainLayoutController reference for navigation
+                    // Set service references
+                    if (cartService != null) {
+                        cardController.setCartService(cartService);
+                    }
+                    if (productService != null) {
+                        cardController.setProductService(productService);
+                    }
                     if (mainLayoutController != null) {
                         cardController.setMainLayoutController(mainLayoutController);
                     }

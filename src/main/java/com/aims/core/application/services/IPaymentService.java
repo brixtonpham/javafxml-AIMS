@@ -62,4 +62,22 @@ public interface IPaymentService {
      * @throws ValidationException If the transaction ID or other parameters are invalid.
      */
     PaymentTransaction checkPaymentStatus(String transactionId, String externalTransactionId) throws PaymentException, SQLException, ResourceNotFoundException, ValidationException;
+
+   /**
+    * Updates the status of a payment transaction based on VNPay callback response.
+    * This method is called when receiving payment callback from VNPay gateway.
+    *
+    * @param vnpTxnRef The VNPay transaction reference (usually orderId_timestamp format)
+    * @param responseCode The VNPay response code ("00" for success, others for failure/cancellation)
+    * @param externalTransactionId The VNPay transaction ID from the gateway
+    * @param gatewayResponseData JSON string containing full gateway response data
+    * @return Updated PaymentTransaction object
+    * @throws PaymentException If there's an error processing the callback
+    * @throws SQLException If there's an error updating the transaction record
+    * @throws ResourceNotFoundException If the transaction is not found
+    * @throws ValidationException If the callback parameters are invalid
+    */
+   PaymentTransaction updateTransactionStatusFromCallback(String vnpTxnRef, String responseCode,
+                                                        String externalTransactionId, String gatewayResponseData)
+           throws PaymentException, SQLException, ResourceNotFoundException, ValidationException;
 }

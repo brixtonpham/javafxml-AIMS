@@ -7,11 +7,13 @@ import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
 import com.aims.core.entities.LP;
+import com.aims.core.enums.ProductType;
 import com.aims.core.infrastructure.database.dao.IProductDAO;
 import com.aims.core.shared.exceptions.ValidationException; // Assuming you have these custom exceptions
 import com.aims.core.shared.exceptions.ResourceNotFoundException; // Assuming you have these custom exceptions
 import com.aims.core.shared.exceptions.InventoryException;
 import com.aims.core.shared.utils.SearchResult; // Assuming a SearchResult utility class
+import com.aims.core.utils.ProductTypeDisplayMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -486,16 +488,28 @@ public class ProductServiceImpl implements IProductService {
 
     @Override
     public SearchResult<Product> advancedSearchProducts(String keyword, String category, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
-        // Use the enhanced DAO method for database-level filtering, sorting, and pagination
-        List<Product> products = productDAO.searchProducts(keyword, category, sortBy, sortOrder, pageNumber, pageSize);
+        // Check if category is a product type display name first
+        ProductType productType = ProductTypeDisplayMapper.fromDisplayName(category);
+        
+        List<Product> products;
+        int totalResults;
+        
+        if (productType != null) {
+            // Use ProductType-based search for the new filtering system
+            products = productDAO.searchProductsByType(keyword, productType, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCountByType(keyword, productType);
+        } else {
+            // Fall back to existing category-based search for backward compatibility
+            products = productDAO.searchProducts(keyword, category, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCount(keyword, category);
+        }
         
         // Apply VAT to all products for customer display
         List<Product> productsWithVAT = products.stream()
                 .map(this::addVAT)
                 .collect(Collectors.toList());
         
-        // Get total count for pagination
-        int totalResults = productDAO.getSearchResultsCount(keyword, category);
+        // Calculate pagination
         int totalPages = (int) Math.ceil((double) totalResults / pageSize);
         if (totalPages == 0 && totalResults > 0) totalPages = 1;
         
@@ -505,5 +519,57 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public List<String> getAllCategories() throws SQLException {
         return productDAO.getAllCategories();
+    }
+
+    @Override
+    public List<String> getAllProductTypes() throws SQLException {
+        return ProductTypeDisplayMapper.getAllDisplayNames();
+    }
+
+    @Override
+    public SearchResult<Product> searchByProductType(String productType, String keyword, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
+        // Check if productType is a valid display name and convert to enum
+        ProductType enumType = ProductTypeDisplayMapper.fromDisplayName(productType);
+        
+        List<Product> products;
+        int totalResults;
+        
+        if (enumType != null) {
+            // Search by product type using DAO method (to be implemented)
+            products = productDAO.searchProductsByType(keyword, enumType, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCountByType(keyword, enumType);
+        } else {
+            // Fallback to regular search if not a valid product type
+            products = productDAO.searchProducts(keyword, productType, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCount(keyword, productType);
+        }
+        
+        // Apply VAT to all products for customer display
+        List<Product> productsWithVAT = products.stream()
+                .map(this::addVAT)
+                .collect(Collectors.toList());
+        
+        // Calculate pagination
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
+        
+        return new SearchResult<>(productsWithVAT, pageNumber, totalPages, totalResults);
+    }
+
+    /**
+     * Enhanced version of advancedSearchProducts that supports both category and product type filtering.
+     * This provides backward compatibility while adding product type support.
+     */
+    public SearchResult<Product> enhancedAdvancedSearchProducts(String keyword, String categoryOrType, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
+        // Check if categoryOrType is a product type display name
+        ProductType productType = ProductTypeDisplayMapper.fromDisplayName(categoryOrType);
+        
+        if (productType != null) {
+            // Use product type filtering
+            return searchByProductType(categoryOrType, keyword, sortBy, sortOrder, pageNumber, pageSize);
+        } else {
+            // Fall back to existing category-based search
+            return advancedSearchProducts(keyword, categoryOrType, sortBy, sortOrder, pageNumber, pageSize);
+        }
     }
 }

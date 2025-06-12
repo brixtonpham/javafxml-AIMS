@@ -129,7 +129,17 @@ public class CartScreenController implements MainLayoutController.IChildControll
         try {
             isUpdatingCart = true;
             
+            // CRITICAL FIX: Additional validation before proceeding
+            if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
+                System.err.println("CRITICAL: Invalid cart session ID in loadCartDetails");
+                displayEmptyCart();
+                return;
+            }
+            
+            // CRITICAL FIX: Single cart load attempt to prevent infinite loops
+            // Removed retry mechanism that amplifies DatabaseSchemaValidator calls
             Cart cartEntity = cartService.getCart(cartSessionId);
+            System.out.println("CartScreenController.loadCartDetails: Cart load attempt completed");
             
             cartItemsContainerVBox.getChildren().clear();
             currentCartItemDTOs.clear();
@@ -265,7 +275,7 @@ public class CartScreenController implements MainLayoutController.IChildControll
 
     @FXML
     void handleClearCartAction(ActionEvent event) {
-        // CRITICAL FIX: Prevent concurrent operations
+        // CRITICAL FIX: Add confirmation dialog and source validation
         if (isUpdatingCart) {
             System.out.println("Cart update in progress, skipping clear request");
             return;
@@ -275,14 +285,28 @@ public class CartScreenController implements MainLayoutController.IChildControll
             System.err.println("CartService unavailable");
             return;
         }
-        if (cartSessionId == null || cartSessionId.isEmpty()) return;
+        if (cartSessionId == null || cartSessionId.isEmpty()) {
+            System.err.println("Invalid cart session for clear action");
+            return;
+        }
 
-        // TODO: Add AlertHelper.showConfirmationDialog when available
-        // For now, proceed with clearing
+        // CRITICAL FIX: Require explicit user confirmation
+        boolean confirmed = AlertHelper.showConfirmationDialog(
+            "Clear Cart",
+            "Are you sure you want to empty your entire cart? This cannot be undone."
+        );
+        if (!confirmed) {
+            System.out.println("Cart clear cancelled by user");
+            return;
+        }
+        
+        // CRITICAL FIX: Log source of clear request for debugging
+        System.out.println("Cart clear CONFIRMED by user for session: " + cartSessionId);
+        
         try {
             isUpdatingCart = true;
             cartService.clearCart(cartSessionId);
-            System.out.println("Cart cleared successfully");
+            System.out.println("Cart cleared successfully after user confirmation");
             loadCartDetails(); // Refresh view
         } catch (SQLException | ResourceNotFoundException e) {
             System.err.println("Error clearing cart: " + e.getMessage());
@@ -294,8 +318,38 @@ public class CartScreenController implements MainLayoutController.IChildControll
 
     @FXML
     void handleProceedToCheckoutAction(ActionEvent event) {
-        if (currentCartItemDTOs.isEmpty()) {
-            setStockWarning("Please add items to your cart before proceeding to checkout.", true);
+        // CRITICAL FIX: Early empty cart detection to prevent infinite loops
+        System.out.println("CHECKOUT: Starting checkout process for session: " + cartSessionId);
+        
+        // CRITICAL FIX: Early validation to prevent database retry loops for empty carts
+        if (currentCartItemDTOs == null || currentCartItemDTOs.isEmpty()) {
+            System.out.println("CHECKOUT: Early detection - cart DTOs are empty, skipping database validation");
+            setStockWarning("Your cart is empty. Please add items before proceeding to checkout.", true);
+            checkoutButton.setDisable(true);
+            return;
+        }
+        
+        // CRITICAL FIX: Validate services before any database operations
+        validateAndInitializeServices();
+        if (cartService == null) {
+            System.err.println("CHECKOUT ERROR: CartService unavailable");
+            setStockWarning("Cart service is temporarily unavailable. Please try again.", true);
+            return;
+        }
+        
+        // CRITICAL FIX: Single cart validation call (no retry loop for empty carts)
+        try {
+            Cart cartValidation = cartService.getCart(cartSessionId);
+            if (cartValidation == null || cartValidation.getItems() == null || cartValidation.getItems().isEmpty()) {
+                System.out.println("CHECKOUT: Database confirmed cart is empty");
+                setStockWarning("Your cart appears to be empty. Please add items before checkout.", true);
+                displayEmptyCart(); // Update UI to reflect empty state
+                return;
+            }
+            System.out.println("CHECKOUT: Cart validation passed - " + cartValidation.getItems().size() + " items");
+        } catch (Exception e) {
+            System.err.println("CHECKOUT ERROR: Failed to validate cart: " + e.getMessage());
+            setStockWarning("Unable to validate cart. Please refresh the page.", true);
             return;
         }
         

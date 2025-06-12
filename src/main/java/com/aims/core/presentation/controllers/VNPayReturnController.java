@@ -17,6 +17,7 @@ import com.aims.core.infrastructure.database.dao.OrderItemDAOImpl;
 import com.aims.core.infrastructure.database.dao.ICardDetailsDAO;
 import com.aims.core.infrastructure.database.dao.CardDetailsDAOImpl;
 import com.aims.core.entities.PaymentTransaction;
+import com.aims.core.presentation.utils.PaymentErrorHandler;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -26,6 +27,8 @@ import javafx.scene.layout.VBox;
 import java.util.Map;
 import java.util.List;
 import java.sql.SQLException;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * VNPay Return Controller
@@ -33,6 +36,8 @@ import java.sql.SQLException;
  * This displays the payment result to the user
  */
 public class VNPayReturnController {
+    
+    private static final Logger logger = Logger.getLogger(VNPayReturnController.class.getName());
     
     @FXML private Label statusLabel;
     @FXML private Label transactionIdLabel;
@@ -77,25 +82,81 @@ public class VNPayReturnController {
      * @param returnParams Parameters returned from VNPay after payment
      */
     public void processVNPayReturn(Map<String, String> returnParams) {
+        String vnpTxnRef = null;
+        
         try {
-            // Step 1: Validate signature
-            if (!vnPayAdapter.validateResponseSignature(returnParams)) {
-                showError("Payment verification failed", "The payment response could not be verified. Please contact support.");
+            // Enhanced input validation
+            if (returnParams == null || returnParams.isEmpty()) {
+                logger.log(Level.SEVERE, "VNPay Return: Received null or empty return parameters");
+                showError("Invalid Payment Response", "No payment information received. Please contact support if you completed the payment.");
                 return;
             }
             
-            // Step 2: Extract payment information
-            String vnpTxnRef = returnParams.get("vnp_TxnRef");
+            vnpTxnRef = returnParams.get("vnp_TxnRef");
+            logger.log(Level.INFO, "VNPay Return: Processing return for transaction: " + vnpTxnRef);
+            
+            // Step 1: Validate signature with enhanced error handling
+            try {
+                if (!vnPayAdapter.validateResponseSignature(returnParams)) {
+                    logger.log(Level.SEVERE, "VNPay Return: Invalid signature for transaction: " + vnpTxnRef);
+                    
+                    // Handle signature validation failure with centralized error handling
+                    PaymentErrorHandler.handleSignatureValidationFailure(vnpTxnRef, returnParams);
+                    
+                    showError("Payment verification failed",
+                             "The payment response could not be verified. This may indicate a security issue.",
+                             "Please contact support immediately with reference: " + PaymentErrorHandler.generateErrorReference());
+                    return;
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "VNPay Return: Error during signature validation for transaction: " + vnpTxnRef, e);
+                
+                PaymentErrorHandler.handleCallbackValidationError(e, vnpTxnRef, returnParams);
+                
+                showError("Payment Verification Error",
+                         "Unable to verify payment response due to a technical error.",
+                         "Please contact support with reference: " + PaymentErrorHandler.generateErrorReference());
+                return;
+            }
+            
+            // Step 2: Extract and validate payment information
             String vnpResponseCode = returnParams.get("vnp_ResponseCode");
             String vnpTransactionNo = returnParams.get("vnp_TransactionNo");
             String vnpAmount = returnParams.get("vnp_Amount");
             String vnpBankCode = returnParams.get("vnp_BankCode");
             String vnpPayDate = returnParams.get("vnp_PayDate");
             
-            // Step 3: Find the transaction
-            currentTransaction = findTransactionByReference(vnpTxnRef);
-            if (currentTransaction == null) {
-                showError("Transaction not found", "Could not find the payment transaction. Please contact support.");
+            // Validate critical parameters
+            if (vnpTxnRef == null || vnpTxnRef.trim().isEmpty()) {
+                logger.log(Level.SEVERE, "VNPay Return: Missing transaction reference");
+                showError("Invalid Payment Response", "Transaction reference is missing from payment response.");
+                return;
+            }
+            
+            if (vnpResponseCode == null || vnpResponseCode.trim().isEmpty()) {
+                logger.log(Level.SEVERE, "VNPay Return: Missing response code for transaction: " + vnpTxnRef);
+                showError("Invalid Payment Response", "Payment status is missing from response.");
+                return;
+            }
+            
+            // Step 3: Find the transaction with enhanced error handling
+            try {
+                currentTransaction = findTransactionByReference(vnpTxnRef);
+                if (currentTransaction == null) {
+                    logger.log(Level.WARNING, "VNPay Return: Transaction not found for reference: " + vnpTxnRef);
+                    showError("Transaction Not Found",
+                             "Could not find the payment transaction in our system.",
+                             "This may occur if the payment was processed but not properly recorded. Please contact support with transaction reference: " + vnpTxnRef);
+                    return;
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "VNPay Return: Error finding transaction for reference: " + vnpTxnRef, e);
+                
+                PaymentErrorHandler.handleCallbackValidationError(e, vnpTxnRef, returnParams);
+                
+                showError("System Error",
+                         "Unable to retrieve transaction information due to a system error.",
+                         "Please contact support with reference: " + PaymentErrorHandler.generateErrorReference());
                 return;
             }
             
@@ -103,69 +164,125 @@ public class VNPayReturnController {
             displayPaymentResult(vnpResponseCode, vnpTransactionNo, vnpAmount, vnpBankCode, vnpPayDate);
             
         } catch (Exception e) {
-            System.err.println("Error processing VNPay return: " + e.getMessage());
-            e.printStackTrace();
-            showError("Processing Error", "An error occurred while processing the payment result.");
+            logger.log(Level.SEVERE, "VNPay Return: Unexpected error processing return for transaction: " + vnpTxnRef, e);
+            
+            // Handle unexpected processing errors with centralized error handling
+            PaymentErrorHandler.handleCallbackValidationError(e, vnpTxnRef, returnParams);
+            
+            String errorRef = PaymentErrorHandler.generateErrorReference();
+            showError("Processing Error",
+                     "An unexpected error occurred while processing the payment result.",
+                     "Please contact support with reference: " + errorRef);
         }
     }
     
     /**
      * Display payment result to user
      */
-    private void displayPaymentResult(String responseCode, String transactionNo, 
+    private void displayPaymentResult(String responseCode, String transactionNo,
                                     String amount, String bankCode, String payDate) {
         
-        // Update basic transaction info
-        if (currentTransaction != null) {
-            orderIdLabel.setText("Order ID: " + currentTransaction.getOrder().getOrderId());
-            transactionIdLabel.setText("Transaction ID: " + currentTransaction.getTransactionId());
-        }
-        
-        // Format amount (VNPay returns in cents)
-        double amountValue = Double.parseDouble(amount) / 100.0;
-        amountLabel.setText(String.format("Amount: %.0f VND", amountValue));
-        
-        // Display result based on response code
-        switch (responseCode) {
-            case "00":
-                showSuccess(transactionNo, bankCode, payDate);
-                break;
-            case "07":
-                showError("Payment Pending", "Your payment is being processed. Please wait a few minutes and check again.");
-                break;
-            case "09":
-                showError("Transaction Failed", "Your bank has declined the transaction. Please try with a different card or contact your bank.");
-                break;
-            case "10":
-                showError("Authentication Failed", "Card authentication failed. Please verify your card details and try again.");
-                break;
-            case "11":
-                showError("Transaction Timeout", "The transaction has expired. Please try again.");
-                break;
-            case "12":
-                showError("Account Locked", "Your account is temporarily locked. Please contact your bank.");
-                break;
-            case "13":
-                showError("Invalid OTP", "The OTP you entered is incorrect. Please try again.");
-                break;
-            case "24":
-                showError("Transaction Canceled", "You have canceled the transaction.");
-                break;
-            case "51":
-                showError("Insufficient Funds", "Your account does not have sufficient funds for this transaction.");
-                break;
-            case "65":
-                showError("Transaction Limit Exceeded", "You have exceeded your daily transaction limit.");
-                break;
-            case "75":
-                showError("Payment Bank Maintenance", "The payment bank is under maintenance. Please try again later.");
-                break;
-            case "79":
-                showError("Incorrect Transaction Amount", "The transaction amount is incorrect. Please try again.");
-                break;
-            default:
-                showError("Payment Failed", "Payment failed with code: " + responseCode + ". Please try again or contact support.");
-                break;
+        try {
+            // Update basic transaction info with enhanced validation
+            if (currentTransaction != null) {
+                if (currentTransaction.getOrder() != null) {
+                    orderIdLabel.setText("Order ID: " + currentTransaction.getOrder().getOrderId());
+                } else {
+                    orderIdLabel.setText("Order ID: Not Available");
+                }
+                transactionIdLabel.setText("Transaction ID: " + currentTransaction.getTransactionId());
+            } else {
+                orderIdLabel.setText("Order ID: Not Available");
+                transactionIdLabel.setText("Transaction ID: Not Available");
+            }
+            
+            // Format amount (VNPay returns in cents) with error handling
+            try {
+                if (amount != null && !amount.trim().isEmpty()) {
+                    double amountValue = Double.parseDouble(amount) / 100.0;
+                    amountLabel.setText(String.format("Amount: %.0f VND", amountValue));
+                } else {
+                    amountLabel.setText("Amount: Not Available");
+                }
+            } catch (NumberFormatException e) {
+                logger.log(Level.WARNING, "VNPay Return: Invalid amount format: " + amount, e);
+                amountLabel.setText("Amount: Invalid Format");
+            }
+            
+            logger.log(Level.INFO, "VNPay Return: Displaying result for response code: " + responseCode);
+            
+            // Display result based on response code with enhanced user messaging
+            switch (responseCode) {
+                case "00":
+                    showSuccess(transactionNo, bankCode, payDate);
+                    break;
+                case "07":
+                    showPendingPayment("Payment Processing",
+                                     "Your payment is being processed by the bank. This may take a few minutes.",
+                                     "Please wait and check your payment status again, or contact support if this persists.");
+                    break;
+                case "09":
+                    showRetryableError("Transaction Declined",
+                                     "Your bank has declined the transaction.",
+                                     "Please try with a different payment method or contact your bank for assistance.");
+                    break;
+                case "10":
+                    showRetryableError("Authentication Failed",
+                                     "Card authentication failed during payment.",
+                                     "Please verify your card details and try again, or use a different payment method.");
+                    break;
+                case "11":
+                    showRetryableError("Session Expired",
+                                     "Your payment session has expired.",
+                                     "Please start a new payment to complete your order.");
+                    break;
+                case "12":
+                    showError("Account Issue",
+                             "Your account is temporarily locked.",
+                             "Please contact your bank to resolve this issue before attempting payment again.");
+                    break;
+                case "13":
+                    showRetryableError("OTP Verification Failed",
+                                     "The OTP (One-Time Password) you entered is incorrect.",
+                                     "Please try the payment again and enter the correct OTP when prompted.");
+                    break;
+                case "24":
+                    showCancelledPayment("Payment Cancelled",
+                                       "You have cancelled the payment process.",
+                                       "You can try again or choose a different payment method.");
+                    break;
+                case "51":
+                    showError("Insufficient Funds",
+                             "Your account does not have sufficient funds for this transaction.",
+                             "Please check your account balance or use a different payment method.");
+                    break;
+                case "65":
+                    showError("Transaction Limit Exceeded",
+                             "You have exceeded your daily transaction limit.",
+                             "Please try again tomorrow or contact your bank to increase your limit.");
+                    break;
+                case "75":
+                    showRetryableError("Bank Maintenance",
+                                     "The payment bank is currently under maintenance.",
+                                     "Please try again later or use a different payment method.");
+                    break;
+                case "79":
+                    showError("Amount Mismatch",
+                             "The transaction amount does not match the expected value.",
+                             "Please contact support to resolve this issue.");
+                    break;
+                default:
+                    showError("Payment Failed",
+                             "Payment failed with an unknown error.",
+                             "Error Code: " + responseCode + ". Please try again or contact support for assistance.");
+                    break;
+            }
+            
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "VNPay Return: Error displaying payment result", e);
+            showError("Display Error",
+                     "Unable to display payment result due to a system error.",
+                     "Please contact support with your transaction details.");
         }
     }
     
@@ -193,14 +310,70 @@ public class VNPayReturnController {
      * Show error message
      */
     private void showError(String title, String message) {
+        showError(title, message, null);
+    }
+    
+    private void showError(String title, String message, String details) {
         statusLabel.setText("✗ " + title);
         statusLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px; -fx-font-weight: bold;");
         
-        messageLabel.setText(message);
+        String fullMessage = message;
+        if (details != null && !details.trim().isEmpty()) {
+            fullMessage += "\n\n" + details;
+        }
+        messageLabel.setText(fullMessage);
+        
+        continueButton.setText("Back to Cart");
+        continueButton.setVisible(true);
+        retryButton.setText("Contact Support");
+        retryButton.setVisible(true);
+    }
+    
+    private void showRetryableError(String title, String message, String details) {
+        statusLabel.setText("⚠ " + title);
+        statusLabel.setStyle("-fx-text-fill: orange; -fx-font-size: 18px; -fx-font-weight: bold;");
+        
+        String fullMessage = message;
+        if (details != null && !details.trim().isEmpty()) {
+            fullMessage += "\n\n" + details;
+        }
+        messageLabel.setText(fullMessage);
         
         continueButton.setText("Back to Cart");
         continueButton.setVisible(true);
         retryButton.setText("Try Again");
+        retryButton.setVisible(true);
+    }
+    
+    private void showPendingPayment(String title, String message, String details) {
+        statusLabel.setText("⏳ " + title);
+        statusLabel.setStyle("-fx-text-fill: blue; -fx-font-size: 18px; -fx-font-weight: bold;");
+        
+        String fullMessage = message;
+        if (details != null && !details.trim().isEmpty()) {
+            fullMessage += "\n\n" + details;
+        }
+        messageLabel.setText(fullMessage);
+        
+        continueButton.setText("Check Status");
+        continueButton.setVisible(true);
+        retryButton.setText("Contact Support");
+        retryButton.setVisible(true);
+    }
+    
+    private void showCancelledPayment(String title, String message, String details) {
+        statusLabel.setText("🚫 " + title);
+        statusLabel.setStyle("-fx-text-fill: gray; -fx-font-size: 18px; -fx-font-weight: bold;");
+        
+        String fullMessage = message;
+        if (details != null && !details.trim().isEmpty()) {
+            fullMessage += "\n\n" + details;
+        }
+        messageLabel.setText(fullMessage);
+        
+        continueButton.setText("Back to Cart");
+        continueButton.setVisible(true);
+        retryButton.setText("Try Different Method");
         retryButton.setVisible(true);
     }
     
@@ -240,15 +413,38 @@ public class VNPayReturnController {
     /**
      * Find payment transaction by VNPay transaction reference
      */
-    private PaymentTransaction findTransactionByReference(String vnpTxnRef) {
+    private PaymentTransaction findTransactionByReference(String vnpTxnRef) throws SQLException {
         try {
+            // Enhanced validation of transaction reference format
+            if (vnpTxnRef == null || !vnpTxnRef.contains("_")) {
+                logger.log(Level.WARNING, "VNPay Return: Invalid transaction reference format: " + vnpTxnRef);
+                return null;
+            }
+            
             // Extract order ID from vnpTxnRef (format: orderId_timestamp)
             String orderId = vnpTxnRef.split("_")[0];
+            if (orderId.trim().isEmpty()) {
+                logger.log(Level.WARNING, "VNPay Return: Empty order ID extracted from reference: " + vnpTxnRef);
+                return null;
+            }
+            
             List<PaymentTransaction> transactions = paymentTransactionDAO.getByOrderId(orderId);
+            
             // Return the first transaction for this order (assuming one payment per order)
-            return transactions.isEmpty() ? null : transactions.get(0);
+            PaymentTransaction result = transactions.isEmpty() ? null : transactions.get(0);
+            
+            if (result != null) {
+                logger.log(Level.INFO, "VNPay Return: Found transaction: " + result.getTransactionId() + " for order: " + orderId);
+            } else {
+                logger.log(Level.WARNING, "VNPay Return: No transaction found for order: " + orderId);
+            }
+            
+            return result;
         } catch (SQLException e) {
-            System.err.println("Error finding transaction: " + e.getMessage());
+            logger.log(Level.SEVERE, "VNPay Return: Database error finding transaction for reference: " + vnpTxnRef, e);
+            throw e; // Re-throw to be handled by caller
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "VNPay Return: Unexpected error finding transaction for reference: " + vnpTxnRef, e);
             return null;
         }
     }

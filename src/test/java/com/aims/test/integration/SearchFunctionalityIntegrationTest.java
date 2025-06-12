@@ -24,9 +24,10 @@ public class SearchFunctionalityIntegrationTest {
             SQLiteConnector.getInstance().getConnection();
             System.out.println("✓ Database connection established");
             
-            // Initialize services
+            // Initialize services - ProductServiceImpl now requires audit service
             ProductDAOImpl productDAO = new ProductDAOImpl();
-            IProductService productService = new ProductServiceImpl(productDAO);
+            // Use null for audit service in test since we're only testing search functionality
+            IProductService productService = new ProductServiceImpl(productDAO, null);
             System.out.println("✓ Services initialized");
             
             // Test 1: Basic search functionality

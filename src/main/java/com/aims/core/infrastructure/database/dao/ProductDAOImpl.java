@@ -15,11 +15,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductDAOImpl implements IProductDAO {
+    
+    // CRITICAL FIX: Cache table existence at class level to prevent repeated checks
+    private static volatile boolean tableExistenceInitialized = false;
+    private static boolean bookTableExists = false;
+    private static boolean cdTableExists = false;
+    private static boolean dvdTableExists = false;
+    private static boolean lpTableExists = false;
+    private static final Object initializationLock = new Object();
 
     private Connection getConnection() throws SQLException {
         // Ensure foreign key enforcement is on for each connection if not globally set
         Connection conn = SQLiteConnector.getInstance().getConnection();
+        
+        // CRITICAL FIX: Initialize table existence cache on first connection
+        initializeTableExistenceCache(conn);
+        
         return conn;
+    }
+    
+    /**
+     * CRITICAL FIX: Initialize table existence cache to prevent repeated database checks
+     */
+    private void initializeTableExistenceCache(Connection conn) {
+        if (!tableExistenceInitialized) {
+            synchronized (initializationLock) {
+                if (!tableExistenceInitialized) {
+                    bookTableExists = DatabaseSchemaValidator.checkTableExists(conn, "BOOK");
+                    cdTableExists = DatabaseSchemaValidator.checkTableExists(conn, "CD");
+                    dvdTableExists = DatabaseSchemaValidator.checkTableExists(conn, "DVD");
+                    lpTableExists = DatabaseSchemaValidator.checkTableExists(conn, "LP");
+                    tableExistenceInitialized = true;
+                    System.out.println("ProductDAOImpl: Table existence cache initialized");
+                }
+            }
+        }
     }
 
     // Helper method to map ResultSet to base Product
@@ -530,20 +560,17 @@ public class ProductDAOImpl implements IProductDAO {
         
         Connection conn = getConnection();
         
-        // Check which tables exist before building query
-        boolean bookExists = DatabaseSchemaValidator.checkTableExists(conn, "BOOK");
-        boolean cdExists = DatabaseSchemaValidator.checkTableExists(conn, "CD");
-        boolean dvdExists = DatabaseSchemaValidator.checkTableExists(conn, "DVD");
-        boolean lpExists = DatabaseSchemaValidator.checkTableExists(conn, "LP");
+        // CRITICAL FIX: Use cached table existence instead of repeated database calls
+        // Table existence is now cached at class initialization, preventing infinite loops
         
         // Build base query with conditional joins based on table existence
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT DISTINCT p.* FROM PRODUCT p ");
         
-        if (bookExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
-        if (cdExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
-        if (dvdExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
-        if (lpExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
+        if (bookTableExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        if (cdTableExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        if (dvdTableExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        if (lpTableExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
         
         sql.append("WHERE p.quantityInStock > 0 ");
         
@@ -562,22 +589,22 @@ public class ProductDAOImpl implements IProductDAO {
             parameters.add(keywordPattern);
             
             // Add conditional search fields
-            if (bookExists) {
+            if (bookTableExists) {
                 keywordCondition.append(" OR b.authors LIKE ? OR b.publisher LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (cdExists) {
+            if (cdTableExists) {
                 keywordCondition.append(" OR c.artists LIKE ? OR c.recordLabel LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (dvdExists) {
+            if (dvdTableExists) {
                 keywordCondition.append(" OR d.director LIKE ? OR d.studio LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (lpExists) {
+            if (lpTableExists) {
                 keywordCondition.append(" OR l.artists LIKE ? OR l.recordLabel LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
@@ -670,19 +697,15 @@ public class ProductDAOImpl implements IProductDAO {
     public int getSearchResultsCount(String keyword, String category) throws SQLException {
         Connection conn = getConnection();
         
-        // Check which tables exist before building query
-        boolean bookExists = DatabaseSchemaValidator.checkTableExists(conn, "BOOK");
-        boolean cdExists = DatabaseSchemaValidator.checkTableExists(conn, "CD");
-        boolean dvdExists = DatabaseSchemaValidator.checkTableExists(conn, "DVD");
-        boolean lpExists = DatabaseSchemaValidator.checkTableExists(conn, "LP");
+        // CRITICAL FIX: Use cached table existence instead of repeated database calls
         
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT COUNT(DISTINCT p.productID) FROM PRODUCT p ");
         
-        if (bookExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
-        if (cdExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
-        if (dvdExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
-        if (lpExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
+        if (bookTableExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        if (cdTableExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        if (dvdTableExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        if (lpTableExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
         
         sql.append("WHERE p.quantityInStock > 0 ");
         
@@ -701,22 +724,22 @@ public class ProductDAOImpl implements IProductDAO {
             parameters.add(keywordPattern);
             
             // Add conditional search fields
-            if (bookExists) {
+            if (bookTableExists) {
                 keywordCondition.append(" OR b.authors LIKE ? OR b.publisher LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (cdExists) {
+            if (cdTableExists) {
                 keywordCondition.append(" OR c.artists LIKE ? OR c.recordLabel LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (dvdExists) {
+            if (dvdTableExists) {
                 keywordCondition.append(" OR d.director LIKE ? OR d.studio LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
             }
-            if (lpExists) {
+            if (lpTableExists) {
                 keywordCondition.append(" OR l.artists LIKE ? OR l.recordLabel LIKE ?");
                 parameters.add(keywordPattern);
                 parameters.add(keywordPattern);
@@ -781,5 +804,255 @@ public class ProductDAOImpl implements IProductDAO {
         }
         
         return categories;
+    }
+
+    @Override
+    public List<Product> findByProductType(ProductType productType) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        String sql = "SELECT * FROM PRODUCT WHERE productType = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, productType.name());
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                // Get full product with subtype details
+                Product fullProduct = getById(rs.getString("productID"));
+                if (fullProduct != null) {
+                    products.add(fullProduct);
+                }
+            }
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+        return products;
+    }
+
+    @Override
+    public List<Product> searchProductsByType(String keyword, ProductType productType, String sortBy, String sortOrder, int page, int pageSize) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        
+        Connection conn = getConnection();
+        
+        // CRITICAL FIX: Use cached table existence instead of repeated database calls
+        
+        // Build base query with conditional joins based on table existence
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT DISTINCT p.* FROM PRODUCT p ");
+        
+        if (bookTableExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        if (cdTableExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        if (dvdTableExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        if (lpTableExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
+        
+        sql.append("WHERE p.quantityInStock > 0 ");
+        
+        List<String> conditions = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        
+        // Product type filter (main difference from searchProducts)
+        if (productType != null) {
+            conditions.add("p.productType = ?");
+            parameters.add(productType.name());
+        }
+        
+        // Enhanced keyword search with conditional fields
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String keywordPattern = "%" + keyword.trim() + "%";
+            StringBuilder keywordCondition = new StringBuilder();
+            keywordCondition.append("(p.title LIKE ? OR p.description LIKE ?");
+            
+            // Add 2 basic parameters (removed category from keyword search since we're filtering by productType)
+            parameters.add(keywordPattern);
+            parameters.add(keywordPattern);
+            
+            // Add conditional search fields based on product type
+            if (productType == null || productType == ProductType.BOOK) {
+                if (bookTableExists) {
+                    keywordCondition.append(" OR b.authors LIKE ? OR b.publisher LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.CD) {
+                if (cdTableExists) {
+                    keywordCondition.append(" OR c.artists LIKE ? OR c.recordLabel LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.DVD) {
+                if (dvdTableExists) {
+                    keywordCondition.append(" OR d.director LIKE ? OR d.studio LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.LP) {
+                if (lpTableExists) {
+                    keywordCondition.append(" OR l.artists LIKE ? OR l.recordLabel LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            
+            keywordCondition.append(")");
+            conditions.add(keywordCondition.toString());
+        }
+        
+        // Apply conditions
+        for (String condition : conditions) {
+            sql.append(" AND ").append(condition);
+        }
+        
+        // Add sorting with validation
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            String validatedSortBy = validateSortColumn(sortBy);
+            sql.append(" ORDER BY ").append(validatedSortBy);
+            if (sortOrder != null && sortOrder.equalsIgnoreCase("DESC")) {
+                sql.append(" DESC");
+            } else {
+                sql.append(" ASC");
+            }
+        } else {
+            sql.append(" ORDER BY p.title ASC"); // Default sorting
+        }
+        
+        // Add pagination
+        sql.append(" LIMIT ? OFFSET ?");
+        parameters.add(pageSize);
+        parameters.add((page - 1) * pageSize);
+        
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            ps = conn.prepareStatement(sql.toString());
+            
+            // Set parameters
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+            
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                // Get full product with subtype details
+                Product fullProduct = getById(rs.getString("productID"));
+                if (fullProduct != null) {
+                    products.add(fullProduct);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error in searchProductsByType: " + e.getMessage());
+            // Log the SQL that failed for debugging
+            System.err.println("Failed SQL: " + sql.toString());
+            throw e;
+        } finally {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+        }
+        
+        return products;
+    }
+
+    @Override
+    public int getSearchResultsCountByType(String keyword, ProductType productType) throws SQLException {
+        Connection conn = getConnection();
+        
+        // CRITICAL FIX: Use cached table existence instead of repeated database calls
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT COUNT(DISTINCT p.productID) FROM PRODUCT p ");
+        
+        if (bookTableExists) sql.append("LEFT JOIN BOOK b ON p.productID = b.productID ");
+        if (cdTableExists) sql.append("LEFT JOIN CD c ON p.productID = c.productID ");
+        if (dvdTableExists) sql.append("LEFT JOIN DVD d ON p.productID = d.productID ");
+        if (lpTableExists) sql.append("LEFT JOIN LP l ON p.productID = l.productID ");
+        
+        sql.append("WHERE p.quantityInStock > 0 ");
+        
+        List<String> conditions = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        
+        // Product type filter
+        if (productType != null) {
+            conditions.add("p.productType = ?");
+            parameters.add(productType.name());
+        }
+        
+        // Enhanced keyword search with conditional fields
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String keywordPattern = "%" + keyword.trim() + "%";
+            StringBuilder keywordCondition = new StringBuilder();
+            keywordCondition.append("(p.title LIKE ? OR p.description LIKE ?");
+            
+            // Add 2 basic parameters
+            parameters.add(keywordPattern);
+            parameters.add(keywordPattern);
+            
+            // Add conditional search fields based on product type
+            if (productType == null || productType == ProductType.BOOK) {
+                if (bookTableExists) {
+                    keywordCondition.append(" OR b.authors LIKE ? OR b.publisher LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.CD) {
+                if (cdTableExists) {
+                    keywordCondition.append(" OR c.artists LIKE ? OR c.recordLabel LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.DVD) {
+                if (dvdTableExists) {
+                    keywordCondition.append(" OR d.director LIKE ? OR d.studio LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            if (productType == null || productType == ProductType.LP) {
+                if (lpTableExists) {
+                    keywordCondition.append(" OR l.artists LIKE ? OR l.recordLabel LIKE ?");
+                    parameters.add(keywordPattern);
+                    parameters.add(keywordPattern);
+                }
+            }
+            
+            keywordCondition.append(")");
+            conditions.add(keywordCondition.toString());
+        }
+        
+        // Apply conditions
+        for (String condition : conditions) {
+            sql.append(" AND ").append(condition);
+        }
+        
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            ps = conn.prepareStatement(sql.toString());
+            
+            // Set parameters
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+            
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error in getSearchResultsCountByType: " + e.getMessage());
+            System.err.println("Failed SQL: " + sql.toString());
+            throw e;
+        } finally {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+        }
+        
+        return 0;
     }
 }

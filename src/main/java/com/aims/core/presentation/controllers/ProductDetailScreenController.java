@@ -10,6 +10,7 @@ import com.aims.core.shared.ServiceFactory;
 import com.aims.core.shared.constants.FXMLPaths;
 import com.aims.core.presentation.utils.NavigationContext;
 import com.aims.core.presentation.utils.CartSessionManager;
+import com.aims.core.presentation.utils.ProductStateManager;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
 
@@ -27,7 +28,7 @@ import javafx.scene.text.Text;   // For potentially long wrapped text
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 
-public class ProductDetailScreenController {
+public class ProductDetailScreenController implements ProductStateManager.ProductStateListener {
 
     @FXML
     private BorderPane productDetailPane;
@@ -63,6 +64,7 @@ public class ProductDetailScreenController {
 
     private Product currentProduct;
     private String productIdToLoad;
+    private boolean isStateListenerRegistered = false; // Track listener registration
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
 
@@ -127,6 +129,29 @@ public class ProductDetailScreenController {
         
         setErrorMessage("", false);
         System.out.println("ProductDetailScreenController.initialize: Enhanced controller initialization completed");
+    }
+
+    // ProductStateManager.ProductStateListener implementation
+    @Override
+    public String getInterestedProductId() {
+        return currentProduct != null ? currentProduct.getProductId() : null;
+    }
+
+    @Override
+    public void onProductUpdated(Product updatedProduct) {
+        if (currentProduct != null &&
+            currentProduct.getProductId().equals(updatedProduct.getProductId())) {
+            
+            System.out.println("ProductDetail: Received state update for " + updatedProduct.getTitle() +
+                             " - Stock: " + updatedProduct.getQuantityInStock() +
+                             " (was: " + currentProduct.getQuantityInStock() + ")");
+            
+            // Update current product and refresh UI on JavaFX Application Thread
+            javafx.application.Platform.runLater(() -> {
+                currentProduct = updatedProduct;
+                populateProductData();
+            });
+        }
     }
     
     /**
@@ -285,6 +310,17 @@ public class ProductDetailScreenController {
             
             if (currentProduct != null) {
                 System.out.println("ProductDetailScreenController.loadProductDetails: Product loaded successfully: " + currentProduct.getTitle());
+                
+                // CRITICAL FIX: Register for state updates and update state cache
+                if (!isStateListenerRegistered) {
+                    ProductStateManager.addListener(this);
+                    isStateListenerRegistered = true;
+                    System.out.println("ProductDetailScreenController.loadProductDetails: Registered with ProductStateManager");
+                }
+                
+                // Update state cache with current product
+                ProductStateManager.updateProduct(currentProduct);
+                
                 populateProductData();
                 
                 // Update header
@@ -493,8 +529,8 @@ public class ProductDetailScreenController {
             System.out.println("ProductDetailScreenController.handleAddToCartAction: Successfully added " + quantity + " of '" + currentProduct.getTitle() + "' to cart");
             setErrorMessage("Added " + quantity + " of '" + currentProduct.getTitle() + "' to your cart.", false);
             
-            // Refresh product details to update stock information
-            loadProductDetails();
+            // CRITICAL FIX: Refresh product details to show updated stock from database
+            refreshProductDetailsFromDatabase();
             
         } catch (com.aims.core.shared.exceptions.ValidationException e) {
             System.err.println("ProductDetailScreenController.handleAddToCartAction: Validation error: " + e.getMessage());
@@ -516,6 +552,45 @@ public class ProductDetailScreenController {
             // Re-enable button
             addToCartButton.setDisable(false);
             addToCartButton.setText(originalButtonText);
+        }
+    }
+
+    /**
+     * Refreshes current product details from database to ensure stock consistency
+     */
+    private void refreshProductDetailsFromDatabase() {
+        if (productIdToLoad == null || productIdToLoad.trim().isEmpty()) {
+            System.err.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: No product ID to refresh");
+            return;
+        }
+        
+        // Validate and initialize services if needed
+        validateAndInitializeServices();
+        
+        if (productService == null) {
+            System.err.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: ProductService unavailable");
+            return;
+        }
+        
+        try {
+            // Fetch fresh product data from database
+            Product refreshedProduct = productService.getProductDetailsForCustomer(productIdToLoad);
+            if (refreshedProduct != null) {
+                System.out.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: Refreshed " +
+                                 refreshedProduct.getTitle() + " - Stock: " + refreshedProduct.getQuantityInStock());
+                
+                // Update current product and refresh UI
+                currentProduct = refreshedProduct;
+                populateProductData();
+            } else {
+                System.err.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: Product not found: " + productIdToLoad);
+            }
+        } catch (SQLException e) {
+            System.err.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: Database error: " + e.getMessage());
+            // Continue with existing data on error
+        } catch (Exception e) {
+            System.err.println("ProductDetailScreenController.refreshProductDetailsFromDatabase: Unexpected error: " + e.getMessage());
+            // Continue with existing data on error
         }
     }
 
@@ -567,6 +642,17 @@ public class ProductDetailScreenController {
         }
     }
 
+    /**
+     * Cleanup method to remove state listener when controller is destroyed.
+     * This prevents memory leaks and should be called when the controller is no longer needed.
+     */
+    public void cleanup() {
+        if (isStateListenerRegistered) {
+            ProductStateManager.removeListener(this);
+            isStateListenerRegistered = false;
+            System.out.println("ProductDetailScreenController.cleanup: Removed listener from ProductStateManager");
+        }
+    }
     private void displayError(String message) {
         System.err.println("ProductDetailScreenController Error: " + message);
         

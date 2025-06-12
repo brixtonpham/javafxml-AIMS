@@ -233,6 +233,28 @@ public interface IProductService {
      */
     List<String> getAllCategories() throws SQLException;
 
+    /**
+     * Gets all available product types as display-friendly names.
+     * @return A list of all product type display names (Books, CDs, DVDs, LP Records)
+     * @throws SQLException If a database error occurs.
+     */
+    List<String> getAllProductTypes() throws SQLException;
+
+    /**
+     * Searches products by product type with additional filtering and sorting options.
+     * Prices returned should be inclusive of 10% VAT for customer display.
+     *
+     * @param productType The product type display name filter (null or empty for all types)
+     * @param keyword The search keyword (searches across title, description, and subtype-specific fields)
+     * @param sortBy The field to sort by (title, price, category, entryDate, quantity)
+     * @param sortOrder The sort order (ASC or DESC)
+     * @param pageNumber The page number (1-based)
+     * @param pageSize The number of items per page
+     * @return A SearchResult containing matching products with VAT-inclusive prices and pagination info
+     * @throws SQLException If a database error occurs.
+     */
+    SearchResult<Product> searchByProductType(String productType, String keyword, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException;
+
     // --- Helper or Internal methods (if any, might not be in interface) ---
     // float calculatePriceWithVAT(float priceExclVAT);
 }

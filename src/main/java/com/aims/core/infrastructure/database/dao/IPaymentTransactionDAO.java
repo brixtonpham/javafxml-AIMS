@@ -73,6 +73,18 @@ public interface IPaymentTransactionDAO {
      */
     void updateStatus(String transactionId, String newStatus, String externalTransactionId) throws SQLException;
 
+    /**
+     * Updates the status and gateway response data of a specific payment transaction.
+     * Used when storing payment URLs or other gateway response information.
+     *
+     * @param transactionId The ID of the transaction to update.
+     * @param newStatus The new status for the transaction.
+     * @param externalTransactionId Optional: The external gateway's transaction ID, if updated.
+     * @param gatewayResponseData Optional: JSON data from gateway (e.g., payment URL).
+     * @throws SQLException If a database access error occurs.
+     */
+    void updateStatusAndGatewayData(String transactionId, String newStatus, String externalTransactionId, String gatewayResponseData) throws SQLException;
+
     // Note: Deleting transactions is typically not done or heavily restricted
     // due to auditing and financial record-keeping requirements.
     // If needed, a method could be added, but with caution.

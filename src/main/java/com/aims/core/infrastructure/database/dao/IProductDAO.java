@@ -5,6 +5,7 @@ import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
 import com.aims.core.entities.DVD;
 import com.aims.core.entities.LP;
+import com.aims.core.enums.ProductType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -182,5 +183,38 @@ public interface IProductDAO {
      * @throws SQLException If a database access error occurs.
      */
     List<String> getAllCategories() throws SQLException;
+
+    /**
+     * Finds products by their product type.
+     *
+     * @param productType The ProductType enum to search for.
+     * @return A list of matching Product objects.
+     * @throws SQLException If a database access error occurs.
+     */
+    List<Product> findByProductType(ProductType productType) throws SQLException;
+
+    /**
+     * Advanced search for products by product type with filtering, sorting, and pagination.
+     *
+     * @param keyword The search keyword (searches across title, description, and subtype-specific fields)
+     * @param productType The ProductType filter (null for all types)
+     * @param sortBy The field to sort by (title, price, category, entryDate, quantity)
+     * @param sortOrder The sort order (ASC or DESC)
+     * @param page The page number (1-based)
+     * @param pageSize The number of items per page
+     * @return A list of matching Product objects with full subtype details
+     * @throws SQLException If a database access error occurs.
+     */
+    List<Product> searchProductsByType(String keyword, ProductType productType, String sortBy, String sortOrder, int page, int pageSize) throws SQLException;
+
+    /**
+     * Gets the total count of products matching the search criteria by product type.
+     *
+     * @param keyword The search keyword
+     * @param productType The ProductType filter
+     * @return The total count of matching products
+     * @throws SQLException If a database access error occurs.
+     */
+    int getSearchResultsCountByType(String keyword, ProductType productType) throws SQLException;
 
 }

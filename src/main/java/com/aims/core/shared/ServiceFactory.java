@@ -8,6 +8,7 @@ import com.aims.core.infrastructure.adapters.external.email.IEmailSenderAdapter;
 import com.aims.core.infrastructure.adapters.external.email.StubEmailSenderAdapter;
 import com.aims.core.infrastructure.adapters.external.payment_gateway.IVNPayAdapter;
 import com.aims.core.infrastructure.adapters.external.payment_gateway.StubVNPayAdapter;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayAdapterImpl;
 
 /**
  * Simple Service Factory for dependency injection.
@@ -80,8 +81,8 @@ public class ServiceFactory {
         paymentMethodDAO = new PaymentMethodDAOImpl(userAccountDAO, cardDetailsDAO);
         paymentTransactionDAO = new PaymentTransactionDAOImpl(orderEntityDAO, paymentMethodDAO);
         
-        // External Service Adapters (using stub implementations)
-        vnPayAdapter = new StubVNPayAdapter();
+        // External Service Adapters (using real VNPay implementation for payment testing)
+        vnPayAdapter = new VNPayAdapterImpl();
         emailSenderAdapter = new StubEmailSenderAdapter();
         
         // Initialize audit service before ProductService
@@ -162,6 +163,18 @@ public class ServiceFactory {
     
     public IOrderEntityDAO getOrderEntityDAO() {
         return orderEntityDAO;
+    }
+    
+    public IPaymentMethodDAO getPaymentMethodDAO() {
+        return paymentMethodDAO;
+    }
+    
+    public ICardDetailsDAO getCardDetailsDAO() {
+        return cardDetailsDAO;
+    }
+    
+    public IPaymentTransactionDAO getPaymentTransactionDAO() {
+        return paymentTransactionDAO;
     }
     
     // Getters for External Adapters (if needed)

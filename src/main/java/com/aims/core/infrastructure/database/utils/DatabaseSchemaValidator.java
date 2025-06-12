@@ -14,6 +14,11 @@ import java.util.List;
  */
 public class DatabaseSchemaValidator {
     
+    // CRITICAL FIX: Add caching to prevent infinite loops
+    private static volatile boolean schemaValidated = false;
+    private static final Object validationLock = new Object();
+    private static final java.util.Map<String, Boolean> tableExistenceCache = new java.util.concurrent.ConcurrentHashMap<>();
+    
     private static final String[] REQUIRED_TABLES = {
         "PRODUCT", "BOOK", "CD", "DVD", "LP", "USER_ACCOUNT", "ROLE",
         "USER_ROLE_ASSIGNMENT", "CART", "CART_ITEM", "ORDER_ENTITY",
@@ -23,20 +28,36 @@ public class DatabaseSchemaValidator {
     
     /**
      * Validates that all required tables exist in the database
+     * CRITICAL FIX: Added caching to prevent infinite loop console spam
      * @param conn Database connection
      * @return true if all tables exist, false otherwise
      * @throws SQLException if database error occurs
      */
     public static boolean validateSchema(Connection conn) throws SQLException {
-        List<String> missingTables = findMissingTables(conn);
-        
-        if (missingTables.isEmpty()) {
-            System.out.println("✓ All required tables exist");
-            return true;
+        // CRITICAL FIX: Use cached result if already validated
+        if (schemaValidated) {
+            return true; // Assume valid if previously validated
         }
         
-        System.out.println("❌ Missing tables: " + missingTables);
-        return false;
+        synchronized (validationLock) {
+            // Double-check after acquiring lock
+            if (schemaValidated) {
+                return true;
+            }
+            
+            List<String> missingTables = findMissingTables(conn);
+            
+            if (missingTables.isEmpty()) {
+                // CRITICAL FIX: Only log success message ONCE
+                System.out.println("✓ All required tables exist - schema validation complete");
+                schemaValidated = true;
+                return true;
+            }
+            
+            // CRITICAL FIX: Only log missing tables on first check
+            System.out.println("❌ Missing tables: " + missingTables);
+            return false;
+        }
     }
     
     /**
@@ -164,31 +185,53 @@ public class DatabaseSchemaValidator {
     
     /**
      * Quick check if LP table exists (used by ProductDAOImpl)
+     * CRITICAL FIX: Use cached checkTableExists method to prevent infinite loops
      * @param conn Database connection
      * @return true if LP table exists, false otherwise
      */
     public static boolean lpTableExists(Connection conn) {
-        try {
-            DatabaseMetaData metaData = conn.getMetaData();
-            return tableExists(metaData, "LP");
-        } catch (SQLException e) {
-            System.err.println("Error checking LP table existence: " + e.getMessage());
-            return false;
+        // CRITICAL FIX: Use the cached checkTableExists method instead of direct DB call
+        return checkTableExists(conn, "LP");
+    }
+    
+    /**
+     * CRITICAL FIX: Method to clear validation cache if database schema changes
+     * This should be called if tables are created/dropped during runtime
+     */
+    public static void clearValidationCache() {
+        synchronized (validationLock) {
+            schemaValidated = false;
+            tableExistenceCache.clear();
+            System.out.println("DatabaseSchemaValidator: Validation cache cleared");
         }
     }
     
     /**
      * Quick check if a specific table exists (helper method for DAO classes)
+     * CRITICAL FIX: Added caching to prevent infinite loop from repeated calls
      * @param conn Database connection
      * @param tableName Name of the table to check
      * @return true if table exists, false otherwise
      */
     public static boolean checkTableExists(Connection conn, String tableName) {
+        // CRITICAL FIX: Check cache first to avoid repeated database calls
+        String cacheKey = tableName.toUpperCase();
+        Boolean cachedResult = tableExistenceCache.get(cacheKey);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        
         try {
             DatabaseMetaData metaData = conn.getMetaData();
-            return tableExists(metaData, tableName);
+            boolean exists = tableExists(metaData, tableName);
+            
+            // CRITICAL FIX: Cache the result to prevent future calls
+            tableExistenceCache.put(cacheKey, exists);
+            return exists;
         } catch (SQLException e) {
             System.err.println("Error checking table existence for " + tableName + ": " + e.getMessage());
+            // CRITICAL FIX: Cache negative result to prevent retry loops
+            tableExistenceCache.put(cacheKey, false);
             return false;
         }
     }

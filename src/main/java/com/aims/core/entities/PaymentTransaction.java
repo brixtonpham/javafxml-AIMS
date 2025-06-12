@@ -41,6 +41,10 @@ public class PaymentTransaction {
     @Column(name = "transactionContent")
     private String transactionContent; // e.g., Details or message from payment gateway
 
+    @Lob
+    @Column(name = "gatewayResponseData")
+    private String gatewayResponseData; // JSON data from payment gateway (e.g., payment URL for VNPAY)
+
     public PaymentTransaction() {
     }
 
@@ -127,6 +131,14 @@ public class PaymentTransaction {
 
     public void setTransactionContent(String transactionContent) {
         this.transactionContent = transactionContent;
+    }
+
+    public String getGatewayResponseData() {
+        return gatewayResponseData;
+    }
+
+    public void setGatewayResponseData(String gatewayResponseData) {
+        this.gatewayResponseData = gatewayResponseData;
     }
 
     @Override

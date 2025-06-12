@@ -1,9 +1,18 @@
 package com.aims.core.presentation.controllers;
 
 import com.aims.core.entities.OrderEntity;
+import com.aims.core.entities.PaymentMethod;
+import com.aims.core.entities.PaymentTransaction;
+import com.aims.core.enums.PaymentMethodType;
+import com.aims.core.application.services.IPaymentService;
+import com.aims.core.shared.exceptions.PaymentException;
+import com.aims.core.shared.exceptions.ValidationException;
+import com.aims.core.shared.exceptions.ResourceNotFoundException;
+import com.aims.core.presentation.utils.PaymentErrorHandler;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 // import com.aims.presentation.utils.AlertHelper;
 // import com.aims.presentation.utils.FXMLSceneManager;
-// import com.aims.core.application.services.IPaymentService; // Sẽ cần khi thực sự xử lý thanh toán
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -13,7 +22,10 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.application.HostServices; // Để mở trình duyệt
 
-public class PaymentMethodScreenController {
+import java.sql.SQLException;
+import java.util.UUID;
+
+public class PaymentMethodScreenController implements MainLayoutController.IChildController {
 
     @FXML
     private ToggleGroup paymentMethodToggleGroup;
@@ -29,36 +41,78 @@ public class PaymentMethodScreenController {
 
     private MainLayoutController mainLayoutController;
     // private FXMLSceneManager sceneManager;
-    // private IPaymentService paymentService; // Sẽ được inject
+    private IPaymentService paymentService; // Service for payment processing
     private OrderEntity currentOrder;
     private HostServices hostServices; // Để mở URL trong trình duyệt mặc định
+    private final Gson gson = new Gson(); // For parsing JSON response data
 
     public PaymentMethodScreenController() {
         // paymentService = new PaymentServiceImpl(...); // DI
     }
 
+    @Override
     public void setMainLayoutController(MainLayoutController mainLayoutController) {
         this.mainLayoutController = mainLayoutController;
+        System.out.println("PaymentMethodScreenController: MainLayoutController injected successfully");
     }
     
     // public void setSceneManager(FXMLSceneManager sceneManager) { this.sceneManager = sceneManager; }
-    // public void setPaymentService(IPaymentService paymentService) { this.paymentService = paymentService; }
+    public void setPaymentService(IPaymentService paymentService) {
+        this.paymentService = paymentService;
+        System.out.println("PaymentMethodScreenController: PaymentService injected successfully");
+    }
+    
     public void setHostServices(HostServices hostServices) { this.hostServices = hostServices; }
 
 
     public void initialize() {
-        errorMessageLabel.setText("");
-        errorMessageLabel.setVisible(false);
-
-        paymentMethodToggleGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                String selectedMethod = (String) newValue.getUserData();
-                updateDescriptionAndButton(selectedMethod);
+        System.out.println("PaymentMethodScreenController.initialize: Starting initialization");
+        
+        // Enhanced initialization with error handling
+        try {
+            errorMessageLabel.setText("");
+            errorMessageLabel.setVisible(false);
+            
+            // Validate UI components before setting up listeners
+            if (paymentMethodToggleGroup == null) {
+                System.err.println("PaymentMethodScreenController.initialize: CRITICAL - paymentMethodToggleGroup is null");
+                setErrorMessage("Payment method selection is not available. Please reload the page.", true);
+                return;
             }
-        });
-        // Initialize description for the default selected radio button
-        if(vnpayCreditCardRadio.isSelected()){
-            updateDescriptionAndButton((String) vnpayCreditCardRadio.getUserData());
+            
+            if (vnpayCreditCardRadio == null) {
+                System.err.println("PaymentMethodScreenController.initialize: CRITICAL - vnpayCreditCardRadio is null");
+                setErrorMessage("Payment options are not available. Please reload the page.", true);
+                return;
+            }
+
+            paymentMethodToggleGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
+                try {
+                    if (newValue != null) {
+                        String selectedMethod = (String) newValue.getUserData();
+                        updateDescriptionAndButton(selectedMethod);
+                        // Clear any previous error messages when selection changes
+                        if (errorMessageLabel.isVisible()) {
+                            setErrorMessage("", false);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("PaymentMethodScreenController.initialize: Error in selection listener: " + e.getMessage());
+                    setErrorMessage("Error updating payment method selection", true);
+                }
+            });
+            
+            // Initialize description for the default selected radio button
+            if(vnpayCreditCardRadio.isSelected()){
+                updateDescriptionAndButton((String) vnpayCreditCardRadio.getUserData());
+            }
+            
+            System.out.println("PaymentMethodScreenController.initialize: Initialization completed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("PaymentMethodScreenController.initialize: CRITICAL initialization error: " + e.getMessage());
+            e.printStackTrace();
+            setErrorMessage("Failed to initialize payment method screen. Please try refreshing the page.", true);
         }
     }
 
@@ -98,130 +152,235 @@ public class PaymentMethodScreenController {
 
     @FXML
     void handleBackToOrderSummaryAction(ActionEvent event) {
-        System.out.println("Back to Order Summary action triggered");
+        System.out.println("PaymentMethodScreenController: Back to Order Summary action triggered");
         
         if (mainLayoutController != null && currentOrder != null) {
             try {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/order_summary_screen.fxml");
                 mainLayoutController.setHeaderTitle("Order Summary & Confirmation");
                 
-                // Pass order data to summary controller
+                // Verify controller loading and injection
                 if (controller instanceof OrderSummaryController) {
                     ((OrderSummaryController) controller).setOrderData(currentOrder);
+                    System.out.println("PaymentMethodScreenController: Successfully navigated back to order summary");
+                } else {
+                    System.err.println("PaymentMethodScreenController: Controller injection failed - invalid controller type");
+                    setErrorMessage("Failed to initialize order summary screen properly", true);
                 }
                 
-                System.out.println("Successfully navigated back to order summary");
             } catch (Exception e) {
-                System.err.println("Error navigating back to order summary: " + e.getMessage());
+                System.err.println("PaymentMethodScreenController: Navigation error: " + e.getMessage());
+                e.printStackTrace();
+                setErrorMessage("Failed to navigate back to order summary: " + e.getMessage(), true);
             }
         } else {
-            System.err.println("MainLayoutController or order data not available for back navigation");
+            System.err.println("PaymentMethodScreenController: MainLayoutController or order data not available for back navigation");
+            setErrorMessage("Navigation error. Cannot go back to order summary.", true);
         }
     }
 
     @FXML
     void handleProceedAction(ActionEvent event) {
-        if (currentOrder == null) {
-            // AlertHelper.showErrorAlert("Error", "No order to process payment for.");
-            setErrorMessage("No order information available to proceed.", true);
-            return;
+        System.out.println("PaymentMethodScreenController.handleProceedAction: Payment proceed action initiated");
+        
+        try {
+            // Enhanced input validation with specific error messages
+            if (currentOrder == null) {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: No order data available");
+                setErrorMessage("No order information available to proceed. Please restart the order process.", true);
+                proceedButton.setDisable(true);
+                return;
+            }
+            
+            // Clear previous error messages
+            setErrorMessage("", false);
+            
+            // Validate payment method selection
+            if (paymentMethodToggleGroup == null) {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: Payment method group is null");
+                setErrorMessage("Payment method selection is not available. Please reload the page.", true);
+                return;
+            }
+
+            RadioButton selectedRadio = (RadioButton) paymentMethodToggleGroup.getSelectedToggle();
+            if (selectedRadio == null) {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: No payment method selected");
+                setErrorMessage("Please select a payment method to continue.", true);
+                return;
+            }
+
+            String selectedMethodUserData = (String) selectedRadio.getUserData();
+            if (selectedMethodUserData == null || selectedMethodUserData.trim().isEmpty()) {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: Invalid payment method data");
+                setErrorMessage("Selected payment method is invalid. Please select a different method.", true);
+                return;
+            }
+            
+            System.out.println("PaymentMethodScreenController.handleProceedAction: Proceeding with payment method: " + selectedMethodUserData + " for Order ID: " + currentOrder.getOrderId());
+
+            // Validate navigation dependencies before proceeding
+            if (mainLayoutController == null) {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: CRITICAL - MainLayoutController not available");
+                setErrorMessage("System error: Cannot proceed with payment. Please try refreshing the application.", true);
+                return;
+            }
+
+            // Enhanced payment service handling
+            if (paymentService != null) {
+                System.out.println("PaymentMethodScreenController.handleProceedAction: PaymentService available - initiating actual payment");
+                
+                try {
+                    // Create a temporary PaymentMethod for VNPAY processing
+                    PaymentMethod vnpayPaymentMethod = createVNPayPaymentMethod(selectedMethodUserData);
+                    
+                    // Call PaymentService to process payment
+                    System.out.println("PaymentMethodScreenController.handleProceedAction: Calling PaymentService.processPayment()");
+                    PaymentTransaction transaction = paymentService.processPayment(currentOrder, vnpayPaymentMethod.getPaymentMethodId());
+                    
+                    // Extract payment URL from gateway response data
+                    String paymentUrl = extractPaymentUrlFromTransaction(transaction);
+                    
+                    if (paymentUrl != null && !paymentUrl.trim().isEmpty()) {
+                        System.out.println("PaymentMethodScreenController.handleProceedAction: Payment URL extracted successfully: " + paymentUrl);
+                        navigateToPaymentProcessingScreen(transaction.getTransactionId(), paymentUrl);
+                    } else {
+                        System.err.println("PaymentMethodScreenController.handleProceedAction: No payment URL generated");
+                        setErrorMessage("Failed to generate payment URL. Please try again.", true);
+                    }
+                    
+                } catch (PaymentException | ValidationException | ResourceNotFoundException | SQLException e) {
+                    System.err.println("PaymentMethodScreenController.handleProceedAction: Payment processing failed: " + e.getMessage());
+                    e.printStackTrace();
+                    
+                    // Use centralized error handling
+                    PaymentErrorHandler.handlePaymentInitiationError(e, this, currentOrder);
+                } catch (Exception e) {
+                    System.err.println("PaymentMethodScreenController.handleProceedAction: Unexpected error during payment: " + e.getMessage());
+                    e.printStackTrace();
+                    
+                    // Use centralized error handling for unexpected errors
+                    PaymentErrorHandler.handlePaymentInitiationError(e, this, currentOrder);
+                }
+            } else {
+                System.err.println("PaymentMethodScreenController.handleProceedAction: PaymentService not available - cannot proceed");
+                
+                // Handle service unavailable error
+                ValidationException serviceException = new ValidationException("Payment service is not available. Please refresh the application and try again.");
+                PaymentErrorHandler.handlePaymentInitiationError(serviceException, this, currentOrder);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("PaymentMethodScreenController.handleProceedAction: Unexpected error during payment proceed: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Use centralized error handling for top-level exceptions
+            PaymentErrorHandler.handlePaymentInitiationError(e, this, currentOrder);
         }
-        setErrorMessage("", false);
+    }
 
-        RadioButton selectedRadio = (RadioButton) paymentMethodToggleGroup.getSelectedToggle();
-        if (selectedRadio == null) {
-            // AlertHelper.showWarningAlert("No Selection", "Please select a payment method.");
-             setErrorMessage("Please select a payment method.", true);
-            return;
+    /**
+     * Creates a temporary PaymentMethod for VNPAY processing
+     */
+    private PaymentMethod createVNPayPaymentMethod(String selectedMethodUserData) {
+        PaymentMethod paymentMethod = new PaymentMethod();
+        paymentMethod.setPaymentMethodId("VNPAY_TEMP_" + UUID.randomUUID().toString());
+        
+        // Set payment method type based on selection
+        switch (selectedMethodUserData) {
+            case "VNPAY_CREDIT_CARD":
+                paymentMethod.setMethodType(PaymentMethodType.CREDIT_CARD);
+                break;
+            case "VNPAY_DOMESTIC_CARD":
+                paymentMethod.setMethodType(PaymentMethodType.DOMESTIC_DEBIT_CARD);
+                break;
+            default:
+                paymentMethod.setMethodType(PaymentMethodType.CREDIT_CARD); // Default
+                break;
         }
+        
+        // No user account association for temporary payment method
+        paymentMethod.setUserAccount(null);
+        paymentMethod.setDefault(false);
+        
+        System.out.println("PaymentMethodScreenController: Created temporary PaymentMethod: " + paymentMethod.getPaymentMethodId() + " of type: " + paymentMethod.getMethodType());
+        return paymentMethod;
+    }
 
-        String selectedMethodUserData = (String) selectedRadio.getUserData();
-        System.out.println("Proceeding with payment method: " + selectedMethodUserData + " for Order ID: " + currentOrder.getOrderId());
-
-        // Đây là nơi bạn sẽ gọi IPaymentService để bắt đầu quá trình thanh toán.
-        // IPaymentService sẽ trả về một URL redirect của VNPay (trong PaymentResultDTO hoặc Map).
-        // Sau đó, bạn sẽ mở URL này trong trình duyệt.
-        // Việc xử lý callback từ VNPay (vnp_ReturnUrl) sẽ phức tạp hơn trong desktop app.
-        // Bạn có thể cần một server nhỏ lắng nghe hoặc một cơ chế khác.
-        // Hoặc, cho desktop, VNPay có thể cung cấp SDK/API cho phép thanh toán không qua redirect hoàn toàn (cần kiểm tra tài liệu VNPay).
-
-        // --- Bắt đầu ví dụ luồng gọi PaymentService ---
-        // if (paymentService == null) {
-        //     AlertHelper.showErrorAlert("Service Error", "Payment service is not available.");
-        //     return;
-        // }
-        //
-        // try {
-        //     Map<String, Object> paymentParamsForStrategy = new HashMap<>();
-        //     // Lấy IP của client nếu có thể, ví dụ:
-        //     // paymentParamsForStrategy.put("ipAddress", "192.168.1.10"); // Lấy IP thực tế
-        //
-        //     if ("VNPAY_DOMESTIC_CARD".equals(selectedMethodUserData)) {
-        //         // Cần lấy bank code, ví dụ từ một ComboBox khác trên màn hình này (chưa thêm vào FXML)
-        //         // String bankCode = selectedBankComboBox.getValue();
-        //         // if (bankCode == null || bankCode.isEmpty()) {
-        //         //     AlertHelper.showErrorAlert("Missing Information", "Please select your bank for domestic card payment.");
-        //         //     return;
-        //         // }
-        //         // paymentParamsForStrategy.put("vnp_BankCode", bankCode);
-        //         System.out.println("Domestic card selected - bank code selection needed.");
-        //     }
-        //
-        //     // PaymentServiceImpl sẽ chọn strategy phù hợp dựa trên paymentMethodId hoặc thông tin từ OrderEntity
-        //     // Hoặc bạn có thể truyền PaymentMethodType vào PaymentService
-        //     PaymentResultDTO paymentResult = paymentService.initiatePayment(currentOrder, selectedMethodUserData, paymentParamsForStrategy); // initiatePayment là một ví dụ tên method
-        //
-        //     if (paymentResult.getPaymentUrl() != null && !paymentResult.getPaymentUrl().isEmpty()) {
-        //         if (hostServices != null) {
-        //             hostServices.showDocument(paymentResult.getPaymentUrl());
-        //             // Sau khi redirect, ứng dụng cần một cách để biết kết quả thanh toán.
-        //             // Có thể là một màn hình chờ (PaymentProcessingScreen) và sau đó điều hướng tới PaymentResultScreen
-        //             // Hoặc nếu không có redirect, trực tiếp hiển thị PaymentResultScreen.
-        //             navigateToPaymentProcessingScreen(paymentResult.getAimsTransactionId());
-        //         } else {
-        //             AlertHelper.showErrorAlert("Browser Error", "Cannot open payment URL. HostServices not available.");
-        //         }
-        //     } else {
-        //         // Xử lý trường hợp thanh toán trực tiếp không cần redirect hoặc lỗi ngay khi tạo yêu cầu
-        //         navigateToPaymentResultScreen(paymentResult);
-        //     }
-        //
-        // } catch (PaymentException | ValidationException | ResourceNotFoundException | SQLException e) {
-        //     e.printStackTrace();
-        //     AlertHelper.showErrorAlert("Payment Initiation Failed", e.getMessage());
-        // }
-        System.out.println("Initiate payment process - implement with actual service call and navigation/redirect.");
-        // For now, simulate navigation to processing/result screen
-        navigateToPaymentProcessingScreen("TEMP_TRANS_ID_" + currentOrder.getOrderId());
+    /**
+     * Extracts payment URL from PaymentTransaction's gateway response data
+     */
+    private String extractPaymentUrlFromTransaction(PaymentTransaction transaction) {
+        try {
+            String gatewayResponseData = transaction.getGatewayResponseData();
+            if (gatewayResponseData != null && !gatewayResponseData.trim().isEmpty()) {
+                JsonObject responseJson = gson.fromJson(gatewayResponseData, JsonObject.class);
+                if (responseJson.has("paymentUrl")) {
+                    String paymentUrl = responseJson.get("paymentUrl").getAsString();
+                    System.out.println("PaymentMethodScreenController: Extracted payment URL: " + paymentUrl);
+                    return paymentUrl;
+                } else {
+                    System.err.println("PaymentMethodScreenController: No paymentUrl found in gateway response data");
+                }
+            } else {
+                System.err.println("PaymentMethodScreenController: Gateway response data is null or empty");
+            }
+        } catch (Exception e) {
+            System.err.println("PaymentMethodScreenController: Error parsing gateway response data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void navigateToPaymentProcessingScreen(String aimsTransactionId) {
-        System.out.println("Navigating to Payment Processing for transaction: " + aimsTransactionId);
+        navigateToPaymentProcessingScreen(aimsTransactionId, null);
+    }
+
+    private void navigateToPaymentProcessingScreen(String aimsTransactionId, String paymentUrl) {
+        System.out.println("PaymentMethodScreenController: Navigating to Payment Processing for transaction: " + aimsTransactionId +
+                          (paymentUrl != null ? " with payment URL" : " without payment URL"));
         
+        // Enhanced defensive programming
         if (mainLayoutController != null) {
             try {
                 Object controller = mainLayoutController.loadContent("/com/aims/presentation/views/payment_processing_screen.fxml");
                 mainLayoutController.setHeaderTitle("Processing Payment...");
                 
-                // Pass transaction data to processing controller
+                // Verify controller loading and injection
                 if (controller instanceof PaymentProcessingScreenController) {
                     PaymentProcessingScreenController processingController = (PaymentProcessingScreenController) controller;
                     processingController.setMainLayoutController(mainLayoutController);
-                    processingController.setTransactionData(currentOrder, aimsTransactionId);
-                    System.out.println("Transaction data passed to processing controller successfully");
+                    
+                    // Inject HostServices for browser launching
+                    if (hostServices != null) {
+                        processingController.setHostServices(hostServices);
+                        System.out.println("PaymentMethodScreenController: HostServices injected to PaymentProcessingScreenController");
+                    } else {
+                        System.out.println("PaymentMethodScreenController: Warning - HostServices not available for browser launching");
+                    }
+                    
+                    // Set transaction data with or without payment URL
+                    if (paymentUrl != null && !paymentUrl.trim().isEmpty()) {
+                        processingController.setPaymentData(currentOrder, aimsTransactionId, paymentUrl);
+                    } else {
+                        processingController.setTransactionData(currentOrder, aimsTransactionId);
+                    }
+                    
+                    System.out.println("PaymentMethodScreenController: Transaction data passed to processing controller successfully");
                 } else {
-                    System.err.println("Warning: Loaded controller is not PaymentProcessingScreenController");
+                    System.err.println("PaymentMethodScreenController: Controller injection failed - invalid controller type");
+                    setErrorMessage("Failed to initialize payment processing screen properly", true);
+                    return;
                 }
                 
-                System.out.println("Successfully navigated to payment processing screen");
+                System.out.println("PaymentMethodScreenController: Successfully navigated to payment processing screen");
             } catch (Exception e) {
-                System.err.println("Error navigating to payment processing: " + e.getMessage());
+                System.err.println("PaymentMethodScreenController: Navigation error: " + e.getMessage());
                 e.printStackTrace();
-                setErrorMessage("Navigation error. Please try again.", true);
+                setErrorMessage("Failed to navigate to payment processing: " + e.getMessage(), true);
             }
         } else {
-            System.err.println("MainLayoutController not available for navigation");
-            setErrorMessage("Navigation error. Please refresh the page.", true);
+            System.err.println("PaymentMethodScreenController: CRITICAL - MainLayoutController not available for navigation");
+            setErrorMessage("Cannot navigate to payment processing due to a system error. Please try refreshing the page or restart the application.", true);
         }
     }
 

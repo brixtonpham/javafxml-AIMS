@@ -20,17 +20,19 @@ public class CartSessionManager {
      * @return A persistent cart session ID
      */
     public static String getOrCreateCartSessionId() {
-        // Double-checked locking pattern for thread safety
-        if (guestCartSessionId == null) {
+        // CRITICAL FIX: Add session validation
+        if (guestCartSessionId == null || guestCartSessionId.trim().isEmpty()) {
             synchronized (SESSION_LOCK) {
-                if (guestCartSessionId == null) {
-                    guestCartSessionId = "guest_cart_" + System.currentTimeMillis() + "_" + Thread.currentThread().getId();
-                    System.out.println("CartSessionManager.getOrCreateCartSessionId: Created new cart session ID: " + guestCartSessionId);
+                if (guestCartSessionId == null || guestCartSessionId.trim().isEmpty()) {
+                    guestCartSessionId = "guest_cart_" + System.currentTimeMillis() + "_" +
+                                       Thread.currentThread().getId();
+                    System.out.println("CartSessionManager: Created new session ID: " + guestCartSessionId);
                 }
             }
-        } else {
-            System.out.println("CartSessionManager.getOrCreateCartSessionId: Using existing cart session ID: " + guestCartSessionId);
         }
+        
+        // CRITICAL FIX: Always log session access for debugging
+        System.out.println("CartSessionManager: Returning session ID: " + guestCartSessionId);
         return guestCartSessionId;
     }
     

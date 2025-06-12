@@ -86,21 +86,21 @@ public class ProductSearchResultsController {
         sortByPriceComboBox.setItems(FXCollections.observableArrayList("Default", "Price: Low to High", "Price: High to Low"));
         sortByPriceComboBox.setValue("Default");
         
-        // Load categories dynamically from productService
+        // Load product types dynamically from productService
         try {
             if (productService != null) {
-                List<String> categories = productService.getAllCategories();
-                categories.add(0, "All Categories");
-                categoryComboBox.setItems(FXCollections.observableArrayList(categories));
+                List<String> productTypes = productService.getAllProductTypes();
+                productTypes.add(0, "All Categories");
+                categoryComboBox.setItems(FXCollections.observableArrayList(productTypes));
                 categoryComboBox.setValue("All Categories");
             } else {
-                categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs"));
+                categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs", "LP Records"));
                 categoryComboBox.setValue("All Categories");
             }
         } catch (SQLException e) {
-            categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs"));
+            categoryComboBox.setItems(FXCollections.observableArrayList("All Categories", "Books", "CDs", "DVDs", "LP Records"));
             categoryComboBox.setValue("All Categories");
-            System.err.println("Error loading categories: " + e.getMessage());
+            System.err.println("Error loading product types: " + e.getMessage());
         }
         
         // Add listeners for filter changes

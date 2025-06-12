@@ -32,6 +32,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
         String dateTimeStr;
         float amount;
         String transactionContent;
+        String gatewayResponseData;
     }
 
     public PaymentTransactionDAOImpl(IOrderEntityDAO orderEntityDAO, IPaymentMethodDAO paymentMethodDAO) {
@@ -46,8 +47,8 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
     @Override
     public void add(PaymentTransaction transaction) throws SQLException {
         String sql = "INSERT INTO PAYMENT_TRANSACTION (transactionID, orderID, paymentMethodID, transactionType, " +
-                     "externalTransactionID, transaction_status, transactionDateTime, amount, transactionContent) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "externalTransactionID, transaction_status, transactionDateTime, amount, transactionContent, gatewayResponseData) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -66,6 +67,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
             pstmt.setString(7, transaction.getTransactionDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             pstmt.setFloat(8, transaction.getAmount());
             pstmt.setString(9, transaction.getTransactionContent());
+            pstmt.setString(10, transaction.getGatewayResponseData());
             pstmt.executeUpdate();
         } catch (SQLException e) {
             SQLiteConnector.printSQLException(e);
@@ -97,6 +99,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
                 transaction.setTransactionStatus(rs.getString("transaction_status"));
                 transaction.setAmount(rs.getFloat("amount"));
                 transaction.setTransactionContent(rs.getString("transactionContent"));
+                transaction.setGatewayResponseData(rs.getString("gatewayResponseData"));
                 
                 String dateTimeStr = rs.getString("transactionDateTime");
                 if (dateTimeStr != null) {
@@ -146,6 +149,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
                 rawData.dateTimeStr = rs.getString("transactionDateTime");
                 rawData.amount = rs.getFloat("amount");
                 rawData.transactionContent = rs.getString("transactionContent");
+                rawData.gatewayResponseData = rs.getString("gatewayResponseData");
                 rawDataList.add(rawData);
             }
         } catch (SQLException e) {
@@ -162,6 +166,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
             transaction.setTransactionStatus(rawData.transactionStatus);
             transaction.setAmount(rawData.amount);
             transaction.setTransactionContent(rawData.transactionContent);
+            transaction.setGatewayResponseData(rawData.gatewayResponseData);
             
             if (rawData.dateTimeStr != null) {
                 transaction.setTransactionDateTime(LocalDateTime.parse(rawData.dateTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -204,6 +209,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
                 rawData.dateTimeStr = rs.getString("transactionDateTime");
                 rawData.amount = rs.getFloat("amount");
                 rawData.transactionContent = rs.getString("transactionContent");
+                rawData.gatewayResponseData = rs.getString("gatewayResponseData");
                 rawDataList.add(rawData);
             }
         } catch (SQLException e) {
@@ -374,6 +380,27 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows == 0) {
                 throw new SQLException("Updating payment transaction status failed, no record found for ID: " + transactionId);
+            }
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void updateStatusAndGatewayData(String transactionId, String newStatus, String externalTransactionId, String gatewayResponseData) throws SQLException {
+        String sql = "UPDATE PAYMENT_TRANSACTION SET transaction_status = ?, externalTransactionID = ?, gatewayResponseData = ? " +
+                     "WHERE transactionID = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStatus);
+            pstmt.setString(2, externalTransactionId);
+            pstmt.setString(3, gatewayResponseData);
+            pstmt.setString(4, transactionId);
+
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Updating payment transaction status and gateway data failed, no record found for ID: " + transactionId);
             }
         } catch (SQLException e) {
             SQLiteConnector.printSQLException(e);

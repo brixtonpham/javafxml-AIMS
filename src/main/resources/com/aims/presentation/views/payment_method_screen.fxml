@@ -9,6 +9,9 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <BorderPane fx:id="paymentMethodPane" styleClass="main-layout" prefHeight="-1.0" prefWidth="-1.0" minHeight="800.0" minWidth="1800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.aims.core.presentation.controllers.PaymentMethodScreenController">
+    <fx:define>
+        <ToggleGroup fx:id="paymentMethodToggleGroup"/>
+    </fx:define>
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
@@ -22,9 +25,11 @@
     <center>
         <VBox spacing="15" alignment="CENTER_LEFT" styleClass="content-area, spacing-medium">
             <Label text="Choose how you'd like to pay:" styleClass="section-title" />
-            <ToggleGroup fx:id="paymentMethodToggleGroup">
-                <RadioButton fx:id="vnpayCreditCardRadio" text="Credit Card / Debit Card (via VNPay)" selected="true" userData="VNPAY_CREDIT_CARD"/>
-                </ToggleGroup>
+            <RadioButton fx:id="vnpayCreditCardRadio"
+                         text="Credit Card / Debit Card (via VNPay)"
+                         selected="true"
+                         userData="VNPAY_CREDIT_CARD"
+                         toggleGroup="$paymentMethodToggleGroup"/>
             <Label fx:id="selectedMethodDescriptionLabel" styleClass="text-muted" wrapText="true"
                    text="You will be redirected to VNPay gateway to complete your payment securely."/>
         </VBox>

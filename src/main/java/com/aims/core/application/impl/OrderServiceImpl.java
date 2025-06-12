@@ -63,10 +63,26 @@ public class OrderServiceImpl implements IOrderService {
     @Override
     public OrderEntity initiateOrderFromCart(String cartSessionId, String userId)
             throws SQLException, ResourceNotFoundException, InventoryException, ValidationException {
-        Cart cart = cartService.getCart(cartSessionId);
-        if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
-            throw new ResourceNotFoundException("Cart not found or is empty for session ID: " + cartSessionId);
+        
+        // CRITICAL FIX: Enhanced cart validation with detailed logging
+        System.out.println("ORDER CREATION: Validating cart for session: " + cartSessionId);
+        
+        if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
+            System.err.println("ORDER CREATION ERROR: Cart session ID is null or empty");
+            throw new ValidationException("Invalid cart session ID provided");
         }
+        
+        Cart cart = cartService.getCart(cartSessionId);
+        if (cart == null) {
+            System.err.println("ORDER CREATION ERROR: Cart is null for session: " + cartSessionId);
+            throw new ResourceNotFoundException("Cart not found for session ID: " + cartSessionId);
+        }
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            System.err.println("ORDER CREATION ERROR: Cart items are empty for session: " + cartSessionId);
+            throw new ResourceNotFoundException("Cart is empty for session ID: " + cartSessionId);
+        }
+        
+        System.out.println("ORDER CREATION: Cart validation passed - " + cart.getItems().size() + " items found");
 
         OrderEntity order = new OrderEntity();
         order.setOrderId("ORD-" + UUID.randomUUID().toString());
@@ -159,6 +175,12 @@ public class OrderServiceImpl implements IOrderService {
         }
 
 
+        // CRITICAL FIX: Set delivery info on order BEFORE calculating shipping fee
+        // This prevents ValidationException "Delivery information is required for shipping calculation"
+        deliveryInfoInput.setOrderEntity(order); // Link to order
+        order.setDeliveryInfo(deliveryInfoInput); // Set delivery info FIRST
+        
+        // Now calculate shipping fee with delivery info available
         float shippingFee = deliveryCalculationService.calculateShippingFee(order, actualRushOrderApplicable);
         order.setCalculatedDeliveryFee(shippingFee);
         order.setTotalAmountPaid(order.getTotalProductPriceInclVAT() + shippingFee); // Recalculate total
@@ -167,7 +189,6 @@ public class OrderServiceImpl implements IOrderService {
         // // START TRANSACTION
         try {
             DeliveryInfo existingDeliveryInfo = deliveryInfoDAO.getByOrderId(orderId);
-            deliveryInfoInput.setOrderEntity(order); // Link to order
             if (existingDeliveryInfo != null) {
                 deliveryInfoInput.setDeliveryInfoId(existingDeliveryInfo.getDeliveryInfoId()); // Use existing ID for update
                 deliveryInfoDAO.update(deliveryInfoInput);
@@ -175,7 +196,6 @@ public class OrderServiceImpl implements IOrderService {
                 deliveryInfoInput.setDeliveryInfoId("DINFO-" + UUID.randomUUID().toString());
                 deliveryInfoDAO.add(deliveryInfoInput);
             }
-            order.setDeliveryInfo(deliveryInfoInput);
             orderDAO.update(order); // Update order with new fees and status
             // // COMMIT TRANSACTION
         } catch (SQLException e) {
