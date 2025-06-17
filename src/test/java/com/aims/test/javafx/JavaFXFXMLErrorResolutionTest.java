@@ -2,6 +2,7 @@ package com.aims.test.javafx;
 
 import com.aims.core.presentation.controllers.OrderSummaryController;
 import com.aims.core.presentation.controllers.PaymentMethodScreenController;
+import com.aims.core.presentation.controllers.DeliveryInfoScreenController;
 import com.aims.core.presentation.utils.FXMLSceneManager;
 import com.aims.core.shared.ServiceFactory;
 import javafx.application.Platform;
@@ -206,6 +207,33 @@ public class JavaFXFXMLErrorResolutionTest {
             
         } catch (Exception e) {
             fail("ToggleGroup structure fix validation failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delivery Info Screen FXML Loading Test - Validates the debug fix
+     */
+    @Test
+    public void testDeliveryInfoScreenFXMLLoading() {
+        System.out.println("=== Delivery Info Screen FXML Test ===");
+        
+        try {
+            // Test that delivery_info_screen.fxml loads without the original error
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/aims/presentation/views/delivery_info_screen.fxml"));
+            Parent root = loader.load();
+            
+            assertNotNull(root, "Delivery info FXML should load successfully without binding errors");
+            
+            DeliveryInfoScreenController controller = loader.getController();
+            assertNotNull(controller, "DeliveryInfoScreenController should be instantiated");
+            
+            System.out.println("✅ delivery_info_screen.fxml loads successfully");
+            System.out.println("✅ handleProvinceCityChange method binding resolved");
+            System.out.println("✅ Controller casting to DeliveryInfoScreenController works");
+            System.out.println("✅ All FXML event handlers properly bound");
+            
+        } catch (Exception e) {
+            fail("Delivery info FXML loading failed: " + e.getMessage());
         }
     }
 }

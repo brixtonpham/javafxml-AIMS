@@ -133,6 +133,14 @@ public class CustomerOrderDetailController {
         loadOrderDetails();
     }
 
+    /**
+     * Initializes the controller with an order ID - called by NavigationService
+     * @param orderId The order ID to load
+     */
+    public void initData(String orderId) {
+        setOrderIdToLoad(orderId);
+    }
+
     private void loadOrderDetails() {
         if (orderIdToLoad == null || orderService == null) {
             AlertHelper.showErrorDialog("Error", "Service Unavailable", "Order ID is missing or order service is unavailable.");
@@ -151,7 +159,7 @@ public class CustomerOrderDetailController {
             }
             populateOrderData();
 
-        } catch (SQLException | ResourceNotFoundException e) {
+        } catch (ResourceNotFoundException e) {
             e.printStackTrace();
             AlertHelper.showErrorDialog("Error Loading Order", "Database/Service Error", "Could not retrieve order details: " + e.getMessage());
              errorMessageLabel.setText("Error loading order: " + e.getMessage());

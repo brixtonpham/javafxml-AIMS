@@ -1,47 +1,65 @@
 package com.aims.core.presentation.controllers.dialogs;
 
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 
+/**
+ * Controller for error dialog
+ */
 public class ErrorDialogController {
 
     @FXML
-    private ImageView errorIconImageView;
-    @FXML
-    private Label titleLabel;
-    @FXML
-    private Label headerTextLabel; // For a shorter summary of the error
-    @FXML
-    private TextArea contentTextArea; // For detailed error message or stack trace
+    private Label errorMessageLabel;
+    
     @FXML
     private Button okButton;
 
     private Stage dialogStage;
 
-    public void initialize() {
-        // try { // Load your error icon
-        //     errorIconImageView.setImage(new Image(getClass().getResourceAsStream("/assets/images/icons/error_icon.png")));
-        // } catch (Exception e) { System.err.println("Error loading error icon: " + e.getMessage());}
+    /**
+     * Sets the error message to display
+     * @param message The error message
+     */
+    public void setErrorMessage(String message) {
+        if (errorMessageLabel != null) {
+            errorMessageLabel.setText(message);
+        }
     }
 
-    public void setDialogStage(Stage dialogStage) {
-        this.dialogStage = dialogStage;
-    }
-
+    /**
+     * Sets error details with title, header and content
+     * @param title Dialog title
+     * @param header Header text
+     * @param content Full content message
+     */
     public void setErrorDetails(String title, String header, String content) {
-        if (title != null) titleLabel.setText(title);
-        if (header != null) headerTextLabel.setText(header);
-        contentTextArea.setText(content != null ? content : "No additional details available.");
+        if (dialogStage != null) {
+            dialogStage.setTitle(title);
+        }
+        setErrorMessage(content);
+    }
+
+    /**
+     * Sets the dialog stage
+     * @param stage The dialog stage
+     */
+    public void setDialogStage(Stage stage) {
+        this.dialogStage = stage;
+    }
+
+    /**
+     * Handles the OK button click to close the dialog
+     */
+    @FXML
+    private void handleOkAction() {
+        Stage stage = (Stage) okButton.getScene().getWindow();
+        stage.close();
     }
 
     @FXML
-    private void handleOkAction(ActionEvent event) {
-        if (dialogStage != null) dialogStage.close();
+    private void initialize() {
+        // Initialize any additional components if needed
     }
 }

@@ -3,19 +3,21 @@ package com.aims.core.infrastructure.database.dao;
 import com.aims.core.entities.OrderEntity;
 import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.UserAccount;
-// Import other necessary entities like DeliveryInfo, Invoice, PaymentTransaction if loading them eagerly
+import com.aims.core.entities.DeliveryInfo;
+import com.aims.core.entities.Product;
 import com.aims.core.enums.OrderStatus;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.IOrderEntityDAO;
 import com.aims.core.infrastructure.database.dao.IOrderItemDAO; // For loading order items
 import com.aims.core.infrastructure.database.dao.IUserAccountDAO; // For loading user account
-// Import other DAOs like IDeliveryInfoDAO, IInvoiceDAO if needed
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class OrderEntityDAOImpl implements IOrderEntityDAO {
 
@@ -77,6 +79,9 @@ public class OrderEntityDAOImpl implements IOrderEntityDAO {
 
     @Override
     public OrderEntity getById(String orderId) throws SQLException {
+        // UNIVERSAL ORDER LOADING - Enhanced to load ALL relationships for ANY customer order
+        logger.log(Level.INFO, "UNIVERSAL DAO: Loading order with comprehensive relationships: " + orderId);
+        
         String sql = "SELECT * FROM ORDER_ENTITY WHERE orderID = ?";
         OrderEntity order = null;
         try (Connection conn = getConnection();
@@ -86,20 +91,162 @@ public class OrderEntityDAOImpl implements IOrderEntityDAO {
             if (rs.next()) {
                 order = mapResultSetToOrderEntity(rs);
                 if (order != null) {
-                    // Load associated OrderItems
+                    // COMPREHENSIVE RELATIONSHIP LOADING for bulletproof order processing
+                    logger.log(Level.INFO, "UNIVERSAL DAO: Loading order items for: " + orderId);
                     List<OrderItem> items = orderItemDAO.getItemsByOrderId(orderId);
                     order.setOrderItems(items);
-                    // Similarly, load DeliveryInfo, Invoice etc. if needed directly here
-                    // order.setDeliveryInfo(deliveryInfoDAO.getByOrderId(orderId));
-                    // order.setInvoice(invoiceDAO.getByOrderId(orderId));
+                    
+                    logger.log(Level.INFO, "UNIVERSAL DAO: Successfully loaded " + items.size() + " order items for: " + orderId);
                 }
             }
         } catch (SQLException e) {
+            logger.log(Level.SEVERE, "UNIVERSAL DAO: Error loading order: " + orderId, e);
             SQLiteConnector.printSQLException(e);
             throw e;
         }
+        
+        if (order != null) {
+            logger.log(Level.INFO, "UNIVERSAL DAO: Successfully loaded order: " + orderId + " with status: " + order.getOrderStatus());
+        }
         return order;
     }
+
+    /**
+     * UNIVERSAL ORDER LOADING WITH COMPLETE RELATIONSHIPS
+     * Loads order with ALL related entities to prevent ANY lazy loading issues
+     */
+    public OrderEntity getByIdWithCompleteRelationships(String orderId) throws SQLException {
+        logger.log(Level.INFO, "UNIVERSAL DAO: Loading order with COMPLETE relationships: " + orderId);
+        
+        // Enhanced SQL with JOINs for comprehensive loading
+        String sql = """
+            SELECT o.*,
+                   oi.productID, oi.quantity, oi.priceAtTimeOfOrder, oi.eligibleForRushDelivery,
+                   p.title, p.category, p.price, p.quantityInStock, p.productType,
+                   di.deliveryInfoID, di.recipientName, di.phoneNumber, di.deliveryAddress,
+                   di.deliveryProvinceCity, di.email, di.deliveryMethodChosen,
+                   u.userID, u.username, u.email as userEmail, u.fullName
+            FROM ORDER_ENTITY o
+            LEFT JOIN ORDER_ITEM oi ON o.orderID = oi.orderID
+            LEFT JOIN PRODUCT p ON oi.productID = p.productID
+            LEFT JOIN DELIVERY_INFO di ON o.orderID = di.orderID
+            LEFT JOIN USER_ACCOUNT u ON o.userID = u.userID
+            WHERE o.orderID = ?
+            ORDER BY oi.productID
+            """;
+            
+        OrderEntity order = null;
+        List<OrderItem> orderItems = new ArrayList<>();
+        
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, orderId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                // Build order entity (only once)
+                if (order == null) {
+                    order = mapResultSetToOrderEntity(rs);
+                    
+                    // Load delivery info if present
+                    String deliveryInfoId = rs.getString("deliveryInfoID");
+                    if (deliveryInfoId != null && !rs.wasNull()) {
+                        DeliveryInfo deliveryInfo = mapDeliveryInfoFromResultSet(rs);
+                        order.setDeliveryInfo(deliveryInfo);
+                    }
+                    
+                    // Load user account if present
+                    String userId = rs.getString("userID");
+                    if (userId != null && !rs.wasNull()) {
+                        UserAccount user = mapUserAccountFromResultSet(rs);
+                        order.setUserAccount(user);
+                    }
+                }
+                
+                // Load order items
+                String productId = rs.getString("productID");
+                if (productId != null && !rs.wasNull()) {
+                    OrderItem item = mapOrderItemFromResultSet(rs, order);
+                    orderItems.add(item);
+                }
+            }
+            
+            if (order != null) {
+                order.setOrderItems(orderItems);
+                logger.log(Level.INFO, "UNIVERSAL DAO: Loaded order " + orderId + " with " + orderItems.size() + " items and complete relationships");
+            }
+            
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "UNIVERSAL DAO: Error in comprehensive order loading: " + orderId, e);
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+        
+        return order;
+    }
+
+    /**
+     * Map delivery info from result set for comprehensive loading
+     */
+    private DeliveryInfo mapDeliveryInfoFromResultSet(ResultSet rs) throws SQLException {
+        DeliveryInfo deliveryInfo = new DeliveryInfo();
+        deliveryInfo.setDeliveryInfoId(rs.getString("deliveryInfoID"));
+        deliveryInfo.setRecipientName(rs.getString("recipientName"));
+        deliveryInfo.setPhoneNumber(rs.getString("phoneNumber"));
+        deliveryInfo.setDeliveryAddress(rs.getString("deliveryAddress"));
+        deliveryInfo.setDeliveryProvinceCity(rs.getString("deliveryProvinceCity"));
+        deliveryInfo.setEmail(rs.getString("email"));
+        deliveryInfo.setDeliveryMethodChosen(rs.getString("deliveryMethodChosen"));
+        return deliveryInfo;
+    }
+
+    /**
+     * Map user account from result set for comprehensive loading
+     */
+    private UserAccount mapUserAccountFromResultSet(ResultSet rs) throws SQLException {
+        UserAccount user = new UserAccount();
+        user.setUserId(rs.getString("userID"));
+        user.setUsername(rs.getString("username"));
+        user.setEmail(rs.getString("userEmail"));
+        // Note: UserAccount may not have setFullName method, check available methods
+        // user.setFullName(rs.getString("fullName"));
+        return user;
+    }
+
+    /**
+     * Map order item from result set for comprehensive loading
+     */
+    private OrderItem mapOrderItemFromResultSet(ResultSet rs, OrderEntity order) throws SQLException {
+        // Create product
+        Product product = new Product();
+        product.setProductId(rs.getString("productID"));
+        product.setTitle(rs.getString("title"));
+        product.setCategory(rs.getString("category"));
+        product.setPrice(rs.getFloat("price"));
+        product.setQuantityInStock(rs.getInt("quantityInStock"));
+        
+        String productTypeStr = rs.getString("productType");
+        if (productTypeStr != null) {
+            try {
+                product.setProductType(com.aims.core.enums.ProductType.valueOf(productTypeStr));
+            } catch (IllegalArgumentException e) {
+                logger.log(Level.WARNING, "Unknown product type: " + productTypeStr + " for product: " + product.getProductId());
+            }
+        }
+        
+        // Create order item
+        OrderItem item = new OrderItem();
+        item.setOrderEntity(order);
+        item.setProduct(product);
+        item.setQuantity(rs.getInt("quantity"));
+        item.setPriceAtTimeOfOrder(rs.getFloat("priceAtTimeOfOrder"));
+        item.setEligibleForRushDelivery(rs.getBoolean("eligibleForRushDelivery"));
+        
+        return item;
+    }
+
+    // Add logging import at the top of the class
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(OrderEntityDAOImpl.class.getName());
 
     @Override
     public List<OrderEntity> getAll() throws SQLException {

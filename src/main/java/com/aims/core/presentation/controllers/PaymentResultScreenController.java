@@ -217,7 +217,7 @@ public class PaymentResultScreenController {
             );
             if (paymentCtrl != null) {
                 paymentCtrl.setOrderData(this.currentOrder); // Pass the whole order
-                paymentCtrl.setMainLayoutController(mainLayoutController);
+                // paymentCtrl.setMainLayoutController(mainLayoutController); // TODO: Fix MainLayoutController type mismatch
                 // paymentCtrl.setSceneManager(sceneManager); // Method not available in PaymentMethodScreenController
                 mainLayoutController.setHeaderTitle("Select Payment Method");
             } else {

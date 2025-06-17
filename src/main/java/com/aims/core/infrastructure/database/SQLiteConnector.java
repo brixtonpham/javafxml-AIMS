@@ -6,9 +6,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.ResultSet;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class SQLiteConnector {
 
+    private static final Logger logger = Logger.getLogger(SQLiteConnector.class.getName());
     private static final String DEFAULT_DB_URL = "jdbc:sqlite:src/main/resources/aims_database.db";
     private static volatile SQLiteConnector instance;
     private Connection connection;
@@ -46,10 +50,12 @@ public class SQLiteConnector {
                 }
                 this.connection = DriverManager.getConnection(dbUrlToUse);
                 this.currentDbUrl = dbUrlToUse; // Store the URL of the new connection
-                try (Statement stmt = this.connection.createStatement()) {
-                    stmt.execute("PRAGMA foreign_keys = ON;");
-                    // System.out.println("SQLiteConnector: PRAGMA foreign_keys = ON executed for " + dbUrlToUse);
-                }
+                
+                // Enhanced foreign key constraint setup with validation
+                configureForeignKeyConstraints();
+                
+                // Validate foreign key constraints are properly enabled
+                validateForeignKeyConstraints();
                 
                 // Validate and repair schema after new connection
                 try {
@@ -116,12 +122,10 @@ public class SQLiteConnector {
             try {
                 if (!conn.isClosed()) {
                     this.currentDbUrl = conn.getMetaData().getURL(); // Update currentDbUrl from the new connection
-                    // System.out.println("SQLiteConnector: New connection set. URL: " + this.currentDbUrl);
-                    // Ensure foreign keys are on for this new connection if it's just been set and is open
-                    try (Statement stmt = conn.createStatement()) {
-                        stmt.execute("PRAGMA foreign_keys = ON;");
-                        // System.out.println("SQLiteConnector: PRAGMA foreign_keys = ON executed for externally set connection.");
-                    }
+                    logger.log(Level.INFO, "New connection set. URL: " + this.currentDbUrl);
+                    // Ensure foreign keys are configured for this new connection
+                    configureForeignKeyConstraints();
+                    validateForeignKeyConstraints();
                 } else {
                      this.currentDbUrl = null; // Connection is closed
                 }
@@ -151,6 +155,131 @@ public class SQLiteConnector {
         } catch (SQLException e) {
             System.err.println("SQLiteConnector: Schema validation/repair failed: " + e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Enhanced foreign key constraint configuration with comprehensive validation
+     */
+    private void configureForeignKeyConstraints() throws SQLException {
+        logger.log(Level.INFO, "Configuring foreign key constraints for connection: " + this.currentDbUrl);
+        
+        try (Statement stmt = this.connection.createStatement()) {
+            // Enable foreign key constraints
+            stmt.execute("PRAGMA foreign_keys = ON;");
+            
+            // Set additional pragmas for better constraint handling
+            stmt.execute("PRAGMA defer_foreign_keys = OFF;"); // Immediate constraint checking
+            stmt.execute("PRAGMA recursive_triggers = ON;"); // Enable recursive triggers for cascade operations
+            
+            logger.log(Level.INFO, "Foreign key constraints configured successfully");
+            
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Failed to configure foreign key constraints", e);
+            throw new SQLException("Critical error: Unable to enable foreign key constraints. " +
+                                 "This may cause data integrity issues.", e);
+        }
+    }
+
+    /**
+     * Validates that foreign key constraints are properly enabled
+     */
+    private void validateForeignKeyConstraints() throws SQLException {
+        logger.log(Level.FINE, "Validating foreign key constraint status");
+        
+        try (Statement stmt = this.connection.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA foreign_keys;")) {
+            
+            if (rs.next()) {
+                boolean foreignKeysEnabled = rs.getInt(1) == 1;
+                if (!foreignKeysEnabled) {
+                    String errorMsg = "CRITICAL: Foreign key constraints are not enabled despite configuration attempt";
+                    logger.log(Level.SEVERE, errorMsg);
+                    throw new SQLException(errorMsg + ". Database operations may fail with constraint violations.");
+                }
+                logger.log(Level.FINE, "Foreign key constraints validation passed");
+            } else {
+                logger.log(Level.WARNING, "Unable to verify foreign key constraint status");
+            }
+            
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Failed to validate foreign key constraints", e);
+            throw new SQLException("Unable to verify foreign key constraint configuration", e);
+        }
+    }
+
+    /**
+     * Performs connection health check including foreign key constraint verification
+     */
+    public boolean validateConnectionHealth() {
+        if (this.connection == null) {
+            logger.log(Level.WARNING, "Connection health check failed: no connection available");
+            return false;
+        }
+        
+        try {
+            // Check if connection is still valid
+            if (this.connection.isClosed() || !this.connection.isValid(5)) {
+                logger.log(Level.WARNING, "Connection health check failed: connection is closed or invalid");
+                return false;
+            }
+            
+            // Verify foreign key constraints are still enabled
+            try (Statement stmt = this.connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("PRAGMA foreign_keys;")) {
+                
+                if (rs.next()) {
+                    boolean foreignKeysEnabled = rs.getInt(1) == 1;
+                    if (!foreignKeysEnabled) {
+                        logger.log(Level.SEVERE, "Connection health check failed: foreign key constraints disabled");
+                        return false;
+                    }
+                }
+            }
+            
+            // Test basic database operation
+            try (Statement stmt = this.connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1;")) {
+                
+                if (!rs.next() || rs.getInt(1) != 1) {
+                    logger.log(Level.WARNING, "Connection health check failed: basic query test failed");
+                    return false;
+                }
+            }
+            
+            logger.log(Level.FINE, "Connection health check passed");
+            return true;
+            
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Connection health check failed due to SQLException", e);
+            return false;
+        }
+    }
+
+    /**
+     * Validates connection before critical operations
+     */
+    public void validateConnectionBeforeCriticalOperation() throws SQLException {
+        if (!validateConnectionHealth()) {
+            logger.log(Level.WARNING, "Connection validation failed before critical operation, attempting to reconnect");
+            
+            // Attempt to reconnect
+            try {
+                String dbUrlToUse = System.getProperty("TEST_DB_URL", DEFAULT_DB_URL);
+                if (this.connection != null && !this.connection.isClosed()) {
+                    this.connection.close();
+                }
+                this.connection = DriverManager.getConnection(dbUrlToUse);
+                this.currentDbUrl = dbUrlToUse;
+                configureForeignKeyConstraints();
+                validateForeignKeyConstraints();
+                
+                logger.log(Level.INFO, "Connection successfully reestablished before critical operation");
+                
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Failed to reestablish connection before critical operation", e);
+                throw new SQLException("Unable to establish a valid database connection for critical operation", e);
+            }
         }
     }
 

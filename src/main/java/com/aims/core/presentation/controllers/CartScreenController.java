@@ -376,11 +376,12 @@ public class CartScreenController implements MainLayoutController.IChildControll
         }
         
         try {
-            // Create order from cart items
+            // Create order from cart items using enhanced conversion
             String userId = getCurrentUserId();
             System.out.println("Creating order from cart: " + cartSessionId + " for user: " + (userId != null ? userId : "guest"));
             
-            OrderEntity createdOrder = orderService.initiateOrderFromCart(cartSessionId, userId);
+            // Use enhanced cart-to-order conversion for better data preservation
+            OrderEntity createdOrder = orderService.initiateOrderFromCartEnhanced(cartSessionId, userId);
             
             if (createdOrder == null) {
                 System.err.println("Order creation returned null");
@@ -421,28 +422,21 @@ public class CartScreenController implements MainLayoutController.IChildControll
                 setStockWarning("Navigation error. Please refresh the page.", true);
             }
             
-        } catch (SQLException e) {
-            System.err.println("Database error during order creation: " + e.getMessage());
-            e.printStackTrace();
-            setStockWarning("Database error during checkout. Please try again.", true);
-        } catch (ResourceNotFoundException e) {
-            System.err.println("Cart not found during order creation: " + e.getMessage());
-            e.printStackTrace();
-            setStockWarning("Cart data not found. Please refresh and try again.", true);
-        } catch (InventoryException e) {
-            System.err.println("Inventory issues during order creation: " + e.getMessage());
-            e.printStackTrace();
-            setStockWarning("Some items are no longer available. Please update your cart.", true);
-            // Refresh cart to show current stock status
-            loadCartDetails();
-        } catch (ValidationException e) {
-            System.err.println("Validation error during order creation: " + e.getMessage());
-            e.printStackTrace();
-            setStockWarning("Invalid cart data. Please refresh and try again.", true);
         } catch (Exception e) {
-            System.err.println("Unexpected error during checkout: " + e.getMessage());
+            System.err.println("Error during order creation: " + e.getMessage());
             e.printStackTrace();
-            setStockWarning("Unexpected error during checkout. Please try again.", true);
+            
+            // Handle specific exception types by checking instance
+            if (e instanceof ResourceNotFoundException) {
+                setStockWarning("Cart data not found. Please refresh and try again.", true);
+            } else if (e.getClass().getSimpleName().contains("Inventory")) {
+                setStockWarning("Some items are no longer available. Please update your cart.", true);
+                loadCartDetails();
+            } else if (e.getClass().getSimpleName().contains("Validation")) {
+                setStockWarning("Invalid cart data. Please refresh and try again.", true);
+            } else {
+                setStockWarning("Error during checkout. Please try again.", true);
+            }
         }
     }
 
@@ -475,7 +469,7 @@ public class CartScreenController implements MainLayoutController.IChildControll
             // CRITICAL FIX: Recalculate totals without triggering UI refresh loops
             recalculateCartTotals();
             
-        } catch (SQLException | ResourceNotFoundException | ValidationException | InventoryException e) {
+        } catch (Exception e) {
             System.err.println("Update quantity failed: " + e.getMessage());
             setStockWarning("Update failed: " + e.getMessage(), true);
             // Only reload on error to revert changes

@@ -26,19 +26,23 @@
         <VBox spacing="15" alignment="CENTER_LEFT" styleClass="content-area, spacing-medium">
             <Label text="Choose how you'd like to pay:" styleClass="section-title" />
             <RadioButton fx:id="vnpayCreditCardRadio"
-                         text="Credit Card / Debit Card (via VNPay)"
+                         text="Credit Card / International Debit Card"
                          selected="true"
-                         userData="VNPAY_CREDIT_CARD"
+                         userData="CREDIT_CARD"
+                         toggleGroup="$paymentMethodToggleGroup"/>
+            <RadioButton fx:id="domesticCardRadio"
+                         text="Domestic Debit Card"
+                         userData="DOMESTIC_DEBIT_CARD"
                          toggleGroup="$paymentMethodToggleGroup"/>
             <Label fx:id="selectedMethodDescriptionLabel" styleClass="text-muted" wrapText="true"
-                   text="You will be redirected to VNPay gateway to complete your payment securely."/>
+                   text="You will be redirected to our secure payment gateway to complete your payment."/>
         </VBox>
     </center>
     <bottom>
         <HBox alignment="CENTER_RIGHT" spacing="15" BorderPane.alignment="CENTER">
             <Label fx:id="errorMessageLabel" styleClass="error-message" wrapText="true" HBox.hgrow="ALWAYS"/>
             <Button text="Back to Order Summary" styleClass="secondary-button" onAction="#handleBackToOrderSummaryAction" />
-            <Button fx:id="proceedButton" styleClass="primary-button" text="Proceed with VNPay" onAction="#handleProceedAction" defaultButton="true"/>
+            <Button fx:id="proceedButton" styleClass="primary-button" text="Proceed to Payment" onAction="#handleProceedAction" defaultButton="true"/>
         </HBox>
     </bottom>
 </BorderPane>

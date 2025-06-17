@@ -1,7 +1,7 @@
 package com.aims.core.presentation.controllers;
 
-import com.aims.core.infrastructure.adapters.external.payment_gateway.IVNPayAdapter;
-import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayAdapterImpl;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.IPaymentGatewayAdapter;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayGatewayAdapter;
 import com.aims.core.infrastructure.database.dao.IPaymentTransactionDAO;
 import com.aims.core.infrastructure.database.dao.PaymentTransactionDAOImpl;
 import com.aims.core.infrastructure.database.dao.IOrderEntityDAO;
@@ -39,11 +39,11 @@ public class VNPayIPNController {
     
     private static final Logger logger = Logger.getLogger(VNPayIPNController.class.getName());
     
-    private final IVNPayAdapter vnPayAdapter;
+    private final IPaymentGatewayAdapter paymentGatewayAdapter;
     private final IPaymentTransactionDAO paymentTransactionDAO;
     private final IOrderEntityDAO orderDAO;
      public VNPayIPNController() {
-        this.vnPayAdapter = new VNPayAdapterImpl();
+        this.paymentGatewayAdapter = new VNPayGatewayAdapter();
         
         // Create required DAO dependencies
         IUserAccountDAO userAccountDAO = new UserAccountDAOImpl();
@@ -84,7 +84,7 @@ public class VNPayIPNController {
             
             // Step 1: Validate signature with enhanced error handling
             try {
-                if (!vnPayAdapter.validateResponseSignature(ipnParams)) {
+                if (!paymentGatewayAdapter.validateResponseSignature(ipnParams)) {
                     vnpTxnRef = ipnParams.get("vnp_TxnRef");
                     logger.log(Level.SEVERE, "VNPay IPN: Invalid signature received for transaction: " + vnpTxnRef);
                     

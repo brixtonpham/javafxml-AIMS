@@ -372,4 +372,58 @@ public class CartServiceImpl implements ICartService {
         cartDAO.saveOrUpdate(newCart);
         return newCart;
     }
+
+    /**
+     * Gets cart with complete product data for order conversion.
+     * Ensures all product metadata is loaded and up-to-date.
+     */
+    public Cart getCartWithCompleteProductData(String cartSessionId) throws SQLException, ResourceNotFoundException {
+        if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
+            throw new ResourceNotFoundException("Cart session ID cannot be null or empty");
+        }
+        
+        System.out.println("CART COMPLETE DATA: Loading cart with full product metadata for session: " + cartSessionId);
+        
+        Cart cart = cartDAO.getBySessionId(cartSessionId);
+        if (cart == null) {
+            throw new ResourceNotFoundException("Cart with session ID " + cartSessionId + " not found");
+        }
+        
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            System.out.println("CART COMPLETE DATA: Cart is empty");
+            return cart;
+        }
+        
+        // Enrich cart items with complete product data
+        for (CartItem cartItem : cart.getItems()) {
+            if (cartItem.getProduct() != null) {
+                // Load complete product with all metadata
+                Product completeProduct = productDAO.getById(cartItem.getProduct().getProductId());
+                if (completeProduct == null) {
+                    logger.warn("Product {} in cart {} not found in catalog",
+                               cartItem.getProduct().getProductId(), cartSessionId);
+                    throw new ResourceNotFoundException("Product " + cartItem.getProduct().getProductId() +
+                        " in cart not found in catalog");
+                }
+                
+                // Replace with complete product data
+                cartItem.setProduct(completeProduct);
+                
+                System.out.println("CART COMPLETE DATA: Loaded complete data for product: " +
+                                  completeProduct.getProductId() + " - " + completeProduct.getTitle());
+            }
+        }
+        
+        // Refresh calculations with current data
+        try {
+            refreshCartCalculationsAndStockStatus(cart);
+        } catch (ResourceNotFoundException e) {
+            logger.warn("Error refreshing cart calculations: {}", e.getMessage());
+            throw e;
+        }
+        
+        System.out.println("CART COMPLETE DATA: Successfully loaded complete data for " +
+                          cart.getItems().size() + " items");
+        return cart;
+    }
 }

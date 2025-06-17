@@ -1,4 +1,4 @@
-package com.aims.core.application.impl; // Or com.aims.core.application.services.impl;
+package com.aims.core.application.impl;
 
 import com.aims.core.application.services.IOrderService;
 import com.aims.core.application.services.ICartService;
@@ -6,19 +6,19 @@ import com.aims.core.application.services.IDeliveryCalculationService;
 import com.aims.core.application.services.INotificationService;
 import com.aims.core.application.services.IPaymentService;
 import com.aims.core.application.services.IProductService;
+import com.aims.core.application.services.IOrderDataLoaderService;
 import com.aims.core.entities.*;
 import com.aims.core.enums.OrderStatus;
 import com.aims.core.enums.TransactionType;
 import com.aims.core.infrastructure.database.dao.*;
 import com.aims.core.shared.exceptions.*;
-import com.aims.core.shared.utils.SearchResult;
+import com.aims.core.shared.dto.SearchResult;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.Map; // For payment parameters
 
 public class OrderServiceImpl implements IOrderService {
 
@@ -26,13 +26,14 @@ public class OrderServiceImpl implements IOrderService {
     private final IOrderItemDAO orderItemDAO;
     private final IDeliveryInfoDAO deliveryInfoDAO;
     private final IInvoiceDAO invoiceDAO;
-    private final IProductDAO productDAO; // Direct use for stock, could also go via IProductService
-    private final IProductService productService; // For more complex product operations if needed
+    private final IProductDAO productDAO;
+    private final IProductService productService;
     private final ICartService cartService;
     private final IPaymentService paymentService;
     private final IDeliveryCalculationService deliveryCalculationService;
     private final INotificationService notificationService;
-    private final IUserAccountDAO userAccountDAO; // To fetch UserAccount for order
+    private final IUserAccountDAO userAccountDAO;
+    private final IOrderDataLoaderService orderDataLoaderService;
 
     private static final float VAT_RATE = 0.10f;
 
@@ -46,7 +47,8 @@ public class OrderServiceImpl implements IOrderService {
                             IPaymentService paymentService,
                             IDeliveryCalculationService deliveryCalculationService,
                             INotificationService notificationService,
-                            IUserAccountDAO userAccountDAO) {
+                            IUserAccountDAO userAccountDAO,
+                            IOrderDataLoaderService orderDataLoaderService) {
         this.orderDAO = orderDAO;
         this.orderItemDAO = orderItemDAO;
         this.deliveryInfoDAO = deliveryInfoDAO;
@@ -58,13 +60,42 @@ public class OrderServiceImpl implements IOrderService {
         this.deliveryCalculationService = deliveryCalculationService;
         this.notificationService = notificationService;
         this.userAccountDAO = userAccountDAO;
+        this.orderDataLoaderService = orderDataLoaderService;
     }
 
     @Override
-    public OrderEntity initiateOrderFromCart(String cartSessionId, String userId)
-            throws SQLException, ResourceNotFoundException, InventoryException, ValidationException {
+    public OrderEntity createOrder(String userId) throws ValidationException {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new ValidationException("User ID is required to create an order");
+        }
         
-        // CRITICAL FIX: Enhanced cart validation with detailed logging
+        try {
+            UserAccount user = userAccountDAO.getById(userId);
+            if (user == null) {
+                throw new ValidationException("User with ID " + userId + " not found");
+            }
+            
+            OrderEntity order = new OrderEntity();
+            order.setOrderId("ORD-" + UUID.randomUUID().toString());
+            order.setOrderDate(LocalDateTime.now());
+            order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
+            order.setUserAccount(user);
+            order.setTotalProductPriceExclVAT(0f);
+            order.setTotalProductPriceInclVAT(0f);
+            order.setCalculatedDeliveryFee(0f);
+            order.setTotalAmountPaid(0f);
+            
+            orderDAO.add(order);
+            return order;
+            
+        } catch (SQLException e) {
+            throw new ValidationException("Unable to create order due to database error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public OrderEntity initiateOrderFromCart(String cartSessionId, String userId) throws ValidationException {
+        
         System.out.println("ORDER CREATION: Validating cart for session: " + cartSessionId);
         
         if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
@@ -72,154 +103,596 @@ public class OrderServiceImpl implements IOrderService {
             throw new ValidationException("Invalid cart session ID provided");
         }
         
-        Cart cart = cartService.getCart(cartSessionId);
-        if (cart == null) {
-            System.err.println("ORDER CREATION ERROR: Cart is null for session: " + cartSessionId);
-            throw new ResourceNotFoundException("Cart not found for session ID: " + cartSessionId);
-        }
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
-            System.err.println("ORDER CREATION ERROR: Cart items are empty for session: " + cartSessionId);
-            throw new ResourceNotFoundException("Cart is empty for session ID: " + cartSessionId);
-        }
-        
-        System.out.println("ORDER CREATION: Cart validation passed - " + cart.getItems().size() + " items found");
-
-        OrderEntity order = new OrderEntity();
-        order.setOrderId("ORD-" + UUID.randomUUID().toString());
-        order.setOrderDate(LocalDateTime.now());
-        order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO); // Initial status
-
-        if (userId != null) {
-            UserAccount user = userAccountDAO.getById(userId);
-            if (user == null) throw new ResourceNotFoundException("User with ID " + userId + " not found.");
-            order.setUserAccount(user);
-        }
-
-        float totalProductPriceExclVAT = 0f;
-        List<OrderItem> orderItems = new ArrayList<>();
-
-        for (CartItem cartItem : cart.getItems()) {
-            Product product = productDAO.getById(cartItem.getProduct().getProductId());
-            if (product == null) {
-                throw new ResourceNotFoundException("Product " + cartItem.getProduct().getProductId() + " in cart not found in catalog.");
-            }
-            if (product.getQuantityInStock() < cartItem.getQuantity()) {
-                throw new InventoryException("Insufficient stock for product: " + product.getTitle() +
-                        ". Requested: " + cartItem.getQuantity() + ", Available: " + product.getQuantityInStock());
-            }
-            // Price from product entity is ex-VAT
-            OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice(), product.getProductType() != com.aims.core.enums.ProductType.BOOK); // Example eligibility for rush
-            orderItems.add(orderItem);
-            totalProductPriceExclVAT += product.getPrice() * cartItem.getQuantity();
-        }
-
-        order.setTotalProductPriceExclVAT(totalProductPriceExclVAT);
-        order.setTotalProductPriceInclVAT(totalProductPriceExclVAT * (1 + VAT_RATE));
-        // Delivery fee and total amount paid will be calculated later
-
-        // // START TRANSACTION (conceptually)
         try {
+            Cart cart = cartService.getCart(cartSessionId);
+            if (cart == null) {
+                System.err.println("ORDER CREATION ERROR: Cart is null for session: " + cartSessionId);
+                throw new ValidationException("Cart not found for session ID: " + cartSessionId);
+            }
+            if (cart.getItems() == null || cart.getItems().isEmpty()) {
+                System.err.println("ORDER CREATION ERROR: Cart items are empty for session: " + cartSessionId);
+                throw new ValidationException("Cart is empty for session ID: " + cartSessionId);
+            }
+            
+            System.out.println("ORDER CREATION: Cart validation passed - " + cart.getItems().size() + " items found");
+
+            OrderEntity order = new OrderEntity();
+            order.setOrderId("ORD-" + UUID.randomUUID().toString());
+            order.setOrderDate(LocalDateTime.now());
+            order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
+
+            if (userId != null) {
+                UserAccount user = userAccountDAO.getById(userId);
+                if (user == null) throw new ValidationException("User with ID " + userId + " not found.");
+                order.setUserAccount(user);
+            }
+
+            float totalProductPriceExclVAT = 0f;
+            List<OrderItem> orderItems = new ArrayList<>();
+
+            for (CartItem cartItem : cart.getItems()) {
+                Product product = productDAO.getById(cartItem.getProduct().getProductId());
+                if (product == null) {
+                    throw new ValidationException("Product " + cartItem.getProduct().getProductId() + " in cart not found in catalog.");
+                }
+                if (product.getQuantityInStock() < cartItem.getQuantity()) {
+                    throw new ValidationException("Insufficient stock for product: " + product.getTitle() +
+                            ". Requested: " + cartItem.getQuantity() + ", Available: " + product.getQuantityInStock());
+                }
+                
+                OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice(), 
+                    product.getProductType() != com.aims.core.enums.ProductType.BOOK);
+                orderItems.add(orderItem);
+                totalProductPriceExclVAT += product.getPrice() * cartItem.getQuantity();
+            }
+
+            order.setTotalProductPriceExclVAT(totalProductPriceExclVAT);
+            order.setTotalProductPriceInclVAT(totalProductPriceExclVAT * (1 + VAT_RATE));
+
             orderDAO.add(order);
             for (OrderItem item : orderItems) {
-                item.setOrderEntity(order); // Ensure OrderEntity is set before adding
+                item.setOrderEntity(order);
                 orderItemDAO.add(item);
             }
-            order.setOrderItems(orderItems); // Set items in the order object
-            // // COMMIT TRANSACTION (conceptually)
+            order.setOrderItems(orderItems);
+            
+            return order;
+            
         } catch (SQLException e) {
-            // // ROLLBACK TRANSACTION (conceptually)
-            throw e;
+            throw new ValidationException("Database error during order creation: " + e.getMessage());
         }
-        return order;
+    }
+
+    /**
+     * Enhanced cart-to-order conversion with complete data preservation and comprehensive validation.
+     * This method ensures all product metadata is preserved during the cart-to-order transition.
+     */
+    public OrderEntity initiateOrderFromCartEnhanced(String cartSessionId, String userId) throws ValidationException {
+        System.out.println("ENHANCED ORDER CREATION: Starting enhanced cart-to-order conversion for session: " + cartSessionId);
+        
+        if (cartSessionId == null || cartSessionId.trim().isEmpty()) {
+            System.err.println("ENHANCED ORDER CREATION ERROR: Cart session ID is null or empty");
+            throw new ValidationException("Invalid cart session ID provided");
+        }
+        
+        try {
+            // Step 1: Begin transaction conceptually (using try-catch for rollback simulation)
+            System.out.println("ENHANCED ORDER CREATION: Step 1 - Starting transaction");
+            
+            // Step 2: Load cart with complete product metadata
+            System.out.println("ENHANCED ORDER CREATION: Step 2 - Loading cart with complete product data");
+            Cart cart = loadCartWithCompleteData(cartSessionId);
+            
+            // Step 3: Comprehensive cart validation
+            System.out.println("ENHANCED ORDER CREATION: Step 3 - Performing comprehensive cart validation");
+            validateCartCompleteness(cart);
+            
+            // Step 4: Create order with enhanced data preservation
+            System.out.println("ENHANCED ORDER CREATION: Step 4 - Creating order with enhanced data preservation");
+            OrderEntity order = createOrderEntityWithCompleteData(cart, userId);
+            
+            // Step 5: Create order items with complete product metadata
+            System.out.println("ENHANCED ORDER CREATION: Step 5 - Creating order items with complete metadata");
+            List<OrderItem> orderItems = createOrderItemsWithCompleteData(cart, order);
+            
+            // Step 6: Enhanced pricing calculations
+            System.out.println("ENHANCED ORDER CREATION: Step 6 - Performing enhanced pricing calculations");
+            calculateEnhancedPricing(order, orderItems);
+            
+            // Step 7: Persist order and items with transaction safety
+            System.out.println("ENHANCED ORDER CREATION: Step 7 - Persisting order and items");
+            persistOrderWithTransactionSafety(order, orderItems);
+            
+            // Step 8: Validate order completeness after creation
+            System.out.println("ENHANCED ORDER CREATION: Step 8 - Validating order completeness");
+            validateOrderCompleteness(order);
+            
+            System.out.println("ENHANCED ORDER CREATION: Successfully created enhanced order: " + order.getOrderId() +
+                             " with " + orderItems.size() + " items");
+            
+            return order;
+            
+        } catch (Exception e) {
+            System.err.println("ENHANCED ORDER CREATION ERROR: " + e.getMessage());
+            // Rollback transaction conceptually
+            throw new ValidationException("Enhanced order creation failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Loads cart with complete product data including all metadata
+     */
+    private Cart loadCartWithCompleteData(String cartSessionId) throws ValidationException {
+        try {
+            // Use CartServiceImpl's enhanced method to get complete data
+            if (cartService instanceof CartServiceImpl) {
+                CartServiceImpl cartServiceImpl = (CartServiceImpl) cartService;
+                return cartServiceImpl.getCartWithCompleteProductData(cartSessionId);
+            } else {
+                // Fallback to regular cart loading
+                Cart cart = cartService.getCart(cartSessionId);
+                if (cart == null) {
+                    throw new ValidationException("Cart not found for session ID: " + cartSessionId);
+                }
+                return cart;
+            }
+        } catch (Exception e) {
+            throw new ValidationException("Failed to load cart with complete data: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Comprehensive cart validation before order creation
+     */
+    private void validateCartCompleteness(Cart cart) throws ValidationException {
+        if (cart == null) {
+            throw new ValidationException("Cart cannot be null");
+        }
+        
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new ValidationException("Cart is empty for session ID: " + cart.getCartSessionId());
+        }
+        
+        System.out.println("CART VALIDATION: Validating " + cart.getItems().size() + " cart items");
+        
+        // Validate each cart item for order conversion
+        for (CartItem cartItem : cart.getItems()) {
+            validateCartItemForOrderConversion(cartItem);
+        }
+        
+        System.out.println("CART VALIDATION: All cart items validated successfully");
+    }
+    
+    /**
+     * Validates individual cart item for order conversion
+     */
+    private void validateCartItemForOrderConversion(CartItem cartItem) throws ValidationException {
+        if (cartItem == null) {
+            throw new ValidationException("Cart item cannot be null");
+        }
+        
+        if (cartItem.getProduct() == null) {
+            throw new ValidationException("Product in cart item cannot be null");
+        }
+        
+        if (cartItem.getQuantity() <= 0) {
+            throw new ValidationException("Cart item quantity must be positive");
+        }
+        
+        // Validate product exists and has current data
+        try {
+            Product currentProduct = productDAO.getById(cartItem.getProduct().getProductId());
+            if (currentProduct == null) {
+                throw new ValidationException("Product " + cartItem.getProduct().getProductId() +
+                    " in cart not found in catalog");
+            }
+            
+            // Validate stock availability
+            if (currentProduct.getQuantityInStock() < cartItem.getQuantity()) {
+                throw new ValidationException("Insufficient stock for product: " + currentProduct.getTitle() +
+                    ". Requested: " + cartItem.getQuantity() + ", Available: " + currentProduct.getQuantityInStock());
+            }
+            
+        } catch (Exception e) {
+            throw new ValidationException("Error validating cart item: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Creates order entity with complete data preservation
+     */
+    private OrderEntity createOrderEntityWithCompleteData(Cart cart, String userId) throws ValidationException {
+        try {
+            OrderEntity order = new OrderEntity();
+            order.setOrderId("ORD-" + UUID.randomUUID().toString());
+            order.setOrderDate(LocalDateTime.now());
+            order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
+            
+            // Set user account if provided
+            if (userId != null) {
+                UserAccount user = userAccountDAO.getById(userId);
+                if (user == null) {
+                    throw new ValidationException("User with ID " + userId + " not found");
+                }
+                order.setUserAccount(user);
+            }
+            
+            // Initialize pricing fields
+            order.setTotalProductPriceExclVAT(0f);
+            order.setTotalProductPriceInclVAT(0f);
+            order.setCalculatedDeliveryFee(0f);
+            order.setTotalAmountPaid(0f);
+            
+            return order;
+            
+        } catch (Exception e) {
+            throw new ValidationException("Failed to create order entity: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Creates order items with complete product data preservation
+     */
+    private List<OrderItem> createOrderItemsWithCompleteData(Cart cart, OrderEntity order) throws ValidationException {
+        List<OrderItem> orderItems = new ArrayList<>();
+        
+        for (CartItem cartItem : cart.getItems()) {
+            OrderItem orderItem = createOrderItemWithCompleteData(cartItem, order);
+            orderItems.add(orderItem);
+        }
+        
+        return orderItems;
+    }
+    
+    /**
+     * Creates individual order item with complete product metadata preservation
+     */
+    private OrderItem createOrderItemWithCompleteData(CartItem cartItem, OrderEntity order) throws ValidationException {
+        try {
+            Product product = cartItem.getProduct();
+            
+            // Create order item with complete product information
+            OrderItem orderItem = new OrderItem(
+                order,
+                product,
+                cartItem.getQuantity(),
+                product.getPrice(), // Price at time of order
+                determineRushEligibility(product) // Enhanced rush delivery eligibility
+            );
+            
+            System.out.println("ORDER ITEM CREATION: Created order item with complete data - Product: " +
+                             product.getProductId() + ", Title: " + product.getTitle() +
+                             ", Quantity: " + cartItem.getQuantity() +
+                             ", Price: " + product.getPrice() +
+                             ", Rush Eligible: " + orderItem.isEligibleForRushDelivery());
+            
+            return orderItem;
+            
+        } catch (Exception e) {
+            throw new ValidationException("Failed to create order item with complete data: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Enhanced rush delivery eligibility determination
+     */
+    private boolean determineRushEligibility(Product product) {
+        // Enhanced logic for rush delivery eligibility
+        boolean eligible = product.getProductType() != com.aims.core.enums.ProductType.BOOK;
+        
+        // Additional criteria for rush eligibility
+        if (eligible) {
+            // Check weight constraints (example: items over 10kg not eligible for rush)
+            if (product.getWeightKg() > 10.0f) {
+                eligible = false;
+            }
+            
+            // Check dimensions constraints (example: very large items not eligible)
+            if (product.getDimensionsCm() != null &&
+                product.getDimensionsCm().contains("100")) { // Simplified check
+                eligible = false;
+            }
+        }
+        
+        return eligible;
+    }
+    
+    /**
+     * Enhanced pricing calculations with detailed breakdown
+     */
+    private void calculateEnhancedPricing(OrderEntity order, List<OrderItem> orderItems) {
+        float totalProductPriceExclVAT = 0f;
+        
+        for (OrderItem item : orderItems) {
+            float itemTotal = item.getPriceAtTimeOfOrder() * item.getQuantity();
+            totalProductPriceExclVAT += itemTotal;
+            
+            System.out.println("PRICING: Item " + item.getProduct().getProductId() +
+                             " - Unit Price: " + item.getPriceAtTimeOfOrder() +
+                             ", Quantity: " + item.getQuantity() +
+                             ", Total: " + itemTotal);
+        }
+        
+        float totalProductPriceInclVAT = totalProductPriceExclVAT * (1 + VAT_RATE);
+        
+        order.setTotalProductPriceExclVAT(totalProductPriceExclVAT);
+        order.setTotalProductPriceInclVAT(totalProductPriceInclVAT);
+        
+        System.out.println("PRICING: Total Excl VAT: " + totalProductPriceExclVAT +
+                          ", Total Incl VAT: " + totalProductPriceInclVAT +
+                          ", VAT Rate: " + (VAT_RATE * 100) + "%");
+    }
+    
+    /**
+     * Persists order and items with transaction safety
+     */
+    private void persistOrderWithTransactionSafety(OrderEntity order, List<OrderItem> orderItems) throws ValidationException {
+        try {
+            // Begin transaction conceptually
+            orderDAO.add(order);
+            
+            for (OrderItem item : orderItems) {
+                item.setOrderEntity(order); // Ensure order relationship is set
+                orderItemDAO.add(item);
+            }
+            
+            order.setOrderItems(orderItems); // Set items in order object
+            
+            // Commit transaction conceptually - if we reach here, all operations succeeded
+            System.out.println("PERSISTENCE: Successfully persisted order " + order.getOrderId() +
+                             " with " + orderItems.size() + " items");
+            
+        } catch (Exception e) {
+            // Rollback transaction conceptually
+            System.err.println("PERSISTENCE ERROR: Failed to persist order: " + e.getMessage());
+            throw new ValidationException("Database error during order creation: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Validates order completeness after creation
+     */
+    private void validateOrderCompleteness(OrderEntity order) throws ValidationException {
+        if (order == null) {
+            throw new ValidationException("Order is null after creation");
+        }
+        
+        if (order.getOrderId() == null || order.getOrderId().trim().isEmpty()) {
+            throw new ValidationException("Order ID is missing");
+        }
+        
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new ValidationException("Order has no items");
+        }
+        
+        if (order.getTotalProductPriceExclVAT() <= 0) {
+            throw new ValidationException("Order total price is invalid");
+        }
+        
+        System.out.println("ORDER VALIDATION: Order completeness validated successfully");
+    }
+
+    @Override
+    public OrderEntity getOrderById(String orderId) throws ResourceNotFoundException {
+        if (orderId == null || orderId.trim().isEmpty()) {
+            throw new ResourceNotFoundException("Order ID cannot be null or empty");
+        }
+        
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
+            }
+            return order;
+        } catch (SQLException e) {
+            throw new ResourceNotFoundException("Unable to retrieve order due to database error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public OrderEntity getOrderDetails(String orderId) throws ResourceNotFoundException {
+        System.out.println("ORDER DETAILS: Using enhanced data loader for order: " + orderId);
+        
+        try {
+            // Use the new OrderDataLoaderService for complete and reliable data loading
+            OrderEntity order = orderDataLoaderService.loadCompleteOrderData(orderId);
+            
+            // Validate that all data is properly loaded
+            if (!orderDataLoaderService.validateOrderDataCompleteness(order)) {
+                System.out.println("ORDER DETAILS: Data incomplete, attempting fallback loading...");
+                order = orderDataLoaderService.loadOrderWithFallbacks(orderId);
+            }
+            
+            // Validate lazy loading initialization
+            if (!orderDataLoaderService.validateLazyLoadingInitialization(order)) {
+                System.out.println("ORDER DETAILS: Lazy loading issues detected, refreshing relationships...");
+                order = orderDataLoaderService.refreshOrderRelationships(order);
+            }
+            
+            System.out.println("ORDER DETAILS: Successfully loaded complete order data for: " + orderId);
+            return order;
+            
+        } catch (ResourceNotFoundException e) {
+            System.err.println("ORDER DETAILS ERROR: " + e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            System.err.println("ORDER DETAILS ERROR: Unexpected error loading order: " + e.getMessage());
+            throw new ResourceNotFoundException("Unable to retrieve order details: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<OrderEntity> getOrdersByUserId(String userId) throws ResourceNotFoundException {
+        try {
+            return orderDAO.getByUserId(userId);
+        } catch (SQLException e) {
+            throw new ResourceNotFoundException("Unable to retrieve orders for user: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<OrderEntity> getOrdersByStatus(OrderStatus status) {
+        if (status == null) {
+            return new ArrayList<>();
+        }
+        
+        try {
+            return orderDAO.getByStatus(status);
+        } catch (SQLException e) {
+            System.err.println("Error retrieving orders by status: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public SearchResult<OrderEntity> getOrdersByStatusForManager(OrderStatus status, int pageNumber, int pageSize) 
+            throws ResourceNotFoundException {
+        try {
+            List<OrderEntity> ordersByStatus = orderDAO.getByStatus(status);
+
+            int totalResults = ordersByStatus.size();
+            int fromIndex = (pageNumber - 1) * pageSize;
+            if (fromIndex >= totalResults && totalResults > 0) {
+                fromIndex = Math.max(0, totalResults - pageSize);
+            } else if (fromIndex >= totalResults && totalResults == 0) {
+                return new SearchResult<OrderEntity>(new ArrayList<>(), pageNumber, 0, 0);
+            }
+
+            int toIndex = Math.min(fromIndex + pageSize, totalResults);
+            List<OrderEntity> pageResults = ordersByStatus.subList(fromIndex, toIndex);
+            int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+            if (totalPages == 0 && totalResults > 0) totalPages = 1;
+
+            return new SearchResult<OrderEntity>(pageResults, pageNumber, totalPages, totalResults);
+        } catch (SQLException e) {
+            throw new ResourceNotFoundException("Unable to retrieve orders for manager: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void updateOrderStatus(String orderId, OrderStatus newStatus) 
+            throws ResourceNotFoundException, OrderException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
+            }
+            
+            orderDAO.updateStatus(orderId, newStatus);
+        } catch (SQLException e) {
+            throw new OrderException("Unable to update order status due to database error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void updateOrderStatus(String orderId, OrderStatus newStatus, String adminOrManagerId)
+            throws ResourceNotFoundException, OrderException, ValidationException {
+        try {
+            OrderEntity order = getOrderDetails(orderId);
+            OrderStatus oldStatus = order.getOrderStatus();
+
+            if (oldStatus == newStatus) return;
+
+            order.setOrderStatus(newStatus);
+            orderDAO.updateStatus(orderId, newStatus);
+            notificationService.sendOrderStatusUpdateNotification(order, oldStatus.name(), newStatus.name(), 
+                "Status updated by " + adminOrManagerId);
+        } catch (SQLException e) {
+            throw new OrderException("Database error updating order status: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void addDeliveryInfo(String orderId, DeliveryInfo deliveryInfo) 
+            throws ResourceNotFoundException, ValidationException {
+        setDeliveryInformation(orderId, deliveryInfo, false);
     }
 
     @Override
     public OrderEntity setDeliveryInformation(String orderId, DeliveryInfo deliveryInfoInput, boolean isRushOrder)
-            throws SQLException, ResourceNotFoundException, ValidationException {
-        OrderEntity order = orderDAO.getById(orderId);
-        if (order == null) {
-            throw new ResourceNotFoundException("Order with ID " + orderId + " not found.");
-        }
-        if (order.getOrderStatus() != OrderStatus.PENDING_DELIVERY_INFO && order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new ValidationException("Delivery information can only be set for orders pending delivery info or pending payment.");
-        }
-        if (deliveryInfoInput == null) {
-            throw new ValidationException("Delivery information cannot be null.");
-        }
-
-        // Validate deliveryInfoInput fields (e.g., non-empty recipientName, phone, address, province)
-        if (deliveryInfoInput.getRecipientName() == null || deliveryInfoInput.getRecipientName().trim().isEmpty() ||
-            deliveryInfoInput.getPhoneNumber() == null || deliveryInfoInput.getPhoneNumber().trim().isEmpty() ||
-            deliveryInfoInput.getDeliveryAddress() == null || deliveryInfoInput.getDeliveryAddress().trim().isEmpty() ||
-            deliveryInfoInput.getDeliveryProvinceCity() == null || deliveryInfoInput.getDeliveryProvinceCity().trim().isEmpty()) {
-            throw new ValidationException("Recipient name, phone number, address, and province/city are required.");
-        }
-
-
-        // Check rush order eligibility
-        boolean actualRushOrderApplicable = false;
-        if (isRushOrder) {
-            if (!deliveryCalculationService.isRushDeliveryAddressEligible(deliveryInfoInput)) {
-                throw new ValidationException("Delivery address is not eligible for rush order.");
-            }
-            // Check if any items in the order are eligible for rush
-            boolean anyItemEligibleForRush = order.getOrderItems().stream().anyMatch(OrderItem::isEligibleForRushDelivery);
-            if (!anyItemEligibleForRush) {
-                throw new ValidationException("No items in the order are eligible for rush delivery.");
-            }
-            actualRushOrderApplicable = true;
-            deliveryInfoInput.setDeliveryMethodChosen("RUSH_DELIVERY");
-            // deliveryInfoInput.setRequestedRushDeliveryTime(...); // This should be set by customer input
-        } else {
-            deliveryInfoInput.setDeliveryMethodChosen("STANDARD");
-        }
-
-
-        // CRITICAL FIX: Set delivery info on order BEFORE calculating shipping fee
-        // This prevents ValidationException "Delivery information is required for shipping calculation"
-        deliveryInfoInput.setOrderEntity(order); // Link to order
-        order.setDeliveryInfo(deliveryInfoInput); // Set delivery info FIRST
-        
-        // Now calculate shipping fee with delivery info available
-        float shippingFee = deliveryCalculationService.calculateShippingFee(order, actualRushOrderApplicable);
-        order.setCalculatedDeliveryFee(shippingFee);
-        order.setTotalAmountPaid(order.getTotalProductPriceInclVAT() + shippingFee); // Recalculate total
-        order.setOrderStatus(OrderStatus.PENDING_PAYMENT); // Move to next state
-
-        // // START TRANSACTION
+            throws ResourceNotFoundException, ValidationException {
         try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found.");
+            }
+            if (order.getOrderStatus() != OrderStatus.PENDING_DELIVERY_INFO && 
+                order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
+                throw new ValidationException("Delivery information can only be set for orders pending delivery info or pending payment.");
+            }
+            if (deliveryInfoInput == null) {
+                throw new ValidationException("Delivery information cannot be null.");
+            }
+
+            // Validate required fields
+            if (deliveryInfoInput.getRecipientName() == null || deliveryInfoInput.getRecipientName().trim().isEmpty() ||
+                deliveryInfoInput.getPhoneNumber() == null || deliveryInfoInput.getPhoneNumber().trim().isEmpty() ||
+                deliveryInfoInput.getDeliveryAddress() == null || deliveryInfoInput.getDeliveryAddress().trim().isEmpty() ||
+                deliveryInfoInput.getDeliveryProvinceCity() == null || deliveryInfoInput.getDeliveryProvinceCity().trim().isEmpty()) {
+                throw new ValidationException("Recipient name, phone number, address, and province/city are required.");
+            }
+
+            // Check rush order eligibility
+            boolean actualRushOrderApplicable = false;
+            if (isRushOrder) {
+                if (!deliveryCalculationService.isRushDeliveryAddressEligible(deliveryInfoInput)) {
+                    throw new ValidationException("Delivery address is not eligible for rush order.");
+                }
+                
+                boolean anyItemEligibleForRush = order.getOrderItems().stream()
+                    .anyMatch(OrderItem::isEligibleForRushDelivery);
+                if (!anyItemEligibleForRush) {
+                    throw new ValidationException("No items in the order are eligible for rush delivery.");
+                }
+                actualRushOrderApplicable = true;
+                deliveryInfoInput.setDeliveryMethodChosen("RUSH_DELIVERY");
+            } else {
+                deliveryInfoInput.setDeliveryMethodChosen("STANDARD");
+            }
+
+            deliveryInfoInput.setOrderEntity(order);
+            order.setDeliveryInfo(deliveryInfoInput);
+            
+            float shippingFee = deliveryCalculationService.calculateShippingFee(order, actualRushOrderApplicable);
+            order.setCalculatedDeliveryFee(shippingFee);
+            order.setTotalAmountPaid(order.getTotalProductPriceInclVAT() + shippingFee);
+            order.setOrderStatus(OrderStatus.PENDING_PAYMENT);
+
             DeliveryInfo existingDeliveryInfo = deliveryInfoDAO.getByOrderId(orderId);
             if (existingDeliveryInfo != null) {
-                deliveryInfoInput.setDeliveryInfoId(existingDeliveryInfo.getDeliveryInfoId()); // Use existing ID for update
+                deliveryInfoInput.setDeliveryInfoId(existingDeliveryInfo.getDeliveryInfoId());
                 deliveryInfoDAO.update(deliveryInfoInput);
             } else {
                 deliveryInfoInput.setDeliveryInfoId("DINFO-" + UUID.randomUUID().toString());
                 deliveryInfoDAO.add(deliveryInfoInput);
             }
-            orderDAO.update(order); // Update order with new fees and status
-            // // COMMIT TRANSACTION
+            orderDAO.update(order);
+            
+            return order;
         } catch (SQLException e) {
-            // // ROLLBACK TRANSACTION
-            throw e;
+            throw new ValidationException("Database error setting delivery information: " + e.getMessage());
         }
-        return order;
     }
-
 
     @Override
     public float calculateShippingFee(String orderId, DeliveryInfo deliveryInfo, boolean isRushOrder)
-            throws SQLException, ResourceNotFoundException, ValidationException {
-        OrderEntity order = orderDAO.getById(orderId); // Need items from order
-        if (order == null) {
-            throw new ResourceNotFoundException("Order with ID " + orderId + " not found for fee calculation.");
+            throws ResourceNotFoundException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found for fee calculation.");
+            }
+            return deliveryCalculationService.calculateShippingFee(order, isRushOrder);
+        } catch (SQLException e) {
+            throw new ResourceNotFoundException("Unable to calculate shipping fee: " + e.getMessage());
+        } catch (ValidationException e) {
+            throw new ResourceNotFoundException("Validation error calculating shipping fee: " + e.getMessage());
         }
-        return deliveryCalculationService.calculateShippingFee(order, isRushOrder);
     }
 
     @Override
     public float calculateShippingFeePreview(List<OrderItem> items, DeliveryInfo deliveryInfo, boolean isRushOrder)
             throws ValidationException {
-        // Validate input parameters
         if (items == null || items.isEmpty()) {
             throw new ValidationException("Order items are required for shipping calculation.");
         }
@@ -227,284 +700,278 @@ public class OrderServiceImpl implements IOrderService {
             throw new ValidationException("Delivery information is required for shipping calculation.");
         }
         
-        // Create temporary order for calculation without persisting
         OrderEntity tempOrder = new OrderEntity();
         tempOrder.setOrderItems(items);
         tempOrder.setDeliveryInfo(deliveryInfo);
         
-        // Calculate using the delivery calculation service
         return deliveryCalculationService.calculateShippingFee(tempOrder, isRushOrder);
     }
 
     @Override
-    public OrderEntity processPayment(String orderId, String paymentMethodId /*, PaymentDetailsDTO paymentDetails */)
-            throws SQLException, ResourceNotFoundException, ValidationException, PaymentException, InventoryException {
-        // // START TRANSACTION
-        OrderEntity order = orderDAO.getById(orderId); // Re-fetch to ensure latest state
-        if (order == null) {
-            throw new ResourceNotFoundException("Order " + orderId + " not found.");
-        }
-        if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new ValidationException("Order is not pending payment. Current status: " + order.getOrderStatus());
-        }
-        if (order.getDeliveryInfo() == null) {
-            throw new ValidationException("Delivery information must be set before payment.");
-        }
-
-        // Final inventory check
-        for (OrderItem item : order.getOrderItems()) {
-            Product product = productDAO.getById(item.getProduct().getProductId());
-            if (product == null || product.getQuantityInStock() < item.getQuantity()) {
-                order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO); // Or a new "AWAITING_STOCK_UPDATE" status
-                orderDAO.updateStatus(orderId, order.getOrderStatus());
-                // // COMMIT (partial failure) or ROLLBACK
-                throw new InventoryException("Stock changed for product " + (product != null ? product.getTitle() : item.getProduct().getProductId()) + ". Please review your cart/order.");
-            }
-        }
-
-        PaymentTransaction paymentTransactionResult;
+    public float calculateOrderTotal(String orderId) throws ResourceNotFoundException {
         try {
-            // paymentParams would be constructed here based on paymentMethodId and order details
-             Map<String, Object> paymentParams = Map.of(
-                "ipAddress", "127.0.0.1" // Placeholder, get actual client IP
-                // Potentially add card details or bank codes if not using saved methods or if required
-             );
-            paymentTransactionResult = paymentService.processPayment(order, paymentMethodId /*, paymentDetails */);
-
-        } catch (PaymentException e) {
-            order.setOrderStatus(OrderStatus.PAYMENT_FAILED);
-            orderDAO.updateStatus(orderId, OrderStatus.PAYMENT_FAILED);
-            // // COMMIT (to save failed status)
-            throw e; // Re-throw to inform caller
-        }
-
-        // If payment successful:
-        // 1. Update product stock
-        for (OrderItem item : order.getOrderItems()) {
-            try {
-                // Using productService for stock update which might have additional logic
-                productService.updateProductStock(item.getProduct().getProductId(), -item.getQuantity());
-            } catch (ValidationException | ResourceNotFoundException | InventoryException e) {
-                // For now, log and potentially set order to a special error state.
-                System.err.println("CRITICAL: Payment succeeded for order " + orderId + " but failed to update stock for product " + item.getProduct().getProductId() + ". Reason: " + e.getMessage());
-                order.setOrderStatus(OrderStatus.PAYMENT_FAILED); // Or a more specific error status like ERROR_STOCK_UPDATE_FAILED
-                orderDAO.updateStatus(orderId, OrderStatus.PAYMENT_FAILED); // Or a more specific error status like ERROR_STOCK_UPDATE_FAILED
-                // // COMMIT
-                throw new InventoryException("Payment successful, but stock update failed. Please contact support.", e);
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
             }
+            return order.getTotalProductPriceInclVAT() + order.getCalculatedDeliveryFee();
+        } catch (SQLException e) {
+            throw new ResourceNotFoundException("Unable to calculate order total due to database error: " + e.getMessage());
         }
-
-        // 2. Create Invoice
-        Invoice invoice = new Invoice("INV-" + orderId, order, LocalDateTime.now(), order.getTotalAmountPaid());
-        invoiceDAO.add(invoice);
-        order.setInvoice(invoice);
-
-        // 3. Update Order Status
-        order.setOrderStatus(OrderStatus.PENDING_PROCESSING); // Or directly to APPROVED if no further manager review for simple orders
-        orderDAO.update(order); // Update the full order with new status and invoice link
-
-        // 4. Clear Cart (if associated with a session from which order was placed)
-        // This requires knowing the cartSessionId. Assuming it might be passed or inferred.
-        // For now, this step is conceptual as cartSessionId is not directly on OrderEntity.
-        // If order was created from a cart, that cartSessionId should be used.
-        // String cartSessionId = ... ;
-        // if(cartSessionId != null) cartService.clearCart(cartSessionId);
-
-        // 5. Send Notification
-        notificationService.sendOrderConfirmationEmail(order, invoice, paymentTransactionResult);
-
-        // // COMMIT TRANSACTION
-        return order;
-    }
-
-
-    @Override
-    public OrderEntity getOrderDetails(String orderId) throws SQLException, ResourceNotFoundException {
-        OrderEntity order = orderDAO.getById(orderId); // DAO should load items, deliveryInfo, invoice
-        if (order == null) {
-            throw new ResourceNotFoundException("Order " + orderId + " not found.");
-        }
-        // If DAO doesn't load everything, load them here:
-        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-             order.setOrderItems(orderItemDAO.getItemsByOrderId(orderId));
-        }
-        if (order.getDeliveryInfo() == null) {
-            order.setDeliveryInfo(deliveryInfoDAO.getByOrderId(orderId));
-        }
-        if (order.getInvoice() == null) {
-            order.setInvoice(invoiceDAO.getByOrderId(orderId));
-        }
-        // Load payment transactions too if needed for display
-        // order.setPaymentTransactions(paymentTransactionDAO.getByOrderId(orderId));
-        return order;
     }
 
     @Override
-    public List<OrderEntity> getOrdersByUserId(String userId) throws SQLException {
-        return orderDAO.getByUserId(userId);
-    }
-
-    @Override
-    public OrderEntity cancelOrder(String orderId, String customerId)
-            throws SQLException, ResourceNotFoundException, ValidationException, PaymentException {
-        // // START TRANSACTION
-        OrderEntity order = getOrderDetails(orderId); // Get full order details
-
-        if (order.getUserAccount() != null && !order.getUserAccount().getUserId().equals(customerId)) {
-            // Or if it's a guest order, how to authorize cancellation? (e.g. via a unique link in email)
-            // For now, only allow registered users to cancel their own orders.
-             throw new ValidationException("User " + customerId + " is not authorized to cancel order " + orderId);
-        }
-
-        if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING && order.getOrderStatus() != OrderStatus.PENDING_DELIVERY_INFO && order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new ValidationException("Order cannot be cancelled. Current status: " + order.getOrderStatus());
-        }
-
-        PaymentTransaction refundTransaction = null;
-        // Check if there was a successful payment to refund
-        List<PaymentTransaction> transactions = order.getPaymentTransactions(); // Assume getOrderDetails loads this
-        if (transactions == null) transactions = new ArrayList<>(); // Or fetch IPaymentTransactionDAO().getByOrderId(orderId);
-
-        PaymentTransaction originalPayment = transactions.stream()
-            .filter(t -> t.getTransactionType() == TransactionType.PAYMENT && "SUCCESS".equalsIgnoreCase(t.getTransactionStatus())) // Assuming "SUCCESS" status
-            .findFirst().orElse(null);
-
-        if (originalPayment != null) {
-            refundTransaction = paymentService.processRefund(orderId, originalPayment.getExternalTransactionId(), originalPayment.getAmount(), "Customer cancellation");
-        }
-
-        // Restore stock
-        for (OrderItem item : order.getOrderItems()) {
-            try {
-                productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity()); // Add back
-            } catch (ValidationException | ResourceNotFoundException | InventoryException e) {
-                // Log this issue, as refund might have been processed
-                System.err.println("Warning: Order " + orderId + " cancelled, but failed to restore stock for product " + item.getProduct().getProductId() + ". Reason: " + e.getMessage());
+    public void processOrderPayment(String orderId, String paymentMethodId) 
+            throws ResourceNotFoundException, PaymentException, ValidationException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order " + orderId + " not found.");
             }
-        }
-
-        order.setOrderStatus(OrderStatus.CANCELLED);
-        orderDAO.updateStatus(orderId, OrderStatus.CANCELLED);
-
-        notificationService.sendOrderCancellationNotification(order, refundTransaction);
-        // // COMMIT TRANSACTION
-        return order;
-    }
-
-    @Override
-    public SearchResult<OrderEntity> getOrdersByStatusForManager(OrderStatus status, int pageNumber, int pageSize) throws SQLException {
-        // DAO should ideally support pagination. For now, fetch all then paginate in memory.
-        List<OrderEntity> ordersByStatus = orderDAO.getByStatus(status); // TODO: Add pagination to DAO method
-
-        int totalResults = ordersByStatus.size();
-        int fromIndex = (pageNumber - 1) * pageSize;
-        if (fromIndex >= totalResults && totalResults > 0) { // If fromIndex is out of bounds but there are results, return last page
-             fromIndex = Math.max(0, totalResults - pageSize); // adjust to last page
-        } else if (fromIndex >= totalResults && totalResults == 0) {
-             return new SearchResult<OrderEntity>(new ArrayList<>(), pageNumber, 0, 0);
-        }
-
-
-        int toIndex = Math.min(fromIndex + pageSize, totalResults);
-        List<OrderEntity> pageResults = ordersByStatus.subList(fromIndex, toIndex);
-        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
-        if (totalPages == 0 && totalResults > 0) totalPages = 1;
-
-        return new SearchResult<OrderEntity>(pageResults, pageNumber, totalPages, totalResults);
-    }
-
-    @Override
-    public OrderEntity approveOrder(String orderId, String managerId)
-            throws SQLException, ResourceNotFoundException, ValidationException, InventoryException {
-        // // START TRANSACTION
-        OrderEntity order = getOrderDetails(orderId);
-        if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
-            throw new ValidationException("Only orders pending processing can be approved. Current status: " + order.getOrderStatus());
-        }
-
-        // Final inventory check by manager (problem statement implies this)
-        for (OrderItem item : order.getOrderItems()) {
-            Product product = productDAO.getById(item.getProduct().getProductId());
-            if (product == null || product.getQuantityInStock() < item.getQuantity()) {
-                // Manager might reject or put on hold, but cannot approve if no stock.
-                // For simplicity, throw inventory exception, or allow rejection.
-                order.setOrderStatus(OrderStatus.REJECTED); // Or a specific on-hold status
-                orderDAO.updateStatus(orderId, order.getOrderStatus());
-                // // COMMIT
-                throw new InventoryException("Cannot approve order " + orderId + ". Insufficient stock for product: " +
-                        (product != null ? product.getTitle() : item.getProduct().getProductId()));
+            
+            if (order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
+                throw new ValidationException("Order is not pending payment. Current status: " + order.getOrderStatus());
             }
-        }
-
-        order.setOrderStatus(OrderStatus.APPROVED);
-        orderDAO.updateStatus(orderId, OrderStatus.APPROVED);
-        notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(), OrderStatus.APPROVED.name(), "Order approved by manager " + managerId);
-        // // COMMIT TRANSACTION
-        return order;
-    }
-
-    @Override
-    public OrderEntity rejectOrder(String orderId, String managerId, String reason)
-            throws SQLException, ResourceNotFoundException, ValidationException, PaymentException {
-        // // START TRANSACTION
-        OrderEntity order = getOrderDetails(orderId);
-        if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
-            throw new ValidationException("Only orders pending processing can be rejected. Current status: " + order.getOrderStatus());
-        }
-
-        // If order was paid, a refund might be needed.
-        PaymentTransaction refundTransaction = null;
-        List<PaymentTransaction> transactions = order.getPaymentTransactions(); // Assume getOrderDetails loads this
-         if (transactions == null) transactions = new ArrayList<>();
-
-        PaymentTransaction originalPayment = transactions.stream()
-            .filter(t -> t.getTransactionType() == TransactionType.PAYMENT && "SUCCESS".equalsIgnoreCase(t.getTransactionStatus()))
-            .findFirst().orElse(null);
-
-        if (originalPayment != null) {
-            // paymentService.processRefund might throw PaymentException
-            refundTransaction = paymentService.processRefund(orderId, originalPayment.getExternalTransactionId(), originalPayment.getAmount(), "Order rejected by manager: " + reason);
-        }
-
-        // If a refund was attempted (even if it failed), or if no payment was made, proceed to reject.
-        // If refund failed, the order might go into an error state or still be rejected with a note.
-        // For simplicity, we assume rejection proceeds and any refund failure is handled by PaymentException.
-
-        // Restore stock for rejected orders IF it was decremented at payment
-        // Stock was decremented in processPayment if successful.
-        if (originalPayment != null) { // Implying payment was made and stock likely decremented
-             for (OrderItem item : order.getOrderItems()) {
-                try {
-                    productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity()); // Add back
-                } catch (Exception e) { // Catch general exception here as this is a recovery step
-                    System.err.println("Warning: Order " + orderId + " rejected, but failed to restore stock for product " + item.getProduct().getProductId() + ". Reason: " + e.getMessage());
+            
+            // Load delivery info if not present
+            if (order.getDeliveryInfo() == null) {
+                DeliveryInfo deliveryInfo = deliveryInfoDAO.getByOrderId(orderId);
+                if (deliveryInfo != null) {
+                    order.setDeliveryInfo(deliveryInfo);
+                } else {
+                    throw new ValidationException("Delivery information is required before payment.");
                 }
             }
+
+            // Final inventory check
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = productDAO.getById(item.getProduct().getProductId());
+                if (product == null || product.getQuantityInStock() < item.getQuantity()) {
+                    order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
+                    orderDAO.updateStatus(orderId, order.getOrderStatus());
+                    throw new ValidationException("Stock changed for product " + 
+                        (product != null ? product.getTitle() : item.getProduct().getProductId()));
+                }
+            }
+
+            PaymentTransaction paymentTransactionResult = paymentService.processPayment(order, paymentMethodId);
+
+            // Update product stock
+            for (OrderItem item : order.getOrderItems()) {
+                try {
+                    productService.updateProductStock(item.getProduct().getProductId(), -item.getQuantity());
+                } catch (Exception e) {
+                    System.err.println("CRITICAL: Payment succeeded but failed to update stock for product " + 
+                        item.getProduct().getProductId() + ". Reason: " + e.getMessage());
+                    order.setOrderStatus(OrderStatus.PAYMENT_FAILED);
+                    orderDAO.updateStatus(orderId, OrderStatus.PAYMENT_FAILED);
+                    throw new ValidationException("Payment successful, but stock update failed. Please contact support.");
+                }
+            }
+
+            // Create Invoice
+            Invoice invoice = new Invoice("INV-" + orderId, order, LocalDateTime.now(), order.getTotalAmountPaid());
+            invoiceDAO.add(invoice);
+            order.setInvoice(invoice);
+
+            // Update Order Status
+            order.setOrderStatus(OrderStatus.PENDING_PROCESSING);
+            orderDAO.update(order);
+
+            // Send Notification
+            notificationService.sendOrderConfirmationEmail(order, invoice, paymentTransactionResult);
+            
+        } catch (SQLException e) {
+            throw new ValidationException("Database error during payment processing: " + e.getMessage());
         }
-
-
-        order.setOrderStatus(OrderStatus.REJECTED);
-        orderDAO.updateStatus(orderId, OrderStatus.REJECTED);
-        notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(), OrderStatus.REJECTED.name(), "Order rejected by manager " + managerId + ". Reason: " + reason);
-        // // COMMIT TRANSACTION
-        return order;
     }
 
     @Override
-    public OrderEntity updateOrderStatus(String orderId, OrderStatus newStatus, String adminOrManagerId)
-            throws SQLException, ResourceNotFoundException, ValidationException {
-        // // START TRANSACTION
-        OrderEntity order = getOrderDetails(orderId);
-        OrderStatus oldStatus = order.getOrderStatus();
+    public void cancelOrder(String orderId) throws ResourceNotFoundException, OrderException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
+            }
+            
+            if (order.getUserAccount() != null) {
+                cancelOrder(orderId, order.getUserAccount().getUserId());
+            } else {
+                orderDAO.updateStatus(orderId, OrderStatus.CANCELLED);
+            }
+        } catch (SQLException | ValidationException e) {
+            throw new OrderException("Unable to cancel order: " + e.getMessage());
+        }
+    }
 
-        // Add validation logic for allowed status transitions if necessary
-        // e.g., cannot go from DELIVERED back to PENDING_PAYMENT
-        if (oldStatus == newStatus) return order; // No change
+    @Override
+    public void cancelOrder(String orderId, String customerId)
+            throws ResourceNotFoundException, OrderException, ValidationException {
+        try {
+            OrderEntity order = getOrderDetails(orderId);
 
-        order.setOrderStatus(newStatus);
-        orderDAO.updateStatus(orderId, newStatus);
-        notificationService.sendOrderStatusUpdateNotification(order, oldStatus.name(), newStatus.name(), "Status updated by " + adminOrManagerId);
-        // // COMMIT TRANSACTION
-        return order;
+            if (order.getUserAccount() != null && !order.getUserAccount().getUserId().equals(customerId)) {
+                throw new ValidationException("User " + customerId + " is not authorized to cancel order " + orderId);
+            }
+
+            if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING && 
+                order.getOrderStatus() != OrderStatus.PENDING_DELIVERY_INFO && 
+                order.getOrderStatus() != OrderStatus.PENDING_PAYMENT) {
+                throw new ValidationException("Order cannot be cancelled. Current status: " + order.getOrderStatus());
+            }
+
+            // Handle refund if payment was made
+            PaymentTransaction refundTransaction = null;
+            List<PaymentTransaction> transactions = order.getPaymentTransactions();
+            if (transactions == null) transactions = new ArrayList<>();
+
+            PaymentTransaction originalPayment = transactions.stream()
+                .filter(t -> t.getTransactionType() == TransactionType.PAYMENT && 
+                           "SUCCESS".equalsIgnoreCase(t.getTransactionStatus()))
+                .findFirst().orElse(null);
+
+            if (originalPayment != null) {
+                refundTransaction = paymentService.processRefund(orderId, originalPayment.getExternalTransactionId(), 
+                    originalPayment.getAmount(), "Customer cancellation");
+            }
+
+            // Restore stock
+            for (OrderItem item : order.getOrderItems()) {
+                try {
+                    productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity());
+                } catch (Exception e) {
+                    System.err.println("Warning: Order " + orderId + " cancelled, but failed to restore stock for product " + 
+                        item.getProduct().getProductId() + ". Reason: " + e.getMessage());
+                }
+            }
+
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            orderDAO.updateStatus(orderId, OrderStatus.CANCELLED);
+
+            notificationService.sendOrderCancellationNotification(order, refundTransaction);
+        } catch (SQLException | PaymentException e) {
+            throw new OrderException("Error during cancellation: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void approveOrder(String orderId, String managerId) 
+            throws ResourceNotFoundException, OrderException, ValidationException {
+        try {
+            OrderEntity order = getOrderDetails(orderId);
+            if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
+                throw new ValidationException("Only orders pending processing can be approved. Current status: " + order.getOrderStatus());
+            }
+
+            // Final inventory check
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = productDAO.getById(item.getProduct().getProductId());
+                if (product == null || product.getQuantityInStock() < item.getQuantity()) {
+                    order.setOrderStatus(OrderStatus.REJECTED);
+                    orderDAO.updateStatus(orderId, order.getOrderStatus());
+                    throw new OrderException("Cannot approve order " + orderId + ". Insufficient stock for product: " +
+                            (product != null ? product.getTitle() : item.getProduct().getProductId()));
+                }
+            }
+
+            order.setOrderStatus(OrderStatus.APPROVED);
+            orderDAO.updateStatus(orderId, OrderStatus.APPROVED);
+            notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(), 
+                OrderStatus.APPROVED.name(), "Order approved by manager " + managerId);
+        } catch (SQLException e) {
+            throw new OrderException("Database error approving order: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void rejectOrder(String orderId, String managerId, String reason) 
+            throws ResourceNotFoundException, OrderException, ValidationException {
+        try {
+            OrderEntity order = getOrderDetails(orderId);
+            if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
+                throw new ValidationException("Only orders pending processing can be rejected. Current status: " + order.getOrderStatus());
+            }
+
+            // Handle refund if payment was made
+            PaymentTransaction refundTransaction = null;
+            List<PaymentTransaction> transactions = order.getPaymentTransactions();
+            if (transactions == null) transactions = new ArrayList<>();
+
+            PaymentTransaction originalPayment = transactions.stream()
+                .filter(t -> t.getTransactionType() == TransactionType.PAYMENT && 
+                           "SUCCESS".equalsIgnoreCase(t.getTransactionStatus()))
+                .findFirst().orElse(null);
+
+            if (originalPayment != null) {
+                refundTransaction = paymentService.processRefund(orderId, originalPayment.getExternalTransactionId(), 
+                    originalPayment.getAmount(), "Order rejected by manager: " + reason);
+            }
+
+            // Restore stock if payment was made
+            if (originalPayment != null) {
+                for (OrderItem item : order.getOrderItems()) {
+                    try {
+                        productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity());
+                    } catch (Exception e) {
+                        System.err.println("Warning: Order " + orderId + " rejected, but failed to restore stock for product " + 
+                            item.getProduct().getProductId() + ". Reason: " + e.getMessage());
+                    }
+                }
+            }
+
+            order.setOrderStatus(OrderStatus.REJECTED);
+            orderDAO.updateStatus(orderId, OrderStatus.REJECTED);
+            notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(),
+                OrderStatus.REJECTED.name(), "Order rejected by manager " + managerId + ". Reason: " + reason);
+        } catch (SQLException | PaymentException e) {
+            throw new OrderException("Error during rejection: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void markOrderAsShipped(String orderId, String trackingNumber) 
+            throws ResourceNotFoundException, OrderException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
+            }
+            
+            if (order.getOrderStatus() != OrderStatus.APPROVED) {
+                throw new OrderException("Only approved orders can be marked as shipped");
+            }
+            
+            orderDAO.updateStatus(orderId, OrderStatus.SHIPPING);
+            
+            notificationService.sendOrderStatusUpdateNotification(order, 
+                OrderStatus.APPROVED.name(), OrderStatus.SHIPPING.name(), 
+                "Order shipped with tracking number: " + trackingNumber);
+                
+        } catch (SQLException e) {
+            throw new OrderException("Unable to mark order as shipped due to database error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void markOrderAsDelivered(String orderId) throws ResourceNotFoundException, OrderException {
+        try {
+            OrderEntity order = orderDAO.getById(orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order with ID " + orderId + " not found");
+            }
+            
+            if (order.getOrderStatus() != OrderStatus.SHIPPING) {
+                throw new OrderException("Only orders in shipping status can be marked as delivered");
+            }
+            
+            orderDAO.updateStatus(orderId, OrderStatus.DELIVERED);
+            
+            notificationService.sendOrderStatusUpdateNotification(order, 
+                OrderStatus.SHIPPING.name(), OrderStatus.DELIVERED.name(), 
+                "Order has been delivered successfully");
+                
+        } catch (SQLException e) {
+            throw new OrderException("Unable to mark order as delivered due to database error: " + e.getMessage());
+        }
     }
 }

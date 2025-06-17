@@ -5,7 +5,8 @@ import com.aims.core.entities.OrderEntity;
 import com.aims.core.enums.OrderStatus;
 import com.aims.core.presentation.utils.AlertHelper;
 import com.aims.core.presentation.utils.FXMLSceneManager;
-import com.aims.core.shared.utils.SearchResult; // Assuming SearchResult utility
+import com.aims.core.shared.dto.SearchResult; // Use DTO version for consistency
+import com.aims.core.shared.exceptions.ResourceNotFoundException;
 
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -166,14 +167,14 @@ public class PendingOrdersController {
             SearchResult<OrderEntity> result = orderService.getOrdersByStatusForManager(
                     OrderStatus.PENDING_PROCESSING, currentPage, PAGE_SIZE
             );
-            pendingOrdersList.setAll(result.results());
-            updatePaginationControls(result.currentPage(), result.totalPages(), result.totalResults());
+            pendingOrdersList.setAll(result.getItems());
+            updatePaginationControls(result.getPageNumber(), result.getTotalPages(), result.getTotalItems());
 
-            if(result.results().isEmpty() && currentPage == 1){
+            if(result.getItems().isEmpty() && currentPage == 1){
                 pendingOrdersTableView.setPlaceholder(new Label("No orders are currently pending processing."));
             }
 
-        } catch (SQLException e) {
+        } catch (ResourceNotFoundException e) {
             e.printStackTrace();
             AlertHelper.showErrorDialog("Database Error", "Failed to Load Orders", "Could not retrieve pending orders from the database: " + e.getMessage());
         }

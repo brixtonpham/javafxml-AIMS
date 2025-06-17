@@ -46,6 +46,9 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
 
     @Override
     public void add(PaymentTransaction transaction) throws SQLException {
+        // CRITICAL: Add pre-validation before database insertion
+        validateTransactionIntegrity(transaction);
+        
         String sql = "INSERT INTO PAYMENT_TRANSACTION (transactionID, orderID, paymentMethodID, transactionType, " +
                      "externalTransactionID, transaction_status, transactionDateTime, amount, transactionContent, gatewayResponseData) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -69,10 +72,131 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
             pstmt.setString(9, transaction.getTransactionContent());
             pstmt.setString(10, transaction.getGatewayResponseData());
             pstmt.executeUpdate();
+            
         } catch (SQLException e) {
+            // Enhanced error handling for foreign key constraint violations
+            if (e.getErrorCode() == 19) { // SQLite constraint error
+                if (e.getMessage().contains("FOREIGN KEY constraint failed")) {
+                    handleForeignKeyConstraintError(transaction, e);
+                } else if (e.getMessage().contains("UNIQUE constraint failed")) {
+                    throw new SQLException("Payment transaction with ID " + transaction.getTransactionId() + 
+                                         " already exists. Cannot create duplicate transaction.", e);
+                }
+            }
             SQLiteConnector.printSQLException(e);
             throw e;
         }
+    }
+
+    /**
+     * Validate transaction integrity before database insertion
+     */
+    private void validateTransactionIntegrity(PaymentTransaction transaction) throws SQLException {
+        if (transaction == null) {
+            throw new SQLException("Payment transaction cannot be null");
+        }
+        
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().trim().isEmpty()) {
+            throw new SQLException("Payment transaction ID cannot be null or empty");
+        }
+        
+        if (transaction.getOrder() == null || transaction.getOrder().getOrderId() == null) {
+            throw new SQLException("Payment transaction must be associated with a valid order");
+        }
+        
+        // CRITICAL: Verify order exists in database before creating payment transaction
+        String orderValidationSql = "SELECT COUNT(*) FROM ORDER_ENTITY WHERE orderID = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(orderValidationSql)) {
+            
+            pstmt.setString(1, transaction.getOrder().getOrderId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) == 0) {
+                    throw new SQLException("Order " + transaction.getOrder().getOrderId() + 
+                                         " does not exist in ORDER_ENTITY table. Cannot create payment transaction.");
+                }
+            }
+        }
+        
+        // Validate payment method if provided
+        if (transaction.getPaymentMethod() != null && 
+            transaction.getPaymentMethod().getPaymentMethodId() != null &&
+            !transaction.getPaymentMethod().getPaymentMethodId().startsWith("VNPAY_TEMP_")) {
+            
+            String pmValidationSql = "SELECT COUNT(*) FROM PAYMENT_METHOD WHERE paymentMethodID = ?";
+            try (Connection conn = getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(pmValidationSql)) {
+                
+                pstmt.setString(1, transaction.getPaymentMethod().getPaymentMethodId());
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        throw new SQLException("Payment method " + transaction.getPaymentMethod().getPaymentMethodId() + 
+                                             " does not exist in PAYMENT_METHOD table.");
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle foreign key constraint errors with detailed diagnostics
+     */
+    private void handleForeignKeyConstraintError(PaymentTransaction transaction, SQLException originalException) throws SQLException {
+        StringBuilder diagnosticMessage = new StringBuilder();
+        diagnosticMessage.append("Foreign Key Constraint Violation in Payment Transaction Creation:\n");
+        
+        String orderId = transaction.getOrder() != null ? transaction.getOrder().getOrderId() : "NULL";
+        String paymentMethodId = transaction.getPaymentMethod() != null ? 
+                               transaction.getPaymentMethod().getPaymentMethodId() : "NULL";
+        
+        diagnosticMessage.append(String.format("Transaction ID: %s\n", transaction.getTransactionId()));
+        diagnosticMessage.append(String.format("Order ID: %s\n", orderId));
+        diagnosticMessage.append(String.format("Payment Method ID: %s\n", paymentMethodId));
+        
+        // Check which foreign key failed
+        try (Connection conn = getConnection()) {
+            
+            // Check order existence
+            if (!"NULL".equals(orderId)) {
+                String orderCheckSql = "SELECT COUNT(*) FROM ORDER_ENTITY WHERE orderID = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(orderCheckSql)) {
+                    pstmt.setString(1, orderId);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            boolean orderExists = rs.getInt(1) > 0;
+                            diagnosticMessage.append(String.format("Order exists in database: %s\n", orderExists));
+                            if (!orderExists) {
+                                diagnosticMessage.append("ROOT CAUSE: Order does not exist in ORDER_ENTITY table\n");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check payment method existence
+            if (!"NULL".equals(paymentMethodId) && !paymentMethodId.startsWith("VNPAY_TEMP_")) {
+                String pmCheckSql = "SELECT COUNT(*) FROM PAYMENT_METHOD WHERE paymentMethodID = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(pmCheckSql)) {
+                    pstmt.setString(1, paymentMethodId);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            boolean pmExists = rs.getInt(1) > 0;
+                            diagnosticMessage.append(String.format("Payment method exists in database: %s\n", pmExists));
+                            if (!pmExists) {
+                                diagnosticMessage.append("SECONDARY ISSUE: Payment method does not exist in PAYMENT_METHOD table\n");
+                            }
+                        }
+                    }
+                }
+            }
+            
+        } catch (SQLException diagnosisException) {
+            diagnosticMessage.append("Failed to run diagnostic queries: ").append(diagnosisException.getMessage()).append("\n");
+        }
+        
+        diagnosticMessage.append("Original Error: ").append(originalException.getMessage());
+        
+        throw new SQLException(diagnosticMessage.toString(), originalException);
     }
 
     @Override

@@ -3,18 +3,11 @@ package com.aims.core.shared;
 import com.aims.core.application.impl.*;
 import com.aims.core.application.services.*;
 import com.aims.core.infrastructure.database.dao.*;
-// Stub implementations for external service adapters
 import com.aims.core.infrastructure.adapters.external.email.IEmailSenderAdapter;
 import com.aims.core.infrastructure.adapters.external.email.StubEmailSenderAdapter;
-import com.aims.core.infrastructure.adapters.external.payment_gateway.IVNPayAdapter;
-import com.aims.core.infrastructure.adapters.external.payment_gateway.StubVNPayAdapter;
-import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayAdapterImpl;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.IPaymentGatewayAdapter;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.StubPaymentGatewayAdapter;
 
-/**
- * Simple Service Factory for dependency injection.
- * This class handles the creation and wiring of all dependencies in the AIMS application.
- * In a production environment, this could be replaced with a DI framework like Spring.
- */
 public class ServiceFactory {
     
     // Singleton instance
@@ -37,7 +30,7 @@ public class ServiceFactory {
     private IProductManagerAuditDAO productManagerAuditDAO;
     
     // External Service Adapters
-    private IVNPayAdapter vnPayAdapter;
+    private IPaymentGatewayAdapter paymentGatewayAdapter;
     private IEmailSenderAdapter emailSenderAdapter;
     
     // Services
@@ -50,6 +43,14 @@ public class ServiceFactory {
     private IPaymentService paymentService;
     private IOrderService orderService;
     private IProductManagerAuditService productManagerAuditService;
+    private IOrderValidationService orderValidationService;
+    private IOrderDataLoaderService orderDataLoaderService;
+    private ICartDataValidationService cartDataValidationService;
+    private IOrderDataValidationService orderDataValidationService;
+    
+    // Payment Flow Monitoring Utilities
+    private com.aims.core.presentation.utils.OrderValidationStateManager orderValidationStateManager;
+    private com.aims.core.presentation.utils.PaymentFlowLogger paymentFlowLogger;
     
     private ServiceFactory() {
         initializeDependencies();
@@ -81,12 +82,23 @@ public class ServiceFactory {
         paymentMethodDAO = new PaymentMethodDAOImpl(userAccountDAO, cardDetailsDAO);
         paymentTransactionDAO = new PaymentTransactionDAOImpl(orderEntityDAO, paymentMethodDAO);
         
-        // External Service Adapters (using real VNPay implementation for payment testing)
-        vnPayAdapter = new VNPayAdapterImpl();
+        // External Service Adapters (using stub implementation for testing)
+        paymentGatewayAdapter = new StubPaymentGatewayAdapter();
         emailSenderAdapter = new StubEmailSenderAdapter();
         
         // Initialize audit service before ProductService
         productManagerAuditService = new ProductManagerAuditServiceImpl(productManagerAuditDAO);
+        
+        // Initialize order validation service (needed by PaymentService)
+        orderValidationService = new OrderValidationServiceImpl(
+            orderEntityDAO,
+            orderItemDAO,
+            deliveryInfoDAO,
+            productDAO,
+            userAccountDAO,
+            invoiceDAO,
+            paymentTransactionDAO
+        );
         
         // Services (ProductService needs audit service)
         productService = new ProductServiceImpl(productDAO, productManagerAuditService);
@@ -96,7 +108,29 @@ public class ServiceFactory {
         
         // External services with stub adapters
         notificationService = new NotificationServiceImpl(emailSenderAdapter);
-        paymentService = new PaymentServiceImpl(paymentTransactionDAO, paymentMethodDAO, cardDetailsDAO, vnPayAdapter);
+        paymentService = new PaymentServiceImpl(paymentTransactionDAO, paymentMethodDAO, cardDetailsDAO, paymentGatewayAdapter, orderValidationService);
+        
+        // Initialize order data loader service first
+        orderDataLoaderService = new OrderDataLoaderServiceImpl(
+            orderEntityDAO,
+            orderItemDAO,
+            deliveryInfoDAO,
+            invoiceDAO,
+            paymentTransactionDAO,
+            userAccountDAO,
+            productDAO
+        );
+        
+        // Initialize cart data validation service
+        cartDataValidationService = new CartDataValidationServiceImpl(productDAO);
+        
+        // Initialize order data validation service
+        orderDataValidationService = new OrderDataValidationServiceImpl(
+            orderDataLoaderService,
+            cartDataValidationService,
+            deliveryCalculationService,
+            productService
+        );
         
         // Services with many dependencies
         userAccountService = new UserAccountServiceImpl(userAccountDAO, roleDAO, userRoleAssignmentDAO, notificationService);
@@ -111,82 +145,109 @@ public class ServiceFactory {
             paymentService,
             deliveryCalculationService,
             notificationService,
-            userAccountDAO
+            userAccountDAO,
+            orderDataLoaderService
         );
+        
+        // Initialize payment flow monitoring utilities
+        orderValidationStateManager = com.aims.core.presentation.utils.OrderValidationStateManager.getInstance();
+        paymentFlowLogger = com.aims.core.presentation.utils.PaymentFlowLogger.getInstance();
     }
     
-    // Getters for Services
-    public IProductService getProductService() {
-        return productService;
+    // Static helper methods
+    public static IProductService getProductService() {
+        return getInstance().productService;
     }
     
-    public IAuthenticationService getAuthenticationService() {
-        return authenticationService;
+    public static IAuthenticationService getAuthenticationService() {
+        return getInstance().authenticationService;
     }
     
-    public IUserAccountService getUserAccountService() {
-        return userAccountService;
+    public static IUserAccountService getUserAccountService() {
+        return getInstance().userAccountService;
     }
     
-    public ICartService getCartService() {
-        return cartService;
+    public static ICartService getCartService() {
+        return getInstance().cartService;
     }
     
-    public IOrderService getOrderService() {
-        return orderService;
+    public static IOrderService getOrderService() {
+        return getInstance().orderService;
     }
     
-    public IPaymentService getPaymentService() {
-        return paymentService;
+    public static IPaymentService getPaymentService() {
+        return getInstance().paymentService;
     }
     
-    public INotificationService getNotificationService() {
-        return notificationService;
+    public static INotificationService getNotificationService() {
+        return getInstance().notificationService;
     }
     
-    public IDeliveryCalculationService getDeliveryCalculationService() {
-        return deliveryCalculationService;
+    public static IDeliveryCalculationService getDeliveryCalculationService() {
+        return getInstance().deliveryCalculationService;
     }
     
-    // Getters for DAOs (if needed by controllers)
-    public IProductDAO getProductDAO() {
-        return productDAO;
+    public static IProductDAO getProductDAO() {
+        return getInstance().productDAO;
     }
     
-    public IUserAccountDAO getUserAccountDAO() {
-        return userAccountDAO;
+    public static IUserAccountDAO getUserAccountDAO() {
+        return getInstance().userAccountDAO;
     }
     
-    public ICartDAO getCartDAO() {
-        return cartDAO;
+    public static ICartDAO getCartDAO() {
+        return getInstance().cartDAO;
     }
     
-    public IOrderEntityDAO getOrderEntityDAO() {
-        return orderEntityDAO;
+    public static IOrderEntityDAO getOrderEntityDAO() {
+        return getInstance().orderEntityDAO;
     }
     
-    public IPaymentMethodDAO getPaymentMethodDAO() {
-        return paymentMethodDAO;
+    public static IPaymentMethodDAO getPaymentMethodDAO() {
+        return getInstance().paymentMethodDAO;
     }
     
-    public ICardDetailsDAO getCardDetailsDAO() {
-        return cardDetailsDAO;
+    public static ICardDetailsDAO getCardDetailsDAO() {
+        return getInstance().cardDetailsDAO;
     }
     
-    public IPaymentTransactionDAO getPaymentTransactionDAO() {
-        return paymentTransactionDAO;
+    public static IPaymentTransactionDAO getPaymentTransactionDAO() {
+        return getInstance().paymentTransactionDAO;
     }
     
-    // Getters for External Adapters (if needed)
-    public IVNPayAdapter getVNPayAdapter() {
-        return vnPayAdapter;
+    public static IPaymentGatewayAdapter getPaymentGatewayAdapter() {
+        return getInstance().paymentGatewayAdapter;
     }
 
-    public IEmailSenderAdapter getEmailSenderAdapter() {
-        return emailSenderAdapter;
+    public static IEmailSenderAdapter getEmailSenderAdapter() {
+        return getInstance().emailSenderAdapter;
     }
     
-    public IProductManagerAuditService getProductManagerAuditService() {
-        return productManagerAuditService;
+    public static IProductManagerAuditService getProductManagerAuditService() {
+        return getInstance().productManagerAuditService;
+    }
+    
+    public static IOrderValidationService getOrderValidationService() {
+        return getInstance().orderValidationService;
+    }
+    
+    public static IOrderDataLoaderService getOrderDataLoaderService() {
+        return getInstance().orderDataLoaderService;
+    }
+    
+    public static ICartDataValidationService getCartDataValidationService() {
+        return getInstance().cartDataValidationService;
+    }
+    
+    public static IOrderDataValidationService getOrderDataValidationService() {
+        return getInstance().orderDataValidationService;
+    }
+    
+    public static com.aims.core.presentation.utils.OrderValidationStateManager getOrderValidationStateManager() {
+        return getInstance().orderValidationStateManager;
+    }
+    
+    public static com.aims.core.presentation.utils.PaymentFlowLogger getPaymentFlowLogger() {
+        return getInstance().paymentFlowLogger;
     }
 }

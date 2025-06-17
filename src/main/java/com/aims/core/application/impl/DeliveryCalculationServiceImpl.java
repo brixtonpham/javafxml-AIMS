@@ -35,37 +35,55 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
 
     @Override
     public float calculateShippingFee(OrderEntity order, boolean isRushOrderRequested) throws ValidationException {
-        // ENHANCED: More specific validation messages for better debugging
+        // ENHANCED: Comprehensive validation with detailed debugging output
+        System.out.println("DELIVERY_CALC: calculateShippingFee called - Order: " +
+                          (order != null ? "Order ID " + order.getOrderId() : "NULL ORDER"));
+        
         if (order == null) {
-            throw new ValidationException("Order is required for shipping calculation. Please ensure order data is properly loaded.");
+            System.err.println("DELIVERY_CALC_ERROR: Order is null - this indicates a critical navigation/data passing issue");
+            System.err.println("DELIVERY_CALC_ERROR: Stack trace for debugging:");
+            Thread.dumpStack();
+            throw new ValidationException("CRITICAL ERROR: Order is null. This indicates a problem in the navigation chain " +
+                                        "where order data was not properly passed between screens. " +
+                                        "Please restart the order process and contact support if the issue persists.");
         }
+        
+        String orderId = order.getOrderId();
+        System.out.println("DELIVERY_CALC: Processing Order ID: " + orderId);
+        
         if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
-            throw new ValidationException("Order must contain items for shipping calculation. Order ID: " +
-                                        (order.getOrderId() != null ? order.getOrderId() : "unknown"));
+            System.err.println("DELIVERY_CALC_ERROR: No order items found for Order " + orderId);
+            throw new ValidationException("Order must contain items for shipping calculation. Order ID: " + orderId +
+                                        ". Please add items to your cart before proceeding.");
         }
+        
         if (order.getDeliveryInfo() == null) {
+            System.err.println("DELIVERY_CALC_ERROR: No delivery info found for Order " + orderId);
             throw new ValidationException("Delivery information is required for shipping calculation. " +
-                                        "Please set delivery details before calculating shipping. Order ID: " +
-                                        (order.getOrderId() != null ? order.getOrderId() : "unknown"));
+                                        "Please complete delivery details before calculating shipping. Order ID: " + orderId);
         }
         
         DeliveryInfo deliveryInfo = order.getDeliveryInfo();
+        System.out.println("DELIVERY_CALC: Delivery info found - Province: " + deliveryInfo.getDeliveryProvinceCity());
         
         // ENHANCED: Validate delivery info fields with more specific context
         if (deliveryInfo.getDeliveryProvinceCity() == null || deliveryInfo.getDeliveryProvinceCity().trim().isEmpty()) {
+            System.err.println("DELIVERY_CALC_ERROR: Province/city missing for Order " + orderId);
             throw new ValidationException("Delivery province/city is required for shipping calculation. " +
-                                        "Please select a valid province/city from the dropdown.");
+                                        "Please select a valid province/city from the dropdown. Order ID: " + orderId);
         }
         if (deliveryInfo.getDeliveryAddress() == null || deliveryInfo.getDeliveryAddress().trim().isEmpty()) {
+            System.err.println("DELIVERY_CALC_ERROR: Address missing for Order " + orderId);
             throw new ValidationException("Delivery address is required for shipping calculation. " +
-                                        "Please enter a complete delivery address.");
+                                        "Please enter a complete delivery address. Order ID: " + orderId);
         }
         
-        // ENHANCED: Add logging for debugging shipping calculations
-        System.out.println("SHIPPING CALCULATION: Starting for Order " + order.getOrderId() +
-                          ", Rush requested: " + isRushOrderRequested +
-                          ", Province: " + deliveryInfo.getDeliveryProvinceCity() +
-                          ", Item count: " + order.getOrderItems().size());
+        // ENHANCED: Add comprehensive logging for debugging shipping calculations
+        System.out.println("DELIVERY_CALC: Starting calculation for Order " + orderId +
+                          " | Rush requested: " + isRushOrderRequested +
+                          " | Province: " + deliveryInfo.getDeliveryProvinceCity() +
+                          " | Address: " + deliveryInfo.getDeliveryAddress() +
+                          " | Item count: " + order.getOrderItems().size());
         List<OrderItem> allItems = order.getOrderItems();
         float totalShippingFee = 0f;
 

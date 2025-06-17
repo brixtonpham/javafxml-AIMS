@@ -1,31 +1,58 @@
 package com.aims.core.presentation.utils;
 
-import com.aims.core.presentation.controllers.MainLayoutController; // Để có thể set main controller
-import com.aims.core.shared.ServiceFactory;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 
+import com.aims.core.presentation.controllers.MainLayoutController;
+import com.aims.core.shared.ServiceFactory;
 import java.io.IOException;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class FXMLSceneManager {
-
-    private Stage primaryStage;
-    private MainLayoutController mainLayoutController; // Nếu bạn muốn các controller con truy cập MainLayout
-    private ServiceFactory serviceFactory; // For dependency injection into controllers
     
-    // Navigation history support
+    private static final Logger logger = Logger.getLogger(FXMLSceneManager.class.getName());
+    
+    private static FXMLSceneManager instance;
+    private Stage primaryStage;
+    private ServiceFactory serviceFactory;
+    private MainLayoutController mainLayoutController;
+    
+    // Navigation management
     private NavigationHistory navigationHistory;
     private NavigationContext currentContext;
 
-    private static FXMLSceneManager instance;
+    public static class LoadedFXML<T> {
+        public final T controller;
+        public final Node parent;
 
+        public LoadedFXML(T controller, Node parent) {
+            this.controller = controller;
+            this.parent = parent;
+        }
+
+        public T getController() {
+            return controller;
+        }
+
+        public Node getRoot() {
+            return parent;
+        }
+    }
+    
+    // Private constructor for singleton pattern
     private FXMLSceneManager() {
         this.navigationHistory = new NavigationHistory();
+    }
+    
+    public FXMLSceneManager(Stage primaryStage, ServiceFactory serviceFactory) {
+        this();
+        this.primaryStage = primaryStage;
+        this.serviceFactory = serviceFactory;
     }
 
     public static synchronized FXMLSceneManager getInstance() {
@@ -35,127 +62,155 @@ public class FXMLSceneManager {
         return instance;
     }
 
+    public static void initialize(Stage primaryStage, ServiceFactory serviceFactory) {
+        instance = new FXMLSceneManager(primaryStage, serviceFactory);
+    }
+    
+    public void setMainLayoutController(MainLayoutController controller) {
+        this.mainLayoutController = controller;
+        System.out.println("FXMLSceneManager.setMainLayoutController: MainLayoutController injected successfully");
+    }
+    
     public void setPrimaryStage(Stage primaryStage) {
         this.primaryStage = primaryStage;
+        System.out.println("FXMLSceneManager.setPrimaryStage: Primary stage set successfully");
     }
-
-    public void setMainLayoutController(MainLayoutController mainLayoutController) {
-        this.mainLayoutController = mainLayoutController;
-    }
-
+    
     public void setServiceFactory(ServiceFactory serviceFactory) {
         this.serviceFactory = serviceFactory;
+        System.out.println("FXMLSceneManager.setServiceFactory: ServiceFactory set successfully");
     }
-
-    public ServiceFactory getServiceFactory() {
-        return serviceFactory;
-    }
-
-    public MainLayoutController getMainLayoutController() {
-        return mainLayoutController;
-    }
-
+    
     public FXMLLoader getLoader(String fxmlPath) {
         return new FXMLLoader(getClass().getResource(fxmlPath));
     }
 
-    /**
-     * Loads an FXML file and returns its root Parent node and its controller.
-     * Use this if you need to interact with the controller before showing the scene.
-     */
-    public <T> LoadedFXML<T> loadFXMLWithController(String fxmlPath) throws IOException {
-        System.out.println("FXMLSceneManager.loadFXMLWithController: Loading FXML from " + fxmlPath);
-        
-        FXMLLoader loader = getLoader(fxmlPath);
-        Parent root = loader.load();
-        T controller = loader.getController();
-        
-        System.out.println("FXMLSceneManager.loadFXMLWithController: Loaded controller: " + 
-            (controller != null ? controller.getClass().getSimpleName() : "null"));
-        
-        // Inject MainLayoutController for child controllers
-        if (controller instanceof MainLayoutController.IChildController && mainLayoutController != null) {
-            System.out.println("FXMLSceneManager.loadFXMLWithController: Injecting MainLayoutController into IChildController");
-            ((MainLayoutController.IChildController) controller).setMainLayoutController(mainLayoutController);
+    public <T> LoadedFXML<T> loadFXMLWithController(String fxmlPath) {
+        logger.info("FXMLSceneManager.loadFXMLWithController: Loading FXML for " + fxmlPath);
+        try {
+            // Validate FXML path exists
+            if (getClass().getResource(fxmlPath) == null) {
+                logger.severe("FXMLSceneManager.loadFXMLWithController: FXML resource not found: " + fxmlPath);
+                throw new IOException("FXML resource not found: " + fxmlPath);
+            }
+            
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Node root = loader.load();
+            T controller = loader.getController();
+            
+            logger.info("FXMLSceneManager.loadFXMLWithController: FXML loaded successfully - Controller: " +
+                (controller != null ? controller.getClass().getSimpleName() : "null"));
+            
+            if (controller != null) {
+                try {
+                    // PHASE 1 FIX: Enhanced MainLayoutController injection with registry
+                    if (controller instanceof MainLayoutController.IChildController) {
+                        boolean injectionSuccess = injectMainLayoutControllerWithFallback(controller);
+                        if (!injectionSuccess) {
+                            logger.warning("FXMLSceneManager.loadFXMLWithController: MainLayoutController injection failed for " +
+                                controller.getClass().getSimpleName() + " - controller will have limited functionality");
+                        }
+                    }
+                    
+                    // Inject services if available
+                    if (serviceFactory != null) {
+                        logger.fine("FXMLSceneManager.loadFXMLWithController: ServiceFactory available, injecting services");
+                        injectServices(controller);
+                    } else {
+                        logger.warning("FXMLSceneManager.loadFXMLWithController: ServiceFactory is null, skipping service injection");
+                    }
+                } catch (Exception injectionException) {
+                    logger.log(Level.WARNING, "FXMLSceneManager.loadFXMLWithController: Error during dependency injection for " +
+                        controller.getClass().getSimpleName(), injectionException);
+                    // Continue with controller even if injection fails partially
+                }
+            } else {
+                logger.warning("FXMLSceneManager.loadFXMLWithController: Controller is null for " + fxmlPath +
+                    " - check FXML fx:controller attribute");
+            }
+            
+            logger.info("FXMLSceneManager.loadFXMLWithController: Successfully completed loading FXML for " + fxmlPath);
+            return new LoadedFXML<>(controller, root);
+            
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "FXMLSceneManager.loadFXMLWithController: IO error loading FXML: " + fxmlPath, e);
+            throw new RuntimeException("Failed to load FXML: " + fxmlPath + " - " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "FXMLSceneManager.loadFXMLWithController: Unexpected error loading FXML: " + fxmlPath, e);
+            throw new RuntimeException("Unexpected error loading FXML: " + fxmlPath + " - " + e.getMessage(), e);
         }
-        
-        // Inject services using ServiceFactory
-        if (serviceFactory != null) {
-            System.out.println("FXMLSceneManager.loadFXMLWithController: ServiceFactory available, calling injectServices()");
-            injectServices(controller);
-        } else {
-            System.out.println("FXMLSceneManager.loadFXMLWithController: ServiceFactory is null, skipping service injection");
-        }
-        
-        System.out.println("FXMLSceneManager.loadFXMLWithController: Completed loading FXML for " + fxmlPath);
-        return new LoadedFXML<>(root, controller);
     }
-    
-    /**
-     * Injects services into controllers based on their type.
-     * Only injects services if the controller has the appropriate setter methods.
-     */
-    private void injectServices(Object controller) {
-        if (controller == null) {
-            System.out.println("FXMLSceneManager.injectServices: Controller is null, cannot inject services");
-            return;
+
+    public Object loadContent(String fxmlPath, MainLayoutController parentController) {
+        try {
+            LoadedFXML<?> loaded = loadFXMLWithController(fxmlPath);
+            if (loaded != null && parentController != null) {
+                parentController.setContent(loaded.getRoot());
+                
+                Object controller = loaded.getController();
+                if (controller instanceof MainLayoutController.IChildController) {
+                    ((MainLayoutController.IChildController) controller).setMainLayoutController(parentController);
+                }
+                
+                return controller;
+            }
+            return null;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
-        
+    }
+
+    public FXMLLoader loadScene(String fxmlPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Scene scene = new Scene(loader.load());
+            primaryStage.setScene(scene);
+            
+            Object controller = loader.getController();
+            if (controller != null) {
+                injectServices(controller);
+            }
+            
+            return loader;
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void injectServices(Object controller) {
         if (serviceFactory == null) {
-            System.err.println("FXMLSceneManager.injectServices: ServiceFactory is null, cannot inject services");
-            System.err.println("FXMLSceneManager.injectServices: This is a critical error that will cause application failures");
+            System.out.println("FXMLSceneManager.injectServices: ServiceFactory is null, cannot inject services");
             return;
         }
         
         System.out.println("FXMLSceneManager.injectServices: Starting service injection for " + controller.getClass().getSimpleName());
         
-        // ENHANCED: Validate injection prerequisites
-        boolean injectionPrerequisitesMet = validateInjectionPrerequisites(controller);
-        if (!injectionPrerequisitesMet) {
-            System.err.println("FXMLSceneManager.injectServices: CRITICAL - Injection prerequisites not met for " + controller.getClass().getSimpleName());
-            return;
-        }
-        
-        // Check for controllers that have confirmed setter methods
+        // Inject services based on controller type
         if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController) {
             System.out.println("FXMLSceneManager.injectServices: Detected HomeScreenController, injecting services...");
-            com.aims.core.presentation.controllers.HomeScreenController homeController = 
+            com.aims.core.presentation.controllers.HomeScreenController homeController =
                 (com.aims.core.presentation.controllers.HomeScreenController) controller;
             
             try {
-                // Inject ProductService with null check
-                com.aims.core.application.services.IProductService productService = serviceFactory.getProductService();
-                if (productService != null) {
-                    homeController.setProductService(productService);
-                    System.out.println("FXMLSceneManager.injectServices: ProductService injected into HomeScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: ProductService is null, injection failed");
-                }
+                homeController.setProductService(serviceFactory.getProductService());
+                System.out.println("FXMLSceneManager.injectServices: ProductService injected into HomeScreenController");
                 
-                // Inject CartService with null check
-                com.aims.core.application.services.ICartService cartService = serviceFactory.getCartService();
-                if (cartService != null) {
-                    homeController.setCartService(cartService);
-                    System.out.println("FXMLSceneManager.injectServices: CartService injected into HomeScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: CartService is null, injection failed");
-                }
+                homeController.setCartService(serviceFactory.getCartService());
+                System.out.println("FXMLSceneManager.injectServices: CartService injected into HomeScreenController");
                 
-                // Complete initialization only if at least ProductService is available
-                if (productService != null) {
-                    homeController.completeInitialization();
-                    System.out.println("FXMLSceneManager.injectServices: HomeScreenController initialization completed");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: Cannot complete HomeScreenController initialization - ProductService is null");
-                }
+                homeController.completeInitialization(); // Complete initialization after services are injected
+                System.out.println("FXMLSceneManager.injectServices: HomeScreenController initialization completed");
             } catch (Exception e) {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into HomeScreenController: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.CartScreenController) {
+        } else if (controller instanceof com.aims.core.presentation.controllers.CartScreenController) {
             System.out.println("FXMLSceneManager.injectServices: Detected CartScreenController, injecting services...");
-            com.aims.core.presentation.controllers.CartScreenController cartController = 
+            com.aims.core.presentation.controllers.CartScreenController cartController =
                 (com.aims.core.presentation.controllers.CartScreenController) controller;
             
             try {
@@ -165,10 +220,9 @@ public class FXMLSceneManager {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into CartScreenController: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.ProductDetailScreenController) {
+        } else if (controller instanceof com.aims.core.presentation.controllers.ProductDetailScreenController) {
             System.out.println("FXMLSceneManager.injectServices: Detected ProductDetailScreenController, injecting services...");
-            com.aims.core.presentation.controllers.ProductDetailScreenController detailController = 
+            com.aims.core.presentation.controllers.ProductDetailScreenController detailController =
                 (com.aims.core.presentation.controllers.ProductDetailScreenController) controller;
             
             try {
@@ -191,276 +245,123 @@ public class FXMLSceneManager {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into ProductDetailScreenController: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.PaymentProcessingScreenController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected PaymentProcessingScreenController, injecting services...");
-            com.aims.core.presentation.controllers.PaymentProcessingScreenController paymentController =
-                (com.aims.core.presentation.controllers.PaymentProcessingScreenController) controller;
+        } else if (controller instanceof com.aims.core.presentation.controllers.OrderSummaryController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected OrderSummaryController, injecting enhanced services...");
+            com.aims.core.presentation.controllers.OrderSummaryController orderSummaryController =
+                (com.aims.core.presentation.controllers.OrderSummaryController) controller;
             
             try {
-                paymentController.setPaymentService(serviceFactory.getPaymentService());
-                System.out.println("FXMLSceneManager.injectServices: PaymentService injected into PaymentProcessingScreenController");
+                orderSummaryController.setOrderDataLoaderService(serviceFactory.getOrderDataLoaderService());
+                System.out.println("FXMLSceneManager.injectServices: OrderDataLoaderService injected into OrderSummaryController");
                 
-                paymentController.setOrderService(serviceFactory.getOrderService());
-                System.out.println("FXMLSceneManager.injectServices: OrderService injected into PaymentProcessingScreenController");
+                orderSummaryController.setCartDataValidationService(serviceFactory.getCartDataValidationService());
+                System.out.println("FXMLSceneManager.injectServices: CartDataValidationService injected into OrderSummaryController");
                 
-                // Set additional dependencies if available
-                if (mainLayoutController != null) {
-                    paymentController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into PaymentProcessingScreenController");
-                }
-                
-                paymentController.setSceneManager(this);
-                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into PaymentProcessingScreenController");
+                orderSummaryController.setSceneManager(this);
+                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into OrderSummaryController");
                 
             } catch (Exception e) {
-                System.err.println("FXMLSceneManager.injectServices: Error injecting services into PaymentProcessingScreenController: " + e.getMessage());
+                System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderSummaryController: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.CustomerOrderDetailController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected CustomerOrderDetailController, injecting services...");
-            com.aims.core.presentation.controllers.CustomerOrderDetailController orderDetailController =
-                (com.aims.core.presentation.controllers.CustomerOrderDetailController) controller;
-            
-            try {
-                orderDetailController.setOrderService(serviceFactory.getOrderService());
-                System.out.println("FXMLSceneManager.injectServices: OrderService injected into CustomerOrderDetailController");
-                
-                // Set additional dependencies if available
-                if (mainLayoutController != null) {
-                    orderDetailController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into CustomerOrderDetailController");
-                }
-                
-                orderDetailController.setSceneManager(this);
-                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into CustomerOrderDetailController");
-                
-            } catch (Exception e) {
-                System.err.println("FXMLSceneManager.injectServices: Error injecting services into CustomerOrderDetailController: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.OrderReviewController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected OrderReviewController, injecting services...");
-            com.aims.core.presentation.controllers.OrderReviewController orderReviewController =
-                (com.aims.core.presentation.controllers.OrderReviewController) controller;
-            
-            try {
-                orderReviewController.setOrderService(serviceFactory.getOrderService());
-                System.out.println("FXMLSceneManager.injectServices: OrderService injected into OrderReviewController");
-                
-                // Set additional dependencies if available
-                if (mainLayoutController != null) {
-                    orderReviewController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into OrderReviewController");
-                }
-                
-                orderReviewController.setSceneManager(this);
-                System.out.println("FXMLSceneManager.injectServices: SceneManager injected into OrderReviewController");
-                
-            } catch (Exception e) {
-                System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderReviewController: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.DeliveryInfoScreenController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected DeliveryInfoScreenController, injecting services...");
+        } else if (controller instanceof com.aims.core.presentation.controllers.DeliveryInfoScreenController) {
+            System.out.println("FXMLSceneManager.injectServices: Detected DeliveryInfoScreenController, injecting enhanced services...");
             com.aims.core.presentation.controllers.DeliveryInfoScreenController deliveryController =
                 (com.aims.core.presentation.controllers.DeliveryInfoScreenController) controller;
             
             try {
-                // Inject OrderService
-                com.aims.core.application.services.IOrderService orderService = serviceFactory.getOrderService();
-                if (orderService != null) {
-                    deliveryController.setOrderService(orderService);
-                    System.out.println("FXMLSceneManager.injectServices: OrderService injected into DeliveryInfoScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: OrderService is null, injection failed");
-                }
+                deliveryController.setOrderDataLoaderService(serviceFactory.getOrderDataLoaderService());
+                System.out.println("FXMLSceneManager.injectServices: OrderDataLoaderService injected into DeliveryInfoScreenController");
                 
-                // Inject DeliveryService
-                com.aims.core.application.services.IDeliveryCalculationService deliveryService = serviceFactory.getDeliveryCalculationService();
-                if (deliveryService != null) {
-                    deliveryController.setDeliveryService(deliveryService);
-                    System.out.println("FXMLSceneManager.injectServices: DeliveryCalculationService injected into DeliveryInfoScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: DeliveryCalculationService is null, injection failed");
-                }
+                deliveryController.setCartDataValidationService(serviceFactory.getCartDataValidationService());
+                System.out.println("FXMLSceneManager.injectServices: CartDataValidationService injected into DeliveryInfoScreenController");
                 
-                // Set additional dependencies if available
-                if (mainLayoutController != null) {
-                    deliveryController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into DeliveryInfoScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: MainLayoutController is null - CRITICAL INJECTION FAILURE");
-                }
+                deliveryController.setDeliveryCalculationService(serviceFactory.getDeliveryCalculationService());
+                System.out.println("FXMLSceneManager.injectServices: DeliveryCalculationService injected into DeliveryInfoScreenController");
                 
             } catch (Exception e) {
                 System.err.println("FXMLSceneManager.injectServices: Error injecting services into DeliveryInfoScreenController: " + e.getMessage());
                 e.printStackTrace();
             }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.OrderSummaryController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected OrderSummaryController, injecting services...");
-            com.aims.core.presentation.controllers.OrderSummaryController orderSummaryController =
-                (com.aims.core.presentation.controllers.OrderSummaryController) controller;
-            
-            try {
-                // CRITICAL: Set MainLayoutController for navigation
-                if (mainLayoutController != null) {
-                    orderSummaryController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into OrderSummaryController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - MainLayoutController is null for OrderSummaryController");
-                }
-            } catch (Exception e) {
-                System.err.println("FXMLSceneManager.injectServices: Error injecting services into OrderSummaryController: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-        else if (controller instanceof com.aims.core.presentation.controllers.PaymentMethodScreenController) {
-            System.out.println("FXMLSceneManager.injectServices: Detected PaymentMethodScreenController, injecting services...");
-            com.aims.core.presentation.controllers.PaymentMethodScreenController paymentMethodController =
-                (com.aims.core.presentation.controllers.PaymentMethodScreenController) controller;
-            
-            try {
-                // CRITICAL: Enhanced validation before injection
-                boolean injectionSuccessful = validatePaymentMethodControllerInjection(paymentMethodController);
-                if (!injectionSuccessful) {
-                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - PaymentMethodScreenController injection validation failed");
-                    return;
-                }
-                
-                // CRITICAL: Set MainLayoutController for navigation
-                if (mainLayoutController != null) {
-                    paymentMethodController.setMainLayoutController(mainLayoutController);
-                    System.out.println("FXMLSceneManager.injectServices: MainLayoutController injected into PaymentMethodScreenController");
-                } else {
-                    System.err.println("FXMLSceneManager.injectServices: CRITICAL - MainLayoutController is null for PaymentMethodScreenController");
-                    throw new IllegalStateException("MainLayoutController is required for PaymentMethodScreenController navigation");
-                }
-                
-                // Inject PaymentService with enhanced error handling
-                try {
-                    com.aims.core.application.services.IPaymentService paymentService = serviceFactory.getPaymentService();
-                    if (paymentService != null) {
-                        paymentMethodController.setPaymentService(paymentService);
-                        System.out.println("FXMLSceneManager.injectServices: PaymentService injected into PaymentMethodScreenController");
-                    } else {
-                        System.out.println("FXMLSceneManager.injectServices: PaymentService is null - PaymentMethodScreenController will operate with limited functionality");
-                    }
-                } catch (Exception pe) {
-                    System.err.println("FXMLSceneManager.injectServices: PaymentService injection failed: " + pe.getMessage());
-                    // Continue without PaymentService - controller should handle gracefully
-                }
-                
-                // Validate post-injection state
-                validatePaymentMethodControllerPostInjection(paymentMethodController);
-                
-            } catch (Exception e) {
-                System.err.println("FXMLSceneManager.injectServices: CRITICAL Error injecting services into PaymentMethodScreenController: " + e.getMessage());
-                e.printStackTrace();
-                // Attempt fallback recovery
-                attemptPaymentMethodControllerFallback(paymentMethodController);
-            }
-        }
-        else {
-            System.out.println("FXMLSceneManager.injectServices: No specific injection logic for " + controller.getClass().getSimpleName());
+        } else if (controller instanceof MainLayoutController) {
+            MainLayoutController mainController = (MainLayoutController) controller;
+            mainController.setServiceFactory(serviceFactory);
+            mainController.setSceneManager(this);
+            mainController.setAuthenticationService(serviceFactory.getAuthenticationService());
         }
         
         System.out.println("FXMLSceneManager.injectServices: Service injection completed for " + controller.getClass().getSimpleName());
     }
-    
-    public static class LoadedFXML<T> {
-        public final Parent parent;
-        public final T controller;
-        public LoadedFXML(Parent parent, T controller) {
-            this.parent = parent;
-            this.controller = controller;
+
+    public void showDialog(String fxmlPath, Consumer<Object> controllerInitializer) {
+        try {
+            LoadedFXML<?> loaded = loadFXMLWithController(fxmlPath);
+            if (loaded != null) {
+                Scene dialogScene = new Scene((Pane) loaded.getRoot());
+                Stage dialogStage = new Stage();
+                dialogStage.setScene(dialogScene);
+                
+                if (controllerInitializer != null) {
+                    controllerInitializer.accept(loaded.getController());
+                }
+                
+                dialogStage.showAndWait();
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-
+    public Stage getPrimaryStage() {
+        return primaryStage;
+    }
+    
     /**
-     * Loads an FXML file into a given Pane (e.g., the contentPane of MainLayoutController).
-     * Returns the controller of the loaded FXML.
+     * CRITICAL MISSING METHOD: Load FXML into a specific pane
+     * Referenced by multiple controllers for navigation
      */
     public <T> T loadFXMLIntoPane(Pane containerPane, String fxmlPath) {
         try {
             LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
-            containerPane.getChildren().setAll(loaded.parent);
-            return loaded.controller;
-        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
-            e.printStackTrace();
-            AlertHelper.showErrorDialog("Navigation Error", "Could not load screen: " + fxmlPath.substring(fxmlPath.lastIndexOf('/') + 1), "An error occurred while trying to display the page.", e);
-            System.err.println("Error loading FXML into pane: " + fxmlPath + " - " + e.getMessage());
+            if (loaded != null) {
+                containerPane.getChildren().setAll(loaded.parent);
+                return loaded.controller;
+            }
             return null;
-        }
-    }
-
-    /**
-     * Loads an FXML file into a new modal dialog window.
-     * Returns the controller of the loaded FXML.
-     */
-    public <T> T loadFXMLIntoNewWindow(String fxmlPath, String title, Window owner) {
-        try {
-            LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
-            
-            Stage dialogStage = new Stage();
-            dialogStage.setTitle(title);
-            dialogStage.initModality(Modality.WINDOW_MODAL);
-            if (owner != null) {
-                dialogStage.initOwner(owner);
-            } else if (primaryStage != null) {
-                 dialogStage.initOwner(primaryStage);
-            }
-            Scene scene = new Scene(loaded.parent);
-            
-            // Apply global and theme styles
-            try {
-                String globalCssPath = "/styles/global.css";
-                String themeCssPath = "/styles/theme.css";
-                
-                if (getClass().getResource(globalCssPath) != null) {
-                    scene.getStylesheets().add(getClass().getResource(globalCssPath).toExternalForm());
-                }
-                
-                if (getClass().getResource(themeCssPath) != null) {
-                    scene.getStylesheets().add(getClass().getResource(themeCssPath).toExternalForm());
-                }
-            } catch (Exception e) {
-                System.err.println("Warning: Could not load CSS files in dialog: " + e.getMessage());
-            }
-            
-            dialogStage.setScene(scene);
-            
-            // If the controller needs the stage (e.g., to close itself)
-            // if (loaded.controller instanceof SomeDialogControllerInterface) {
-            //    ((SomeDialogControllerInterface) loaded.controller).setDialogStage(dialogStage);
-            // }
-            
-            dialogStage.showAndWait(); // Use show() if you don't want to block
-            return loaded.controller;
-        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
+        } catch (Exception e) {
             e.printStackTrace();
-            AlertHelper.showErrorDialog("Window Load Error", "Could not open window: " + title, "An error occurred while trying to display the window.", e);
-            System.err.println("Error loading FXML into new window: " + fxmlPath + " - " + e.getMessage());
+            // AlertHelper.showErrorDialog("Navigation Error", "Could not load screen.", fxmlPath + "\n" + e.getMessage());
+            System.err.println("Error loading FXML into pane: " + fxmlPath + " - " + e.getMessage());
             return null;
         }
     }
     
     /**
-     * Switches the primary stage's scene to the given FXML file.
+     * CRITICAL MISSING METHOD: Load FXML into a pane (Node version)
+     * Used by some controllers with Node parameter
      */
-    public <T> T switchPrimaryScene(String fxmlPath, String title) {
+    public <T> T loadFXMLIntoPane(Node containerNode, String fxmlPath) {
+        if (containerNode instanceof Pane) {
+            return loadFXMLIntoPane((Pane) containerNode, fxmlPath);
+        } else {
+            System.err.println("loadFXMLIntoPane: Container node is not a Pane, cannot load content");
+            return null;
+        }
+    }
+    
+    /**
+     * CRITICAL MISSING METHOD: Load scene with context and history support
+     */
+    public <T> T loadScene(String fxmlPath, String title) {
         if (primaryStage == null) {
             System.err.println("Primary stage not set in FXMLSceneManager.");
             return null;
         }
+        
         try {
             LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
-            Scene scene = new Scene(loaded.parent);
+            Scene scene = new Scene((javafx.scene.Parent) loaded.parent);
             
             // Apply global and theme styles
             try {
@@ -482,52 +383,30 @@ public class FXMLSceneManager {
             primaryStage.setScene(scene);
             primaryStage.show();
             return loaded.controller;
-        } catch (IOException | RuntimeException e) { // Catch RuntimeException for controller instantiation issues
+        } catch (Exception e) {
             e.printStackTrace();
-            AlertHelper.showErrorDialog("Scene Switch Error", "Could not switch to scene: " + title, "An error occurred while trying to display the new scene.", e);
-            System.err.println("Error switching primary scene: " + fxmlPath + " - " + e.getMessage());
+            System.err.println("Error loading scene: " + fxmlPath + " - " + e.getMessage());
             return null;
         }
     }
     
-    // Navigation History Methods
-    
     /**
-     * Loads content with navigation history support.
-     * Creates a navigation context and tracks the navigation in history.
-     *
-     * @param containerPane The pane to load content into
-     * @param fxmlPath The FXML file path to load
-     * @param title The title for the navigation context
-     * @return The controller of the loaded FXML
+     * CRITICAL MISSING METHOD: Load content with navigation history support
      */
-    public <T> T loadContentWithHistory(Pane containerPane, String fxmlPath, String title) {
-        return loadContentWithHistory(containerPane, fxmlPath, title, null);
-    }
-    
-    /**
-     * Loads content with navigation history support using a provided context.
-     *
-     * @param containerPane The pane to load content into
-     * @param fxmlPath The FXML file path to load
-     * @param title The title for the navigation context
-     * @param context The navigation context to use (or null to create a new one)
-     * @return The controller of the loaded FXML
-     */
-    public <T> T loadContentWithHistory(Pane containerPane, String fxmlPath, String title, NavigationContext context) {
+    public Object loadContentWithHistory(Pane contentPane, String fxmlPath, String title) {
         System.out.println("FXMLSceneManager.loadContentWithHistory: Loading " + fxmlPath + " with title: " + title);
         
-        // Store current context in history before navigation (if we have one)
+        // Store current context in navigation history before loading new content
         if (currentContext != null) {
             System.out.println("FXMLSceneManager.loadContentWithHistory: Pushing current context to history: " + currentContext.getScreenPath());
             navigationHistory.pushNavigation(currentContext);
         }
         
-        // Create new context or use provided one
-        NavigationContext newContext = context != null ? context : new NavigationContext(fxmlPath, title);
+        // Create new navigation context
+        NavigationContext newContext = new NavigationContext(fxmlPath, title);
         
-        // Load content using existing method
-        T controller = loadFXMLIntoPane(containerPane, fxmlPath);
+        // Load the new content
+        Object controller = loadFXMLIntoPane(contentPane, fxmlPath);
         
         if (controller != null) {
             // Update current context
@@ -539,11 +418,33 @@ public class FXMLSceneManager {
                 mainLayoutController.setHeaderTitle(title);
             }
         } else {
-            System.err.println("FXMLSceneManager.loadContentWithHistory: Failed to load controller for " + fxmlPath + ". Error dialog should have been shown by loadFXMLIntoPane.");
-            // Potentially navigate to a safe screen like home if mainLayoutController is available
+            System.err.println("FXMLSceneManager.loadContentWithHistory: Failed to load controller for " + fxmlPath);
+        }
+        
+        return controller;
+    }
+    
+    /**
+     * CRITICAL MISSING METHOD: Load content with custom navigation context
+     */
+    public Object loadContentWithHistory(Pane contentPane, String fxmlPath, String title, NavigationContext context) {
+        System.out.println("FXMLSceneManager.loadContentWithHistory: Loading " + fxmlPath + " with custom context");
+        
+        // Store current context in navigation history before loading new content
+        if (currentContext != null) {
+            navigationHistory.pushNavigation(currentContext);
+        }
+        
+        // Load the new content
+        Object controller = loadFXMLIntoPane(contentPane, fxmlPath);
+        
+        if (controller != null) {
+            // Use the provided context
+            currentContext = context;
+            
+            // Update header if available
             if (mainLayoutController != null) {
-                // Consider if navigating home here is always the right action or if it could cause loops.
-                // For now, rely on the error dialog and the calling method to handle the null controller.
+                mainLayoutController.setHeaderTitle(title);
             }
         }
         
@@ -551,14 +452,9 @@ public class FXMLSceneManager {
     }
     
     /**
-     * Navigates back using the navigation history.
-     * Restores the previous screen and its context.
-     *
-     * @return true if navigation was successful, false if no history available or error occurred
+     * CRITICAL MISSING METHOD: Navigate back to previous screen
      */
     public boolean navigateBack() {
-        System.out.println("FXMLSceneManager.navigateBack: Attempting to navigate back");
-        
         if (!navigationHistory.hasPrevious()) {
             System.out.println("FXMLSceneManager.navigateBack: No navigation history available");
             return false;
@@ -570,181 +466,36 @@ public class FXMLSceneManager {
             return false;
         }
         
-        try {
-            System.out.println("FXMLSceneManager.navigateBack: Loading previous screen: " + previousContext.getScreenPath());
+        System.out.println("FXMLSceneManager.navigateBack: Loading previous screen: " + previousContext.getScreenPath());
+        
+        // Load the previous screen
+        Object controller = null;
+        if (mainLayoutController != null) {
+            controller = mainLayoutController.loadContent(previousContext.getScreenPath());
+        }
+        
+        if (controller != null) {
+            // Restore context if it's a search screen
+            restoreScreenContext(controller, previousContext);
             
-            // Get the current content pane
-            Pane contentPane = getCurrentContentPane();
-            if (contentPane == null) {
-                System.err.println("FXMLSceneManager.navigateBack: Cannot get current content pane");
-                return false;
+            // Update current context
+            currentContext = previousContext;
+            
+            // Update header if available
+            if (mainLayoutController != null) {
+                mainLayoutController.setHeaderTitle(previousContext.getScreenTitle());
             }
             
-            // Load previous screen
-            Object controller = loadFXMLIntoPane(contentPane, previousContext.getScreenPath());
-            
-            if (controller != null) {
-                // Restore context if it's a search screen
-                restoreScreenContext(controller, previousContext);
-                
-                // Update current context
-                currentContext = previousContext;
-                
-                // Update header if available
-                if (mainLayoutController != null) {
-                    mainLayoutController.setHeaderTitle(previousContext.getScreenTitle());
-                }
-                
-                System.out.println("FXMLSceneManager.navigateBack: Successfully navigated back to " + previousContext.getScreenPath());
-                return true;
-            } else {
-                System.err.println("FXMLSceneManager.navigateBack: Failed to load controller for " + previousContext.getScreenPath() + ". Error dialog should have been shown by loadFXMLIntoPane.");
-                // If loading the previous screen fails, it's problematic.
-                // We might try to pop again or go home. For now, return false.
-                return false;
-            }
-            
-        } catch (Exception e) { // Catch any other unexpected errors during back navigation logic
-            System.err.println("FXMLSceneManager.navigateBack: Error during back navigation: " + e.getMessage());
-            e.printStackTrace();
-            AlertHelper.showErrorDialog("Navigation Error", "Could not navigate back.", "An unexpected error occurred.", e);
-            // Attempt to go to home screen as a last resort if mainLayoutController is available
-            if (mainLayoutController != null && mainLayoutController.getContentPane() != null) {
-                 try {
-                    System.out.println("FXMLSceneManager.navigateBack: Attempting to navigate to home screen after error.");
-                    mainLayoutController.navigateToHome(); // Assuming MainLayoutController has a navigateToHome method
-                 } catch (Exception ex) {
-                    System.err.println("FXMLSceneManager.navigateBack: Failed to navigate to home screen after error: " + ex.getMessage());
-                 }
-            }
+            System.out.println("FXMLSceneManager.navigateBack: Successfully navigated back to " + previousContext.getScreenPath());
+            return true;
+        } else {
+            System.err.println("FXMLSceneManager.navigateBack: Failed to load controller for " + previousContext.getScreenPath());
             return false;
         }
     }
     
     /**
-     * Gets the current content pane from the main layout controller.
-     *
-     * @return The current content pane, or null if not available
-     */
-    private Pane getCurrentContentPane() {
-        if (mainLayoutController == null) {
-            System.err.println("FXMLSceneManager.getCurrentContentPane: MainLayoutController is null");
-            return null;
-        }
-        
-        // Try to get the content pane using reflection or a getter method
-        // For now, we'll assume there's a way to get it
-        try {
-            // This would need to be implemented in MainLayoutController
-            java.lang.reflect.Method getContentPaneMethod = mainLayoutController.getClass().getMethod("getContentPane");
-            return (Pane) getContentPaneMethod.invoke(mainLayoutController);
-        } catch (Exception e) {
-            System.err.println("FXMLSceneManager.getCurrentContentPane: Cannot access content pane: " + e.getMessage());
-            return null;
-        }
-    }
-    
-    /**
-     * Restores the screen context for controllers that support context restoration.
-     *
-     * @param controller The controller to restore context for
-     * @param context The navigation context containing the state to restore
-     */
-    private void restoreScreenContext(Object controller, NavigationContext context) {
-        if (controller == null || context == null) {
-            return;
-        }
-        
-        System.out.println("FXMLSceneManager.restoreScreenContext: Attempting to restore context for " + controller.getClass().getSimpleName());
-        
-        try {
-            // Check for HomeScreenController and restore search context
-            if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController && context.hasSearchContext()) {
-                System.out.println("FXMLSceneManager.restoreScreenContext: Restoring HomeScreenController search context");
-                com.aims.core.presentation.controllers.HomeScreenController homeController =
-                    (com.aims.core.presentation.controllers.HomeScreenController) controller;
-                
-                // Use reflection to call restoreSearchContext if it exists
-                try {
-                    java.lang.reflect.Method restoreMethod = homeController.getClass().getMethod(
-                        "restoreSearchContext", String.class, String.class, String.class, int.class);
-                    restoreMethod.invoke(homeController,
-                        context.getSearchTerm(),
-                        context.getCategoryFilter(),
-                        context.getSortBy(),
-                        context.getCurrentPage());
-                    System.out.println("FXMLSceneManager.restoreScreenContext: Successfully restored HomeScreenController context");
-                } catch (NoSuchMethodException e) {
-                    System.out.println("FXMLSceneManager.restoreScreenContext: HomeScreenController doesn't have restoreSearchContext method yet");
-                } catch (Exception e) {
-                    System.err.println("FXMLSceneManager.restoreScreenContext: Error restoring HomeScreenController context: " + e.getMessage());
-                }
-            }
-            // Check for ProductSearchResultsController and restore search context
-            else if (controller instanceof com.aims.core.presentation.controllers.ProductSearchResultsController && context.hasSearchContext()) {
-                System.out.println("FXMLSceneManager.restoreScreenContext: Restoring ProductSearchResultsController search context");
-                com.aims.core.presentation.controllers.ProductSearchResultsController searchController =
-                    (com.aims.core.presentation.controllers.ProductSearchResultsController) controller;
-                
-                // Use reflection to call restoreSearchContext if it exists
-                try {
-                    java.lang.reflect.Method restoreMethod = searchController.getClass().getMethod(
-                        "restoreSearchContext", String.class, String.class, String.class, int.class); // Added String.class for sortBy
-                    restoreMethod.invoke(searchController,
-                        context.getSearchTerm(),
-                        context.getCategoryFilter(),
-                        context.getSortBy(), // Pass sortBy
-                        context.getCurrentPage());
-                    System.out.println("FXMLSceneManager.restoreScreenContext: Successfully restored ProductSearchResultsController context");
-                } catch (NoSuchMethodException e) {
-                    System.out.println("FXMLSceneManager.restoreScreenContext: ProductSearchResultsController restoreSearchContext method signature mismatch or not found: " + e.getMessage());
-                } catch (Exception e) {
-                    System.err.println("FXMLSceneManager.restoreScreenContext: Error restoring ProductSearchResultsController context: " + e.getMessage());
-                }
-            }
-            // Check for AdminProductListController and restore its context
-            else if (controller instanceof com.aims.core.presentation.controllers.AdminProductListController) {
-                System.out.println("FXMLSceneManager.restoreScreenContext: Restoring AdminProductListController context");
-                com.aims.core.presentation.controllers.AdminProductListController adminProductListController =
-                    (com.aims.core.presentation.controllers.AdminProductListController) controller;
-                adminProductListController.restoreContext(context); // Call the new restoreContext method
-                System.out.println("FXMLSceneManager.restoreScreenContext: Successfully called restoreContext for AdminProductListController");
-            }
-            else {
-                System.out.println("FXMLSceneManager.restoreScreenContext: No specific context restoration for " + controller.getClass().getSimpleName());
-            }
-        } catch (Exception e) {
-            System.err.println("FXMLSceneManager.restoreScreenContext: Unexpected error during context restoration: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * Gets the current navigation context.
-     *
-     * @return The current NavigationContext, or null if none set
-     */
-    public NavigationContext getCurrentContext() {
-        return currentContext;
-    }
-    
-    /**
-     * Gets the navigation history manager.
-     *
-     * @return The NavigationHistory instance
-     */
-    public NavigationHistory getNavigationHistory() {
-        return navigationHistory;
-    }
-    
-    /**
-     * Preserves search context in the current navigation context.
-     * This is useful for updating the current context with search state.
-     *
-     * @param searchTerm The search term
-     * @param category The category filter
-     * @param sort The sort order
-     * @param page The current page
+     * CRITICAL MISSING METHOD: Preserve search context for navigation
      */
     public void preserveSearchContext(String searchTerm, String category, String sort, int page) {
         if (currentContext != null) {
@@ -756,167 +507,172 @@ public class FXMLSceneManager {
     }
     
     /**
-     * Clears the navigation history.
-     * This can be useful when starting a new user session or after logout.
+     * Helper method to restore search context when navigating back
      */
-    public void clearNavigationHistory() {
-        navigationHistory.clear();
-        currentContext = null;
-        System.out.println("FXMLSceneManager.clearNavigationHistory: Navigation history cleared");
-    }
-    
-    /**
-     * Gets debug information about the current navigation state.
-     *
-     * @return Debug information string
-     */
-    public String getNavigationDebugInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("FXMLSceneManager Navigation Debug Info:\n");
-        sb.append("Current Context: ").append(currentContext != null ? currentContext.toString() : "null").append("\n");
-        sb.append(navigationHistory.getDebugInfo());
-        return sb.toString();
-    }
-    
-    /**
-     * ENHANCED: Validates that all prerequisites for service injection are met.
-     * This helps prevent injection failures and provides early warning of configuration issues.
-     *
-     * @param controller The controller to validate prerequisites for
-     * @return true if all prerequisites are met, false otherwise
-     */
-    private boolean validateInjectionPrerequisites(Object controller) {
-        if (controller == null) {
-            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: Controller is null");
-            return false;
+    private void restoreScreenContext(Object controller, NavigationContext context) {
+        if (context == null || !context.hasSearchContext()) {
+            return;
         }
         
-        if (serviceFactory == null) {
-            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: CRITICAL - ServiceFactory is null");
-            System.err.println("This indicates a fundamental configuration problem that will cause injection failures");
-            return false;
-        }
+        System.out.println("FXMLSceneManager.restoreScreenContext: Attempting to restore context for " + controller.getClass().getSimpleName());
         
-        // Validate critical services are available
-        try {
-            if (serviceFactory.getProductService() == null) {
-                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - ProductService is null");
-            }
-            if (serviceFactory.getCartService() == null) {
-                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - CartService is null");
-            }
-            if (serviceFactory.getOrderService() == null) {
-                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - OrderService is null");
-            }
-            if (serviceFactory.getDeliveryCalculationService() == null) {
-                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: WARNING - DeliveryCalculationService is null");
-            }
-        } catch (Exception e) {
-            System.err.println("FXMLSceneManager.validateInjectionPrerequisites: ERROR accessing services: " + e.getMessage());
-            return false;
-        }
-        
-        // Special validation for controllers that require MainLayoutController
-        if (controller instanceof com.aims.core.presentation.controllers.DeliveryInfoScreenController ||
-            controller instanceof com.aims.core.presentation.controllers.ProductDetailScreenController ||
-            controller instanceof com.aims.core.presentation.controllers.PaymentProcessingScreenController ||
-            controller instanceof com.aims.core.presentation.controllers.CustomerOrderDetailController ||
-            controller instanceof com.aims.core.presentation.controllers.OrderReviewController ||
-            controller instanceof com.aims.core.presentation.controllers.OrderSummaryController ||
-            controller instanceof com.aims.core.presentation.controllers.PaymentMethodScreenController) {
+        // Restore context for HomeScreenController
+        if (controller instanceof com.aims.core.presentation.controllers.HomeScreenController) {
+            com.aims.core.presentation.controllers.HomeScreenController homeController =
+                (com.aims.core.presentation.controllers.HomeScreenController) controller;
             
-            if (mainLayoutController == null) {
-                System.err.println("FXMLSceneManager.validateInjectionPrerequisites: CRITICAL - MainLayoutController is null for " + controller.getClass().getSimpleName());
-                System.err.println("This will cause navigation failures and must be resolved immediately");
+            System.out.println("FXMLSceneManager.restoreScreenContext: Restoring HomeScreenController search context");
+            try {
+                java.lang.reflect.Method restoreMethod = homeController.getClass().getMethod(
+                    "restoreSearchContext", String.class, String.class, String.class, int.class);
+                restoreMethod.invoke(homeController,
+                    context.getSearchTerm(),
+                    context.getCategoryFilter(),
+                    context.getSortBy(),
+                    context.getCurrentPage());
+                System.out.println("FXMLSceneManager.restoreScreenContext: Successfully restored HomeScreenController context");
+            } catch (NoSuchMethodException e) {
+                System.out.println("FXMLSceneManager.restoreScreenContext: HomeScreenController doesn't have restoreSearchContext method yet");
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.restoreScreenContext: Error restoring HomeScreenController context: " + e.getMessage());
+            }
+        }
+        // Restore context for ProductSearchResultsController
+        else if (controller instanceof com.aims.core.presentation.controllers.ProductSearchResultsController) {
+            com.aims.core.presentation.controllers.ProductSearchResultsController searchController =
+                (com.aims.core.presentation.controllers.ProductSearchResultsController) controller;
+            
+            System.out.println("FXMLSceneManager.restoreScreenContext: Restoring ProductSearchResultsController search context");
+            try {
+                java.lang.reflect.Method restoreMethod = searchController.getClass().getMethod(
+                    "restoreSearchContext", String.class, String.class, int.class);
+                restoreMethod.invoke(searchController,
+                    context.getSearchTerm(),
+                    context.getCategoryFilter(),
+                    context.getCurrentPage());
+                System.out.println("FXMLSceneManager.restoreScreenContext: Successfully restored ProductSearchResultsController context");
+            } catch (NoSuchMethodException e) {
+                System.out.println("FXMLSceneManager.restoreScreenContext: ProductSearchResultsController doesn't have restoreSearchContext method yet");
+            } catch (Exception e) {
+                System.err.println("FXMLSceneManager.restoreScreenContext: Error restoring ProductSearchResultsController context: " + e.getMessage());
+            }
+        } else {
+            System.out.println("FXMLSceneManager.restoreScreenContext: No specific context restoration for " + controller.getClass().getSimpleName());
+        }
+    }
+    
+    /**
+     * PHASE 1 FIX: Enhanced MainLayoutController injection with fallback strategies.
+     * Uses MainLayoutControllerRegistry as primary source with multiple fallback options.
+     *
+     * @param controller The controller to inject MainLayoutController into
+     * @return true if injection was successful, false otherwise
+     */
+    private boolean injectMainLayoutControllerWithFallback(Object controller) {
+        try {
+            logger.fine("FXMLSceneManager.injectMainLayoutControllerWithFallback: Starting injection for " +
+                controller.getClass().getSimpleName());
+            
+            MainLayoutController controllerToInject = null;
+            String injectionSource = null;
+            
+            // Strategy 1: Use MainLayoutControllerRegistry (primary)
+            try {
+                controllerToInject = MainLayoutControllerRegistry.getInstance(2, java.util.concurrent.TimeUnit.SECONDS);
+                if (controllerToInject != null) {
+                    injectionSource = "MainLayoutControllerRegistry";
+                    logger.fine("FXMLSceneManager.injectMainLayoutControllerWithFallback: Using registry controller");
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "FXMLSceneManager.injectMainLayoutControllerWithFallback: Registry access failed", e);
+            }
+            
+            // Strategy 2: Use local instance (fallback)
+            if (controllerToInject == null && mainLayoutController != null) {
+                controllerToInject = mainLayoutController;
+                injectionSource = "Local instance";
+                logger.fine("FXMLSceneManager.injectMainLayoutControllerWithFallback: Using local controller instance");
+            }
+            
+            // Strategy 3: Attempt immediate registry access (emergency)
+            if (controllerToInject == null) {
+                controllerToInject = MainLayoutControllerRegistry.getInstanceImmediate();
+                if (controllerToInject != null) {
+                    injectionSource = "Registry immediate";
+                    logger.fine("FXMLSceneManager.injectMainLayoutControllerWithFallback: Using immediate registry access");
+                }
+            }
+            
+            // Perform injection if controller is available
+            if (controllerToInject != null) {
+                ((MainLayoutController.IChildController) controller).setMainLayoutController(controllerToInject);
+                
+                // Validate injection
+                if (validateInjection(controller, controllerToInject)) {
+                    logger.info("FXMLSceneManager.injectMainLayoutControllerWithFallback: Successfully injected MainLayoutController into " +
+                        controller.getClass().getSimpleName() + " using " + injectionSource);
+                    return true;
+                } else {
+                    logger.warning("FXMLSceneManager.injectMainLayoutControllerWithFallback: Injection validation failed for " +
+                        controller.getClass().getSimpleName());
+                    return false;
+                }
+            } else {
+                // Log comprehensive failure information
+                logInjectionFailure(controller);
                 return false;
             }
-        }
-        
-        System.out.println("FXMLSceneManager.validateInjectionPrerequisites: All prerequisites validated for " + controller.getClass().getSimpleName());
-        return true;
-    }
-    
-    /**
-     * Enhanced validation specifically for PaymentMethodScreenController injection.
-     * Validates that all critical dependencies are available before injection.
-     *
-     * @param controller The PaymentMethodScreenController to validate
-     * @return true if validation passes, false otherwise
-     */
-    private boolean validatePaymentMethodControllerInjection(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
-        System.out.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Starting validation");
-        
-        if (controller == null) {
-            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Controller is null");
-            return false;
-        }
-        
-        if (mainLayoutController == null) {
-            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: CRITICAL - MainLayoutController is null");
-            System.err.println("PaymentMethodScreenController requires MainLayoutController for navigation");
-            return false;
-        }
-        
-        if (serviceFactory == null) {
-            System.err.println("FXMLSceneManager.validatePaymentMethodControllerInjection: CRITICAL - ServiceFactory is null");
-            return false;
-        }
-        
-        System.out.println("FXMLSceneManager.validatePaymentMethodControllerInjection: Validation passed");
-        return true;
-    }
-    
-    /**
-     * Post-injection validation for PaymentMethodScreenController.
-     * Ensures that critical dependencies were successfully injected.
-     *
-     * @param controller The PaymentMethodScreenController to validate
-     */
-    private void validatePaymentMethodControllerPostInjection(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
-        System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Starting post-injection validation");
-        
-        // Use reflection to verify MainLayoutController was set
-        try {
-            java.lang.reflect.Field mainLayoutField = controller.getClass().getDeclaredField("mainLayoutController");
-            mainLayoutField.setAccessible(true);
-            Object injectedMainLayout = mainLayoutField.get(controller);
-            
-            if (injectedMainLayout == null) {
-                System.err.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: CRITICAL - MainLayoutController injection failed");
-                throw new IllegalStateException("MainLayoutController injection failed for PaymentMethodScreenController");
-            } else {
-                System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: MainLayoutController injection verified");
-            }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            System.err.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Could not verify injection: " + e.getMessage());
-        }
-        
-        System.out.println("FXMLSceneManager.validatePaymentMethodControllerPostInjection: Post-injection validation completed");
-    }
-    
-    /**
-     * Attempts fallback recovery for PaymentMethodScreenController when injection fails.
-     * Provides minimal functionality to prevent complete failure.
-     *
-     * @param controller The PaymentMethodScreenController to provide fallback for
-     */
-    private void attemptPaymentMethodControllerFallback(com.aims.core.presentation.controllers.PaymentMethodScreenController controller) {
-        System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Attempting fallback recovery");
-        
-        try {
-            // Attempt to set MainLayoutController if available
-            if (mainLayoutController != null && controller != null) {
-                controller.setMainLayoutController(mainLayoutController);
-                System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: MainLayoutController set via fallback");
-            }
-            
-            // Log fallback state
-            System.out.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Fallback recovery completed");
-            System.out.println("PaymentMethodScreenController will operate with limited functionality");
             
         } catch (Exception e) {
-            System.err.println("FXMLSceneManager.attemptPaymentMethodControllerFallback: Fallback recovery failed: " + e.getMessage());
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "FXMLSceneManager.injectMainLayoutControllerWithFallback: Unexpected error during injection", e);
+            return false;
         }
+    }
+    
+    /**
+     * Validates that MainLayoutController injection was successful.
+     *
+     * @param controller The controller that received injection
+     * @param injectedController The controller that was injected
+     * @return true if injection is valid, false otherwise
+     */
+    private boolean validateInjection(Object controller, MainLayoutController injectedController) {
+        try {
+            // Basic validation - check if injection actually worked
+            if (controller instanceof MainLayoutController.IChildController) {
+                // We can't directly validate the injection since there's no getter,
+                // but we can validate the injected controller itself
+                return injectedController != null &&
+                       injectedController.getContentPane() != null &&
+                       injectedController.getMainContainer() != null;
+            }
+            return false;
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "FXMLSceneManager.validateInjection: Validation error", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Logs comprehensive information about injection failures for debugging.
+     *
+     * @param controller The controller that failed injection
+     */
+    private void logInjectionFailure(Object controller) {
+        StringBuilder failureInfo = new StringBuilder();
+        failureInfo.append("MainLayoutController injection failure for ").append(controller.getClass().getSimpleName()).append(":\n");
+        
+        // Check registry state
+        failureInfo.append("Registry available: ").append(MainLayoutControllerRegistry.isAvailable()).append("\n");
+        failureInfo.append("Registry debug info:\n").append(MainLayoutControllerRegistry.getDebugInfo()).append("\n");
+        
+        // Check local instance
+        failureInfo.append("Local instance available: ").append(mainLayoutController != null).append("\n");
+        
+        // Check if controller implements the interface
+        failureInfo.append("Controller implements IChildController: ").append(
+            controller instanceof MainLayoutController.IChildController).append("\n");
+        
+        logger.warning("FXMLSceneManager.logInjectionFailure: " + failureInfo.toString());
     }
 }

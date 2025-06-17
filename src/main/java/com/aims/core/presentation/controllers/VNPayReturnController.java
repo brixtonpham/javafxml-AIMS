@@ -1,7 +1,7 @@
 package com.aims.core.presentation.controllers;
 
-import com.aims.core.infrastructure.adapters.external.payment_gateway.IVNPayAdapter;
-import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayAdapterImpl;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.IPaymentGatewayAdapter;
+import com.aims.core.infrastructure.adapters.external.payment_gateway.VNPayGatewayAdapter;
 import com.aims.core.infrastructure.database.dao.IPaymentTransactionDAO;
 import com.aims.core.infrastructure.database.dao.PaymentTransactionDAOImpl;
 import com.aims.core.infrastructure.database.dao.IOrderEntityDAO;
@@ -48,12 +48,12 @@ public class VNPayReturnController {
     @FXML private Button retryButton;
     @FXML private VBox contentContainer;
     
-    private final IVNPayAdapter vnPayAdapter;
+    private final IPaymentGatewayAdapter paymentGatewayAdapter;
     private final IPaymentTransactionDAO paymentTransactionDAO;
     private PaymentTransaction currentTransaction;
     
     public VNPayReturnController() {
-        this.vnPayAdapter = new VNPayAdapterImpl();
+        this.paymentGatewayAdapter = new VNPayGatewayAdapter();
         
         // Create required DAO dependencies
         IUserAccountDAO userAccountDAO = new UserAccountDAOImpl();
@@ -97,7 +97,7 @@ public class VNPayReturnController {
             
             // Step 1: Validate signature with enhanced error handling
             try {
-                if (!vnPayAdapter.validateResponseSignature(returnParams)) {
+                if (!paymentGatewayAdapter.validateResponseSignature(returnParams)) {
                     logger.log(Level.SEVERE, "VNPay Return: Invalid signature for transaction: " + vnpTxnRef);
                     
                     // Handle signature validation failure with centralized error handling

@@ -23,8 +23,8 @@
     <center>
         <VBox fx:id="contentVBox" alignment="CENTER" spacing="20" styleClass="content-area">
             <ProgressIndicator fx:id="progressIndicator" prefHeight="80.0" prefWidth="80.0" />
-            <Label fx:id="statusLabel" text="Please wait while your payment is being processed with VNPay." styleClass="form-label" wrapText="true" textAlignment="CENTER"/>
-            <Label fx:id="instructionLabel" text="You might be redirected to VNPay's website. Do not close this window or navigate away unless instructed." styleClass="pagination-label" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="statusLabel" text="Please wait while your payment is being processed." styleClass="form-label" wrapText="true" textAlignment="CENTER"/>
+            <Label fx:id="instructionLabel" text="You might be redirected to the payment gateway. Do not close this window or navigate away unless instructed." styleClass="pagination-label" wrapText="true" textAlignment="CENTER"/>
             <Label fx:id="transactionRefLabel" text="Your AIMS Transaction ID: N/A" styleClass="form-input"/>
 
             <!-- Manual URL controls for fallback -->
@@ -40,19 +40,19 @@
                 </VBox.margin>
             </Button>
 
-            <Button fx:id="checkStatusButton" text="Check Payment Status Manually" styleClass="secondary-button" onAction="#handleCheckStatusAction" visible="false" managed="false">
+            <Button fx:id="checkStatusButton" text="Check Payment Status" styleClass="secondary-button" onAction="#handleCheckStatusAction" visible="false" managed="false">
                 <VBox.margin>
                     <Insets top="20.0" />
                 </VBox.margin>
             </Button>
-            <Button fx:id="cancelPaymentButton" text="Cancel Payment Attempt" styleClass="danger-button" onAction="#handleCancelPaymentAttemptAction">
+            <Button fx:id="cancelPaymentButton" text="Cancel Payment" styleClass="danger-button" onAction="#handleCancelPaymentAttemptAction">
                  <VBox.margin>
                     <Insets top="10.0" />
                 </VBox.margin>
             </Button>
             
-            <!-- WebView for embedded payment (optional) -->
-            <WebView fx:id="vnPayWebView" prefHeight="600.0" prefWidth="800.0" visible="false" managed="false">
+            <!-- WebView for embedded payment -->
+            <WebView fx:id="paymentWebView" prefHeight="600.0" prefWidth="800.0" visible="false" managed="false">
                 <VBox.margin>
                     <Insets top="20.0" />
                 </VBox.margin>
