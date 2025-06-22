@@ -322,17 +322,104 @@ public class FXMLSceneManager {
      * Referenced by multiple controllers for navigation
      */
     public <T> T loadFXMLIntoPane(Pane containerPane, String fxmlPath) {
-        try {
-            LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
-            if (loaded != null) {
-                containerPane.getChildren().setAll(loaded.parent);
-                return loaded.controller;
-            }
+        System.out.println("=== DIAGNOSTIC: FXMLSceneManager.loadFXMLIntoPane() START ===");
+        System.out.println("FXMLSceneManager.loadFXMLIntoPane: Loading " + fxmlPath + " into container: " +
+            (containerPane != null ? containerPane.getClass().getSimpleName() + "@" + containerPane.hashCode() : "null"));
+        
+        // Thread safety validation
+        boolean isOnFXThread = javafx.application.Platform.isFxApplicationThread();
+        System.out.println("FXMLSceneManager.loadFXMLIntoPane: Running on JavaFX Application Thread: " + isOnFXThread);
+        if (!isOnFXThread) {
+            System.err.println("FXMLSceneManager.loadFXMLIntoPane: WARNING - Not running on JavaFX Application Thread! This may cause UI update failures.");
+        }
+        
+        // Container validation
+        if (containerPane != null) {
+            System.out.println("FXMLSceneManager.loadFXMLIntoPane: Container state before loading:");
+            System.out.println("  - Container type: " + containerPane.getClass().getSimpleName());
+            System.out.println("  - Container children count: " + containerPane.getChildren().size());
+            System.out.println("  - Container parent: " + (containerPane.getParent() != null ? containerPane.getParent().getClass().getSimpleName() : "null"));
+            System.out.println("  - Container scene: " + (containerPane.getScene() != null ? "Scene@" + containerPane.getScene().hashCode() : "null"));
+            System.out.println("  - Container visible: " + containerPane.isVisible());
+            System.out.println("  - Container managed: " + containerPane.isManaged());
+        } else {
+            System.err.println("FXMLSceneManager.loadFXMLIntoPane: FAILURE - containerPane is null!");
+            System.out.println("=== DIAGNOSTIC: FXMLSceneManager.loadFXMLIntoPane() END ===");
             return null;
+        }
+        
+        try {
+            System.out.println("FXMLSceneManager.loadFXMLIntoPane: Calling loadFXMLWithController()...");
+            LoadedFXML<T> loaded = loadFXMLWithController(fxmlPath);
+            
+            if (loaded != null) {
+                System.out.println("FXMLSceneManager.loadFXMLIntoPane: FXML loaded successfully");
+                System.out.println("  - Loaded controller: " + (loaded.controller != null ? loaded.controller.getClass().getSimpleName() : "null"));
+                System.out.println("  - Loaded parent: " + (loaded.parent != null ? loaded.parent.getClass().getSimpleName() + "@" + loaded.parent.hashCode() : "null"));
+                
+                if (loaded.parent != null) {
+                    System.out.println("  - Loaded parent visible: " + loaded.parent.isVisible());
+                    System.out.println("  - Loaded parent managed: " + loaded.parent.isManaged());
+                }
+                
+                // Log the content replacement operation
+                System.out.println("FXMLSceneManager.loadFXMLIntoPane: Executing containerPane.getChildren().setAll()...");
+                
+                // Check if we're dealing with a BorderPane specifically
+                if (containerPane instanceof javafx.scene.layout.BorderPane) {
+                    System.out.println("FXMLSceneManager.loadFXMLIntoPane: WARNING - Container is BorderPane, setAll() may not work as expected!");
+                    System.out.println("FXMLSceneManager.loadFXMLIntoPane: Consider using BorderPane.setCenter() instead");
+                    
+                    // Log BorderPane specific state
+                    javafx.scene.layout.BorderPane borderPane = (javafx.scene.layout.BorderPane) containerPane;
+                    System.out.println("  - BorderPane center: " + (borderPane.getCenter() != null ? borderPane.getCenter().getClass().getSimpleName() : "null"));
+                    System.out.println("  - BorderPane top: " + (borderPane.getTop() != null ? borderPane.getTop().getClass().getSimpleName() : "null"));
+                    System.out.println("  - BorderPane bottom: " + (borderPane.getBottom() != null ? borderPane.getBottom().getClass().getSimpleName() : "null"));
+                    System.out.println("  - BorderPane left: " + (borderPane.getLeft() != null ? borderPane.getLeft().getClass().getSimpleName() : "null"));
+                    System.out.println("  - BorderPane right: " + (borderPane.getRight() != null ? borderPane.getRight().getClass().getSimpleName() : "null"));
+                }
+                
+                // Perform the content replacement
+                containerPane.getChildren().setAll(loaded.parent);
+                System.out.println("FXMLSceneManager.loadFXMLIntoPane: containerPane.getChildren().setAll() completed successfully");
+                
+                // Validate the replacement
+                System.out.println("FXMLSceneManager.loadFXMLIntoPane: Container state after loading:");
+                System.out.println("  - Container children count: " + containerPane.getChildren().size());
+                if (!containerPane.getChildren().isEmpty()) {
+                    javafx.scene.Node firstChild = containerPane.getChildren().get(0);
+                    boolean replacementSuccessful = (firstChild == loaded.parent);
+                    System.out.println("  - First child matches loaded content: " + replacementSuccessful);
+                    System.out.println("  - First child: " + (firstChild != null ? firstChild.getClass().getSimpleName() + "@" + firstChild.hashCode() : "null"));
+                } else {
+                    System.err.println("  - WARNING: Container has no children after setAll()!");
+                }
+                
+                // Force layout update
+                if (!isOnFXThread) {
+                    System.out.println("FXMLSceneManager.loadFXMLIntoPane: Scheduling layout update on JavaFX Application Thread");
+                    javafx.application.Platform.runLater(() -> {
+                        containerPane.requestLayout();
+                        System.out.println("FXMLSceneManager.loadFXMLIntoPane: Layout update requested on correct thread");
+                    });
+                } else {
+                    containerPane.requestLayout();
+                    System.out.println("FXMLSceneManager.loadFXMLIntoPane: Layout update requested");
+                }
+                
+                System.out.println("FXMLSceneManager.loadFXMLIntoPane: SUCCESS - Content loading completed");
+                System.out.println("=== DIAGNOSTIC: FXMLSceneManager.loadFXMLIntoPane() END ===");
+                return loaded.controller;
+            } else {
+                System.err.println("FXMLSceneManager.loadFXMLIntoPane: FAILURE - loadFXMLWithController returned null");
+                System.out.println("=== DIAGNOSTIC: FXMLSceneManager.loadFXMLIntoPane() END ===");
+                return null;
+            }
         } catch (Exception e) {
+            System.err.println("FXMLSceneManager.loadFXMLIntoPane: ERROR during content loading: " + e.getMessage());
             e.printStackTrace();
-            // AlertHelper.showErrorDialog("Navigation Error", "Could not load screen.", fxmlPath + "\n" + e.getMessage());
-            System.err.println("Error loading FXML into pane: " + fxmlPath + " - " + e.getMessage());
+            System.err.println("FXMLSceneManager.loadFXMLIntoPane: FAILURE - Content loading failed with exception");
+            System.out.println("=== DIAGNOSTIC: FXMLSceneManager.loadFXMLIntoPane() END ===");
             return null;
         }
     }

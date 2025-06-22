@@ -90,11 +90,93 @@ public class MainLayoutController {
     }
 
     public void setContent(Node content) {
-        if (contentPane != null) {
-            contentPane.setCenter(content);
-        } else {
-            System.err.println("MainLayoutController.setContent: contentPane is null!");
+        System.out.println("=== DIAGNOSTIC: MainLayoutController.setContent() START ===");
+        System.out.println("MainLayoutController.setContent: Called with content: " +
+            (content != null ? content.getClass().getSimpleName() + "@" + content.hashCode() : "null"));
+        
+        // Thread safety validation
+        boolean isOnFXThread = javafx.application.Platform.isFxApplicationThread();
+        System.out.println("MainLayoutController.setContent: Running on JavaFX Application Thread: " + isOnFXThread);
+        if (!isOnFXThread) {
+            System.err.println("MainLayoutController.setContent: WARNING - Not running on JavaFX Application Thread! This may cause UI update failures.");
+            Thread.dumpStack();
         }
+        
+        // ContentPane validation
+        System.out.println("MainLayoutController.setContent: ContentPane reference: " +
+            (contentPane != null ? contentPane.getClass().getSimpleName() + "@" + contentPane.hashCode() : "null"));
+        
+        if (contentPane != null) {
+            // Log current state before change
+            javafx.scene.Node currentCenter = contentPane.getCenter();
+            System.out.println("MainLayoutController.setContent: Current center content: " +
+                (currentCenter != null ? currentCenter.getClass().getSimpleName() + "@" + currentCenter.hashCode() : "null"));
+            
+            // Log contentPane hierarchy and state
+            System.out.println("MainLayoutController.setContent: ContentPane parent: " +
+                (contentPane.getParent() != null ? contentPane.getParent().getClass().getSimpleName() + "@" + contentPane.getParent().hashCode() : "null"));
+            System.out.println("MainLayoutController.setContent: ContentPane scene: " +
+                (contentPane.getScene() != null ? "Scene@" + contentPane.getScene().hashCode() : "null"));
+            System.out.println("MainLayoutController.setContent: ContentPane visible: " + contentPane.isVisible());
+            System.out.println("MainLayoutController.setContent: ContentPane managed: " + contentPane.isManaged());
+            
+            try {
+                // Perform the actual content update
+                System.out.println("MainLayoutController.setContent: Executing contentPane.setCenter()...");
+                contentPane.setCenter(content);
+                System.out.println("MainLayoutController.setContent: contentPane.setCenter() completed successfully");
+                
+                // Validate the update was successful
+                javafx.scene.Node newCenter = contentPane.getCenter();
+                boolean updateSuccessful = (newCenter == content);
+                System.out.println("MainLayoutController.setContent: Update validation - New center matches provided content: " + updateSuccessful);
+                System.out.println("MainLayoutController.setContent: New center content: " +
+                    (newCenter != null ? newCenter.getClass().getSimpleName() + "@" + newCenter.hashCode() : "null"));
+                
+                // Log content hierarchy
+                if (content != null) {
+                    System.out.println("MainLayoutController.setContent: New content parent after setCenter: " +
+                        (content.getParent() != null ? content.getParent().getClass().getSimpleName() + "@" + content.getParent().hashCode() : "null"));
+                    System.out.println("MainLayoutController.setContent: New content scene after setCenter: " +
+                        (content.getScene() != null ? "Scene@" + content.getScene().hashCode() : "null"));
+                    System.out.println("MainLayoutController.setContent: New content visible: " + content.isVisible());
+                    System.out.println("MainLayoutController.setContent: New content managed: " + content.isManaged());
+                }
+                
+                // Force layout update if needed
+                if (!isOnFXThread) {
+                    System.out.println("MainLayoutController.setContent: Scheduling layout update on JavaFX Application Thread");
+                    javafx.application.Platform.runLater(() -> {
+                        contentPane.requestLayout();
+                        System.out.println("MainLayoutController.setContent: Layout update requested on correct thread");
+                    });
+                } else {
+                    contentPane.requestLayout();
+                    System.out.println("MainLayoutController.setContent: Layout update requested");
+                }
+                
+                System.out.println("MainLayoutController.setContent: SUCCESS - Content update completed");
+                
+            } catch (Exception e) {
+                System.err.println("MainLayoutController.setContent: ERROR during contentPane.setCenter(): " + e.getMessage());
+                e.printStackTrace();
+                System.err.println("MainLayoutController.setContent: FAILURE - Content update failed with exception");
+            }
+        } else {
+            System.err.println("MainLayoutController.setContent: FAILURE - contentPane is null!");
+            System.err.println("MainLayoutController.setContent: Diagnostic info:");
+            System.err.println("  - MainBorderPane: " + (mainBorderPane != null ? "available" : "null"));
+            System.err.println("  - HeaderBox: " + (headerBox != null ? "available" : "null"));
+            System.err.println("  - SceneManager: " + (sceneManager != null ? "available" : "null"));
+            
+            // Attempt to trace why contentPane is null
+            if (mainBorderPane != null) {
+                System.err.println("  - MainBorderPane center: " +
+                    (mainBorderPane.getCenter() != null ? mainBorderPane.getCenter().getClass().getSimpleName() : "null"));
+            }
+        }
+        
+        System.out.println("=== DIAGNOSTIC: MainLayoutController.setContent() END ===");
     }
 
     public void setHeaderTitle(String title) {

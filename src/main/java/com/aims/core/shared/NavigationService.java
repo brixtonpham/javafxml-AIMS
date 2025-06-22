@@ -60,24 +60,32 @@ public class NavigationService {
             
             // Set content with enhanced layout handling
             if (mainLayout != null) {
+                System.out.println("=== DIAGNOSTIC: NavigationService.navigateTo() - Content Setting START ===");
+                System.out.println("NavigationService.navigateTo: MainLayout type: " + mainLayout.getClass().getSimpleName());
+                System.out.println("NavigationService.navigateTo: Root content: " + (root != null ? root.getClass().getSimpleName() + "@" + root.hashCode() : "null"));
+                
                 boolean contentSet = false;
                 
                 // Handle MainLayoutController types with detailed logging
                 if (mainLayout instanceof com.aims.core.presentation.controllers.MainLayoutController) {
+                    System.out.println("NavigationService.navigateTo: Detected MainLayoutController, calling setContent()...");
                     try {
                         ((com.aims.core.presentation.controllers.MainLayoutController) mainLayout).setContent(root);
                         contentSet = true;
-                        System.out.println("NavigationService.navigateTo: Content set using MainLayoutController");
+                        System.out.println("NavigationService.navigateTo: Content set using MainLayoutController - SUCCESS");
                     } catch (Exception e) {
                         System.err.println("NavigationService.navigateTo: Error setting content with MainLayoutController: " + e.getMessage());
+                        e.printStackTrace();
                     }
                 } else if (mainLayout instanceof com.aims.core.presentation.controllers.base.MainLayoutController) {
+                    System.out.println("NavigationService.navigateTo: Detected base MainLayoutController, calling setContent()...");
                     try {
                         ((com.aims.core.presentation.controllers.base.MainLayoutController) mainLayout).setContent(root);
                         contentSet = true;
-                        System.out.println("NavigationService.navigateTo: Content set using base MainLayoutController");
+                        System.out.println("NavigationService.navigateTo: Content set using base MainLayoutController - SUCCESS");
                     } catch (Exception e) {
                         System.err.println("NavigationService.navigateTo: Error setting content with base MainLayoutController: " + e.getMessage());
+                        e.printStackTrace();
                     }
                 }
                 
