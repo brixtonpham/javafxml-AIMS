@@ -390,4 +390,305 @@ class DeliveryCalculationServiceImplTest {
             deliveryService.calculateFeeWithDimensionalWeight(1f, 10f, 10f, 10f, "   ", true);
         });
     }
+    // ===== ENHANCED TESTS FOR NEW FUNCTIONALITY =====
+
+    @Test
+    void calculateShippingFee_HanoiOuterDistrict_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Ha Dong district"); // Outer district
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 2, mockProduct1.getPrice(), false)); // 2kg
+        
+        // Expected: Base fee (22000) * outer district multiplier (1.15) = 25300
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(22000f * 1.15f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_HCMOuterDistrict_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Ho Chi Minh City");
+        mockDeliveryInfo.setDeliveryAddress("123 Cu Chi district"); // Outer district
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), false)); // 1kg
+        
+        // Expected: Base fee (22000) * HCM outer multiplier (1.1) = 24200
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(22000f * 1.1f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_NorthernProvince_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hai Phong");
+        mockDeliveryInfo.setDeliveryAddress("123 Le Chan district");
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), false)); // 1kg
+        
+        // Expected: Base fee (30000 + 2500) * northern multiplier (1.2) = 39000
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals((30000f + 2500f) * 1.2f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_CentralProvince_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Da Nang");
+        mockDeliveryInfo.setDeliveryAddress("123 Hai Chau district");
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), false)); // 1kg
+        
+        // Expected: Base fee (30000 + 2500) * central multiplier (1.3) = 42250
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals((30000f + 2500f) * 1.3f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_SouthernProvince_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Can Tho");
+        mockDeliveryInfo.setDeliveryAddress("123 Ninh Kieu district");
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), false)); // 1kg
+        
+        // Expected: Base fee (30000 + 2500) * southern multiplier (1.25) = 40625
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals((30000f + 2500f) * 1.25f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_RemoteArea_EnhancedPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Cao Bang");
+        mockDeliveryInfo.setDeliveryAddress("123 Cao Bang city");
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), false)); // 1kg
+        
+        // Expected: Base fee (30000 + 2500) * remote multiplier (1.5) = 48750
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals((30000f + 2500f) * 1.5f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_RushOrderSeparateCalculation() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Hoan Kiem street");
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), true)); // 1kg, rush eligible
+        
+        // Expected: Base fee (22000) + Rush surcharge (10000) = 32000
+        float fee = deliveryService.calculateShippingFee(mockOrder, true);
+        assertEquals(32000f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_MixedItemsWithEnhancedRegionalPricing() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Soc Son town"); // Outer district
+        
+        Product standardProduct = new Product();
+        standardProduct.setWeightKg(1f);
+        standardProduct.setPrice(80000f);
+        
+        Product rushProduct = new Product();
+        rushProduct.setWeightKg(1.5f);
+        rushProduct.setPrice(60000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(standardProduct, 1, standardProduct.getPrice(), false));
+        mockOrder.getOrderItems().add(createOrderItem(rushProduct, 1, rushProduct.getPrice(), true));
+        
+        // Standard: 22000 * 1.15 = 25300
+        // Rush: 22000 * 1.15 + 10000 = 35300
+        // Total = 60600
+        float fee = deliveryService.calculateShippingFee(mockOrder, true);
+        assertEquals(60600f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_HeavyPackageRemoteArea() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Dien Bien");
+        mockDeliveryInfo.setDeliveryAddress("123 Dien Bien Phu");
+        
+        Product heavyProduct = new Product();
+        heavyProduct.setWeightKg(5f); // 5kg
+        heavyProduct.setPrice(40000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(heavyProduct, 1, heavyProduct.getPrice(), false));
+        
+        // Base: 30000 (0.5kg) + ceil((5-0.5)/0.5)*2500 = 30000 + 9*2500 = 52500
+        // With remote multiplier: 52500 * 1.5 = 78750
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(78750f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_FreeShippingWithRegionalMultiplier() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Binh Duong"); // Southern province
+        mockDeliveryInfo.setDeliveryAddress("123 Thu Dau Mot");
+        
+        Product expensiveProduct = new Product();
+        expensiveProduct.setWeightKg(2f);
+        expensiveProduct.setPrice(120000f); // Qualifies for free shipping
+        
+        mockOrder.getOrderItems().add(createOrderItem(expensiveProduct, 1, expensiveProduct.getPrice(), false));
+        
+        // Base: (30000 + 3*2500) * 1.25 = 37500 * 1.25 = 46875
+        // Free shipping discount: 25000
+        // Final: max(0, 46875 - 25000) = 21875
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(21875f, fee, 0.01f);
+    }
+
+    // Tests for new interface methods
+
+    @Test
+    void calculateDeliveryFeeBreakdown_StandardOrder() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Hoan Kiem street");
+        
+        Product product = new Product();
+        product.setWeightKg(2f);
+        product.setPrice(150000f); // Qualifies for free shipping
+        
+        mockOrder.getOrderItems().add(createOrderItem(product, 1, product.getPrice(), false));
+        
+        IDeliveryCalculationService.DeliveryFeeBreakdown breakdown = 
+            deliveryService.calculateDeliveryFeeBreakdown(mockOrder, false);
+        
+        assertNotNull(breakdown);
+        assertEquals(0f, breakdown.getTotalFee(), 0.01f); // Should be free with discount
+        assertEquals(25000f, breakdown.getFreeShippingDiscount(), 0.01f);
+        assertEquals(0f, breakdown.getRushSurcharge(), 0.01f);
+    }
+
+    @Test
+    void calculateDeliveryFeeBreakdown_RushOrder() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Ba Dinh district");
+        
+        mockOrder.getOrderItems().add(createOrderItem(mockProduct1, 1, mockProduct1.getPrice(), true));
+        
+        IDeliveryCalculationService.DeliveryFeeBreakdown breakdown = 
+            deliveryService.calculateDeliveryFeeBreakdown(mockOrder, true);
+        
+        assertNotNull(breakdown);
+        assertEquals(32000f, breakdown.getTotalFee(), 0.01f);
+        assertEquals(10000f, breakdown.getRushSurcharge(), 0.01f);
+        assertEquals(0f, breakdown.getFreeShippingDiscount(), 0.01f);
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_RushOrder() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Hoan Kiem street");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, true);
+        assertEquals(1, days); // Rush delivery
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_HanoiInner() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Ba Dinh district");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, false);
+        assertEquals(2, days); // Major city inner
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_HanoiOuter() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Ha Dong district");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, false);
+        assertEquals(3, days); // Major city outer
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_NorthernProvince() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hai Phong");
+        mockDeliveryInfo.setDeliveryAddress("123 Le Chan district");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, false);
+        assertEquals(4, days); // Northern province
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_CentralProvince() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Da Nang");
+        mockDeliveryInfo.setDeliveryAddress("123 Hai Chau district");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, false);
+        assertEquals(5, days); // Central province
+    }
+
+    @Test
+    void getEstimatedDeliveryDays_RemoteArea() {
+        mockDeliveryInfo.setDeliveryProvinceCity("Cao Bang");
+        mockDeliveryInfo.setDeliveryAddress("123 Cao Bang city");
+        
+        int days = deliveryService.getEstimatedDeliveryDays(mockDeliveryInfo, false);
+        assertEquals(7, days); // Remote area
+    }
+
+    @Test
+    void calculateShippingFee_EdgeCase_ZeroWeight() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Hoan Kiem street");
+        
+        Product zeroWeightProduct = new Product();
+        zeroWeightProduct.setWeightKg(0f);
+        zeroWeightProduct.setPrice(50000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(zeroWeightProduct, 1, zeroWeightProduct.getPrice(), false));
+        
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(0f, fee, 0.01f); // Should return 0 for zero weight
+    }
+
+    @Test
+    void calculateShippingFee_EdgeCase_VeryLightPackage() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Da Nang");
+        mockDeliveryInfo.setDeliveryAddress("123 Hai Chau district");
+        
+        Product lightProduct = new Product();
+        lightProduct.setWeightKg(0.1f); // Very light
+        lightProduct.setPrice(20000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(lightProduct, 1, lightProduct.getPrice(), false));
+        
+        // Should use minimum 0.5kg tier: 30000 * 1.3 (central) = 39000
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(30000f * 1.3f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_MultipleItemsHeavyWeight() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Hanoi");
+        mockDeliveryInfo.setDeliveryAddress("123 Hoan Kiem street");
+        
+        Product heavyProduct = new Product();
+        heavyProduct.setWeightKg(3f);
+        heavyProduct.setPrice(30000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(heavyProduct, 5, heavyProduct.getPrice(), false)); // 15kg total
+        
+        // 15kg in Hanoi: 22000 + ceil((15-3)/0.5)*2500 = 22000 + 24*2500 = 82000
+        float fee = deliveryService.calculateShippingFee(mockOrder, false);
+        assertEquals(82000f, fee, 0.01f);
+    }
+
+    @Test
+    void calculateShippingFee_ComplexMixedScenario() throws ValidationException {
+        mockDeliveryInfo.setDeliveryProvinceCity("Ho Chi Minh City");
+        mockDeliveryInfo.setDeliveryAddress("123 District 1"); // Inner district
+        
+        // Standard item with free shipping eligibility
+        Product standardExpensive = new Product();
+        standardExpensive.setWeightKg(2f);
+        standardExpensive.setPrice(120000f);
+        
+        // Rush item
+        Product rushItem = new Product();
+        rushItem.setWeightKg(1f);
+        rushItem.setPrice(40000f);
+        
+        mockOrder.getOrderItems().add(createOrderItem(standardExpensive, 1, standardExpensive.getPrice(), false));
+        mockOrder.getOrderItems().add(createOrderItem(rushItem, 2, rushItem.getPrice(), true)); // 2 rush items
+        
+        // Standard: 22000 - 25000 = 0 (free shipping)
+        // Rush: 22000 + 20000 (2 items * 10000) = 42000
+        // Total: 42000
+        float fee = deliveryService.calculateShippingFee(mockOrder, true);
+        assertEquals(42000f, fee, 0.01f);
+    }
+
 }

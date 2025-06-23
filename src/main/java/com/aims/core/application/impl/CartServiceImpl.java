@@ -1,6 +1,7 @@
 package com.aims.core.application.impl; // Or com.aims.core.application.services.impl;
 
 import com.aims.core.application.services.ICartService;
+import com.aims.core.application.services.IStockValidationService;
 import com.aims.core.entities.Cart;
 import com.aims.core.entities.CartItem;
 import com.aims.core.entities.Product;
@@ -28,12 +29,14 @@ public class CartServiceImpl implements ICartService {
     private final ICartItemDAO cartItemDAO;
     private final IProductDAO productDAO;
     private final IUserAccountDAO userAccountDAO; // For associating cart with user
+    private final IStockValidationService stockValidationService; // For real-time stock validation
 
-    public CartServiceImpl(ICartDAO cartDAO, ICartItemDAO cartItemDAO, IProductDAO productDAO, IUserAccountDAO userAccountDAO) {
+    public CartServiceImpl(ICartDAO cartDAO, ICartItemDAO cartItemDAO, IProductDAO productDAO, IUserAccountDAO userAccountDAO, IStockValidationService stockValidationService) {
         this.cartDAO = cartDAO;
         this.cartItemDAO = cartItemDAO;
         this.productDAO = productDAO;
         this.userAccountDAO = userAccountDAO;
+        this.stockValidationService = stockValidationService;
     }
 
     /**
@@ -75,27 +78,44 @@ public class CartServiceImpl implements ICartService {
     }
 
     /**
-     * Validates stock availability considering items already in cart
+     * Validates stock availability using the StockValidationService
      * @param product The product to validate
-     * @param requestedQuantity New quantity to add
+     * @param requestedQuantity New quantity to add/set
      * @param currentCartQuantity Quantity already in cart for this product
      * @throws InventoryException if insufficient stock
+     * @throws SQLException if database error occurs during validation
      */
     private void validateStockAvailability(Product product, int requestedQuantity, int currentCartQuantity)
-            throws InventoryException {
-        int totalRequiredQuantity = currentCartQuantity + requestedQuantity;
+            throws InventoryException, SQLException {
         
-        if (product.getQuantityInStock() < totalRequiredQuantity) {
-            logger.warn("Insufficient stock for product {} - Available: {}, In Cart: {}, Requested: {}, Total Required: {}",
-                       product.getProductId(), product.getQuantityInStock(), currentCartQuantity,
-                       requestedQuantity, totalRequiredQuantity);
+        try {
+            // For cart operations, we validate the total quantity needed
+            int totalRequiredQuantity = currentCartQuantity + requestedQuantity;
             
-            int availableToAdd = Math.max(0, product.getQuantityInStock() - currentCartQuantity);
+            // Use StockValidationService for comprehensive validation
+            IStockValidationService.StockValidationResult validationResult =
+                stockValidationService.validateProductStock(product.getProductId(), totalRequiredQuantity);
             
-            throw new InventoryException(String.format(
-                "Insufficient stock for %s. You have %d in cart, %d available in stock. You can add up to %d more items.",
-                product.getTitle(), currentCartQuantity, product.getQuantityInStock(), availableToAdd
-            ));
+            if (!validationResult.isValid()) {
+                logger.warn("Stock validation failed for product {} - Requested: {}, Available: {}, Current in Cart: {}",
+                           product.getProductId(), requestedQuantity, validationResult.getAvailableStock(), currentCartQuantity);
+                
+                // Enhanced error message using StockValidationService result
+                int availableToAdd = Math.max(0, validationResult.getAvailableStock() - currentCartQuantity);
+                
+                throw new InventoryException(String.format(
+                    "Insufficient stock for %s. You have %d in cart, %d available in stock. You can add up to %d more items. %s",
+                    product.getTitle(), currentCartQuantity, validationResult.getAvailableStock(),
+                    availableToAdd, validationResult.getMessage()
+                ));
+            }
+            
+            logger.debug("Stock validation successful for product {} - Requested: {}, Available: {}",
+                        product.getProductId(), totalRequiredQuantity, validationResult.getAvailableStock());
+            
+        } catch (ResourceNotFoundException e) {
+            logger.error("Product not found during stock validation: {}", product.getProductId());
+            throw new InventoryException("Product " + product.getTitle() + " is no longer available.");
         }
     }
 
@@ -282,9 +302,27 @@ public class CartServiceImpl implements ICartService {
             return removeItemFromCart(cartSessionId, productId);
         }
 
-        if (product.getQuantityInStock() < newQuantity) {
-            throw new InventoryException("Insufficient stock for product " + product.getTitle() +
-                                       ". Available: " + product.getQuantityInStock() + ", Requested: " + newQuantity);
+        // Use StockValidationService for comprehensive stock validation
+        try {
+            IStockValidationService.StockValidationResult validationResult =
+                stockValidationService.validateProductStock(product.getProductId(), newQuantity);
+            
+            if (!validationResult.isValid()) {
+                logger.warn("Stock validation failed for updateItemQuantity - Product: {}, Requested: {}, Available: {}",
+                           product.getProductId(), newQuantity, validationResult.getAvailableStock());
+                
+                throw new InventoryException(String.format(
+                    "Insufficient stock for %s. Available: %d, Requested: %d. %s",
+                    product.getTitle(), validationResult.getAvailableStock(), newQuantity, validationResult.getMessage()
+                ));
+            }
+            
+            logger.debug("Stock validation successful for updateItemQuantity - Product: {}, Quantity: {}",
+                        product.getProductId(), newQuantity);
+            
+        } catch (ResourceNotFoundException e) {
+            logger.error("Product not found during stock validation: {}", product.getProductId());
+            throw new InventoryException("Product " + product.getTitle() + " is no longer available.");
         }
 
         itemToUpdate.setQuantity(newQuantity);

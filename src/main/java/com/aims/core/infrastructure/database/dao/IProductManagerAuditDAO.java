@@ -43,6 +43,16 @@ public interface IProductManagerAuditDAO {
     int getPriceUpdateCount(String managerId, String productId, LocalDate date) throws SQLException;
 
     /**
+     * Gets all operations performed by a manager on a specific date.
+     *
+     * @param managerId The ID of the product manager
+     * @param date The date to check
+     * @return List of operation keys for that manager and date
+     * @throws SQLException If a database error occurs
+     */
+    java.util.List<String> getManagerOperations(String managerId, LocalDate date) throws SQLException;
+
+    /**
      * Cleans up old audit records (optional, for maintenance).
      *
      * @param daysToKeep Number of days of records to keep

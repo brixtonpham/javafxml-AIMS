@@ -1,11 +1,13 @@
 package com.aims.core.infrastructure.database.dao;
 
 import com.aims.core.infrastructure.database.SQLiteConnector;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Repository
 public class ProductManagerAuditDAOImpl implements IProductManagerAuditDAO {
 
     private Connection getConnection() throws SQLException {
@@ -77,6 +79,29 @@ public class ProductManagerAuditDAOImpl implements IProductManagerAuditDAO {
             throw e;
         }
         return 0;
+    }
+
+    @Override
+    public java.util.List<String> getManagerOperations(String managerId, LocalDate date) throws SQLException {
+        String sql = "SELECT details FROM PRODUCT_MANAGER_AUDIT_LOG WHERE managerId = ? AND DATE(operationDateTime) = ?";
+        java.util.List<String> operations = new java.util.ArrayList<>();
+        
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, managerId);
+            pstmt.setString(2, date.toString());
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    operations.add(rs.getString("details"));
+                }
+            }
+        } catch (SQLException e) {
+            SQLiteConnector.printSQLException(e);
+            throw e;
+        }
+        return operations;
     }
 
     @Override

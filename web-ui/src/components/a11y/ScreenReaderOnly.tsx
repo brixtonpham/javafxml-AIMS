@@ -35,7 +35,7 @@ export const ScreenReaderOnly: React.FC<ScreenReaderOnlyProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = focusable ? 'sr-only-focusable' : 'sr-only';
+  const baseClasses = focusable ? 'sr-only' : 'sr-only';
   const combinedClasses = `${baseClasses} ${className}`.trim();
 
   return (

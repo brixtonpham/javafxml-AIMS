@@ -2,6 +2,7 @@ package com.aims.core.application.impl; // Or com.aims.core.application.services
 
 import com.aims.core.application.services.IProductService;
 import com.aims.core.application.services.IProductManagerAuditService;
+import com.aims.core.application.services.IStockValidationService;
 import com.aims.core.entities.Product;
 import com.aims.core.entities.Book;
 import com.aims.core.entities.CD;
@@ -16,6 +17,7 @@ import com.aims.core.shared.utils.SearchResult; // Assuming a SearchResult utili
 import com.aims.core.utils.ProductTypeDisplayMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -24,12 +26,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Service
 public class ProductServiceImpl implements IProductService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
     
     private final IProductDAO productDAO;
     private final IProductManagerAuditService auditService;
+    private final IStockValidationService stockValidationService;
 
     private static final float VAT_RATE = 0.10f; // 10% VAT
     private static final float MIN_PRICE_PERCENTAGE_OF_VALUE = 0.30f;
@@ -46,9 +50,10 @@ public class ProductServiceImpl implements IProductService {
     // private static final int MAX_PRICE_UPDATES_PER_DAY_PER_PRODUCT = 2;
 
 
-    public ProductServiceImpl(IProductDAO productDAO, IProductManagerAuditService auditService) {
+    public ProductServiceImpl(IProductDAO productDAO, IProductManagerAuditService auditService, IStockValidationService stockValidationService) {
         this.productDAO = productDAO;
         this.auditService = auditService;
+        this.stockValidationService = stockValidationService;
     }
 
     private void validateProductPrice(Product product) throws ValidationException {
@@ -365,6 +370,40 @@ public class ProductServiceImpl implements IProductService {
                                            product.getQuantityInStock() + ", Change: " + quantityChange);
             }
             
+            // Enhanced validation using StockValidationService for negative quantity changes (stock reduction)
+            if (quantityChange < 0) {
+                int requestedReduction = Math.abs(quantityChange);
+                try {
+                    IStockValidationService.StockValidationResult validationResult =
+                        stockValidationService.validateProductStock(productId, requestedReduction);
+                    
+                    if (!validationResult.isValid()) {
+                        throw new InventoryException(String.format(
+                            "Stock validation failed for product %s: %s. Available: %d, Requested reduction: %d",
+                            product.getTitle(), validationResult.getMessage(),
+                            validationResult.getAvailableStock(), requestedReduction));
+                    }
+                    
+                    logger.debug("Stock validation passed for product {} stock reduction of {} units",
+                               productId, requestedReduction);
+                } catch (ResourceNotFoundException e) {
+                    // Already handled by the product check above, but log for clarity
+                    logger.warn("Product {} not found during stock validation", productId);
+                    throw e;
+                }
+            }
+            
+            // Check for critically low stock levels after the update
+            try {
+                if (stockValidationService.isStockCriticallyLow(productId, 10)) {
+                    logger.warn("Product {} will have critically low stock after update: {} units",
+                               productId, newQuantity);
+                }
+            } catch (ResourceNotFoundException e) {
+                // Log warning but don't fail the operation
+                logger.warn("Could not check critical stock level for product {}: {}", productId, e.getMessage());
+            }
+            
             // Use optimistic locking for stock updates
             productDAO.updateStockWithVersion(productId, newQuantity, product.getVersion());
             product.setQuantityInStock(newQuantity);
@@ -431,7 +470,6 @@ public class ProductServiceImpl implements IProductService {
         return new SearchResult<>(pageResults, pageNumber, totalPages, totalResults);
     }
 
-    @Override
     public SearchResult<Product> searchProducts(String searchTerm, String category, int pageNumber, int pageSize, String sortByPrice) throws SQLException {
         // This is a simplified search. Real search might involve full-text search or more complex queries.
         // The DAO's findByTitle/findByCategory are basic. Sorting and pagination would ideally be done at DB level.
@@ -487,6 +525,40 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
+    public SearchResult<Product> searchProducts(String keyword, String category, String productType, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
+        // Enhanced search implementation that supports both category and product type filtering
+        ProductType enumType = ProductTypeDisplayMapper.fromDisplayName(productType);
+        
+        List<Product> products;
+        int totalResults;
+        
+        if (enumType != null) {
+            // Use ProductType-based search
+            products = productDAO.searchProductsByType(keyword, enumType, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCountByType(keyword, enumType);
+        } else if (category != null && !category.trim().isEmpty()) {
+            // Use category-based search
+            products = productDAO.searchProducts(keyword, category, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCount(keyword, category);
+        } else {
+            // General search without specific filtering
+            products = productDAO.searchProducts(keyword, null, sortBy, sortOrder, pageNumber, pageSize);
+            totalResults = productDAO.getSearchResultsCount(keyword, null);
+        }
+        
+        // Apply VAT to all products for customer display
+        List<Product> productsWithVAT = products.stream()
+                .map(this::addVAT)
+                .collect(Collectors.toList());
+        
+        // Calculate pagination
+        int totalPages = (int) Math.ceil((double) totalResults / pageSize);
+        if (totalPages == 0 && totalResults > 0) totalPages = 1;
+        
+        return new SearchResult<>(productsWithVAT, pageNumber, totalPages, totalResults);
+    }
+
+    @Override
     public SearchResult<Product> advancedSearchProducts(String keyword, String category, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException {
         // Check if category is a product type display name first
         ProductType productType = ProductTypeDisplayMapper.fromDisplayName(category);
@@ -535,7 +607,7 @@ public class ProductServiceImpl implements IProductService {
         int totalResults;
         
         if (enumType != null) {
-            // Search by product type using DAO method (to be implemented)
+            // Search by product type using DAO method
             products = productDAO.searchProductsByType(keyword, enumType, sortBy, sortOrder, pageNumber, pageSize);
             totalResults = productDAO.getSearchResultsCountByType(keyword, enumType);
         } else {
@@ -554,6 +626,103 @@ public class ProductServiceImpl implements IProductService {
         if (totalPages == 0 && totalResults > 0) totalPages = 1;
         
         return new SearchResult<>(productsWithVAT, pageNumber, totalPages, totalResults);
+    }
+
+    // --- Enhanced Inventory Management Methods using StockValidationService ---
+    
+    /**
+     * Gets comprehensive stock information for a product using StockValidationService.
+     * Provides real-time stock data including reserved quantities.
+     *
+     * @param productId Product ID to get stock information for
+     * @return StockInfo with detailed stock information
+     * @throws SQLException Database error
+     * @throws ResourceNotFoundException Product not found
+     */
+    public IStockValidationService.StockInfo getProductStockInfo(String productId)
+            throws SQLException, ResourceNotFoundException {
+        return stockValidationService.getStockInfo(productId);
+    }
+    
+    /**
+     * Checks if a product has sufficient stock for a given quantity.
+     * Uses StockValidationService for enhanced validation including reservations.
+     *
+     * @param productId Product to check
+     * @param requestedQuantity Quantity to validate
+     * @return true if sufficient stock is available
+     * @throws SQLException Database error
+     * @throws ResourceNotFoundException Product not found
+     */
+    public boolean hasRawStock(String productId, int requestedQuantity)
+            throws SQLException, ResourceNotFoundException {
+        IStockValidationService.StockValidationResult result =
+            stockValidationService.validateProductStock(productId, requestedQuantity);
+        return result.isValid();
+    }
+    
+    /**
+     * Gets the available stock for a product considering reservations.
+     *
+     * @param productId Product ID to check
+     * @return Available stock quantity (actual stock minus reserved)
+     * @throws SQLException Database error
+     * @throws ResourceNotFoundException Product not found
+     */
+    public int getAvailableStock(String productId) throws SQLException, ResourceNotFoundException {
+        IStockValidationService.StockInfo stockInfo = stockValidationService.getStockInfo(productId);
+        return stockInfo.getAvailableStock();
+    }
+    
+    /**
+     * Checks if a product's stock is critically low using configurable threshold.
+     *
+     * @param productId Product to check
+     * @param threshold Critical stock threshold (use default if <= 0)
+     * @return true if stock is critically low
+     * @throws SQLException Database error
+     * @throws ResourceNotFoundException Product not found
+     */
+    public boolean isStockCriticallyLow(String productId, int threshold)
+            throws SQLException, ResourceNotFoundException {
+        return stockValidationService.isStockCriticallyLow(productId, threshold);
+    }
+    
+    /**
+     * Validates stock for multiple products efficiently.
+     * Used for bulk operations like cart validation.
+     *
+     * @param productStockMap Map of product ID to requested quantity
+     * @return BulkStockValidationResult with validation outcomes
+     * @throws SQLException Database error
+     */
+    public IStockValidationService.BulkStockValidationResult validateBulkProductStock(
+            java.util.Map<String, Integer> productStockMap) throws SQLException {
+        
+        if (productStockMap == null || productStockMap.isEmpty()) {
+            return new IStockValidationService.BulkStockValidationResult(
+                true, new java.util.ArrayList<>(), new java.util.ArrayList<>(),
+                0, 0, "No products to validate"
+            );
+        }
+        
+        // Convert map to CartItem list for validation
+        java.util.List<com.aims.core.entities.CartItem> cartItems = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, Integer> entry : productStockMap.entrySet()) {
+            try {
+                Product product = productDAO.getById(entry.getKey());
+                if (product != null) {
+                    com.aims.core.entities.CartItem cartItem = new com.aims.core.entities.CartItem();
+                    cartItem.setProduct(product);
+                    cartItem.setQuantity(entry.getValue());
+                    cartItems.add(cartItem);
+                }
+            } catch (SQLException e) {
+                logger.warn("Error loading product {} for bulk validation: {}", entry.getKey(), e.getMessage());
+            }
+        }
+        
+        return stockValidationService.validateBulkStock(cartItems);
     }
 
     /**

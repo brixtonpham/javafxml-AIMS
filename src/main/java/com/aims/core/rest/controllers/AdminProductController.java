@@ -324,7 +324,7 @@ public class AdminProductController extends BaseController {
             @RequestParam(defaultValue = "20") int limit) {
         try {
             SearchResult<Product> result = productService.getProductsForDisplay(page, limit);
-            return paginatedSuccess(result.getItems(), page, limit, result.getTotalItems());
+            return paginatedSuccess(result.results(), page, limit, (int) result.totalResults());
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
@@ -346,7 +346,7 @@ public class AdminProductController extends BaseController {
         try {
             SearchResult<Product> result = productService.advancedSearchProducts(
                 keyword, category, sortBy, sortOrder, page, limit);
-            return paginatedSuccess(result.getItems(), page, limit, result.getTotalItems());
+            return paginatedSuccess(result.results(), page, limit, (int) result.totalResults());
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
@@ -368,7 +368,7 @@ public class AdminProductController extends BaseController {
         try {
             SearchResult<Product> result = productService.searchByProductType(
                 productType, keyword, sortBy, sortOrder, page, limit);
-            return paginatedSuccess(result.getItems(), page, limit, result.getTotalItems());
+            return paginatedSuccess(result.results(), page, limit, (int) result.totalResults());
         } catch (SQLException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {

@@ -43,8 +43,8 @@ fi
 
 # Check Java version
 JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
-if [[ "$JAVA_VERSION" -lt 17 ]]; then
-    print_error "Java 17 or higher is required. Current version: $JAVA_VERSION"
+if [[ "$JAVA_VERSION" -lt 21 ]]; then
+    print_error "Java 21 or higher is required. Current version: $JAVA_VERSION"
     exit 1
 fi
 

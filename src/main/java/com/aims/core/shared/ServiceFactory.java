@@ -47,6 +47,13 @@ public class ServiceFactory {
     private IOrderDataLoaderService orderDataLoaderService;
     private ICartDataValidationService cartDataValidationService;
     private IOrderDataValidationService orderDataValidationService;
+    private IPriceManagementService priceManagementService;
+    private IVATCalculationService vatCalculationService;
+    private IOperationConstraintService operationConstraintService;
+    private IRushOrderService rushOrderService;
+    private IStockValidationService stockValidationService;
+    private IStockReservationService stockReservationService;
+    private IOrderStateManagementService orderStateManagementService;
     
     // Payment Flow Monitoring Utilities
     private com.aims.core.presentation.utils.OrderValidationStateManager orderValidationStateManager;
@@ -89,6 +96,10 @@ public class ServiceFactory {
         // Initialize audit service before ProductService
         productManagerAuditService = new ProductManagerAuditServiceImpl(productManagerAuditDAO);
         
+        // Initialize Phase 2 stock services before ProductService (ProductService depends on StockValidationService)
+        stockReservationService = new StockReservationServiceImpl(productDAO);
+        stockValidationService = new StockValidationServiceImpl(productDAO, stockReservationService);
+        
         // Initialize order validation service (needed by PaymentService)
         orderValidationService = new OrderValidationServiceImpl(
             orderEntityDAO,
@@ -100,10 +111,9 @@ public class ServiceFactory {
             paymentTransactionDAO
         );
         
-        // Services (ProductService needs audit service)
-        productService = new ProductServiceImpl(productDAO, productManagerAuditService);
+        // Services (ProductService needs audit service and stock validation service)
+        productService = new ProductServiceImpl(productDAO, productManagerAuditService, stockValidationService);
         authenticationService = new AuthenticationServiceImpl(userAccountDAO, userRoleAssignmentDAO);
-        cartService = new CartServiceImpl(cartDAO, cartItemDAO, productDAO, userAccountDAO);
         deliveryCalculationService = new DeliveryCalculationServiceImpl();
         
         // External services with stub adapters
@@ -132,6 +142,25 @@ public class ServiceFactory {
             productService
         );
         
+        // Initialize new Phase 1 services
+        vatCalculationService = new VATCalculationServiceImpl();
+        priceManagementService = new PriceManagementServiceImpl(productManagerAuditService);
+        operationConstraintService = new OperationConstraintServiceImpl(productManagerAuditService);
+// Initialize remaining Phase 2 services
+rushOrderService = new RushOrderServiceImpl();
+
+// Initialize CartService with StockValidationService dependency
+cartService = new CartServiceImpl(cartDAO, cartItemDAO, productDAO, userAccountDAO, stockValidationService);
+
+// Initialize order state management service
+orderStateManagementService = new OrderStateManagementServiceImpl(
+    orderEntityDAO,
+    orderItemDAO,
+    stockValidationService,
+    stockReservationService,
+    notificationService
+);
+        
         // Services with many dependencies
         userAccountService = new UserAccountServiceImpl(userAccountDAO, roleDAO, userRoleAssignmentDAO, notificationService);
         orderService = new OrderServiceImpl(
@@ -146,7 +175,9 @@ public class ServiceFactory {
             deliveryCalculationService,
             notificationService,
             userAccountDAO,
-            orderDataLoaderService
+            orderDataLoaderService,
+            stockValidationService,
+            orderStateManagementService
         );
         
         // Initialize payment flow monitoring utilities
@@ -241,6 +272,34 @@ public class ServiceFactory {
     
     public static IOrderDataValidationService getOrderDataValidationService() {
         return getInstance().orderDataValidationService;
+    }
+    
+    public static IPriceManagementService getPriceManagementService() {
+        return getInstance().priceManagementService;
+    }
+    
+    public static IVATCalculationService getVATCalculationService() {
+        return getInstance().vatCalculationService;
+    }
+    
+    public static IOperationConstraintService getOperationConstraintService() {
+        return getInstance().operationConstraintService;
+    }
+    
+    public static IRushOrderService getRushOrderService() {
+        return getInstance().rushOrderService;
+    }
+    
+    public static IStockValidationService getStockValidationService() {
+        return getInstance().stockValidationService;
+    }
+    
+    public static IStockReservationService getStockReservationService() {
+        return getInstance().stockReservationService;
+    }
+    
+    public static IOrderStateManagementService getOrderStateManagementService() {
+        return getInstance().orderStateManagementService;
     }
     
     public static com.aims.core.presentation.utils.OrderValidationStateManager getOrderValidationStateManager() {

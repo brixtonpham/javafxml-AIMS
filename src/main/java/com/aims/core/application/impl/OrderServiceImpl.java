@@ -7,6 +7,8 @@ import com.aims.core.application.services.INotificationService;
 import com.aims.core.application.services.IPaymentService;
 import com.aims.core.application.services.IProductService;
 import com.aims.core.application.services.IOrderDataLoaderService;
+import com.aims.core.application.services.IStockValidationService;
+import com.aims.core.application.services.IOrderStateManagementService;
 import com.aims.core.entities.*;
 import com.aims.core.enums.OrderStatus;
 import com.aims.core.enums.TransactionType;
@@ -34,6 +36,8 @@ public class OrderServiceImpl implements IOrderService {
     private final INotificationService notificationService;
     private final IUserAccountDAO userAccountDAO;
     private final IOrderDataLoaderService orderDataLoaderService;
+    private final IStockValidationService stockValidationService;
+    private final IOrderStateManagementService orderStateManagementService;
 
     private static final float VAT_RATE = 0.10f;
 
@@ -48,7 +52,9 @@ public class OrderServiceImpl implements IOrderService {
                             IDeliveryCalculationService deliveryCalculationService,
                             INotificationService notificationService,
                             IUserAccountDAO userAccountDAO,
-                            IOrderDataLoaderService orderDataLoaderService) {
+                            IOrderDataLoaderService orderDataLoaderService,
+                            IStockValidationService stockValidationService,
+                            IOrderStateManagementService orderStateManagementService) {
         this.orderDAO = orderDAO;
         this.orderItemDAO = orderItemDAO;
         this.deliveryInfoDAO = deliveryInfoDAO;
@@ -61,6 +67,8 @@ public class OrderServiceImpl implements IOrderService {
         this.notificationService = notificationService;
         this.userAccountDAO = userAccountDAO;
         this.orderDataLoaderService = orderDataLoaderService;
+        this.stockValidationService = stockValidationService;
+        this.orderStateManagementService = orderStateManagementService;
     }
 
     @Override
@@ -135,9 +143,16 @@ public class OrderServiceImpl implements IOrderService {
                 if (product == null) {
                     throw new ValidationException("Product " + cartItem.getProduct().getProductId() + " in cart not found in catalog.");
                 }
-                if (product.getQuantityInStock() < cartItem.getQuantity()) {
-                    throw new ValidationException("Insufficient stock for product: " + product.getTitle() +
-                            ". Requested: " + cartItem.getQuantity() + ", Available: " + product.getQuantityInStock());
+                // Use StockValidationService for enhanced stock validation
+                IStockValidationService.StockValidationResult stockResult;
+                try {
+                    stockResult = stockValidationService.validateProductStock(cartItem.getProduct().getProductId(), cartItem.getQuantity());
+                } catch (ResourceNotFoundException e) {
+                    throw new ValidationException("Product not found during stock validation: " + e.getMessage());
+                }
+                if (!stockResult.isValid()) {
+                    throw new ValidationException("Stock validation failed for product: " + product.getTitle() +
+                            ". " + stockResult.getValidationMessage());
                 }
                 
                 OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice(), 
@@ -287,10 +302,16 @@ public class OrderServiceImpl implements IOrderService {
                     " in cart not found in catalog");
             }
             
-            // Validate stock availability
-            if (currentProduct.getQuantityInStock() < cartItem.getQuantity()) {
-                throw new ValidationException("Insufficient stock for product: " + currentProduct.getTitle() +
-                    ". Requested: " + cartItem.getQuantity() + ", Available: " + currentProduct.getQuantityInStock());
+            // Use StockValidationService for enhanced stock validation
+            IStockValidationService.StockValidationResult stockResult;
+            try {
+                stockResult = stockValidationService.validateProductStock(cartItem.getProduct().getProductId(), cartItem.getQuantity());
+            } catch (ResourceNotFoundException e) {
+                throw new ValidationException("Product not found during stock validation: " + e.getMessage());
+            }
+            if (!stockResult.isValid()) {
+                throw new ValidationException("Enhanced stock validation failed for product: " + currentProduct.getTitle() +
+                    ". " + stockResult.getValidationMessage());
             }
             
         } catch (Exception e) {
@@ -743,15 +764,16 @@ public class OrderServiceImpl implements IOrderService {
                 }
             }
 
-            // Final inventory check
-            for (OrderItem item : order.getOrderItems()) {
-                Product product = productDAO.getById(item.getProduct().getProductId());
-                if (product == null || product.getQuantityInStock() < item.getQuantity()) {
-                    order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
-                    orderDAO.updateStatus(orderId, order.getOrderStatus());
-                    throw new ValidationException("Stock changed for product " + 
-                        (product != null ? product.getTitle() : item.getProduct().getProductId()));
-                }
+            // Enhanced final inventory check using StockValidationService
+            IStockValidationService.BulkStockValidationResult bulkValidation = 
+                stockValidationService.validateOrderItemsStock(order.getOrderItems());
+            if (!bulkValidation.isAllValid()) {
+                order.setOrderStatus(OrderStatus.PENDING_DELIVERY_INFO);
+                orderDAO.updateStatus(orderId, order.getOrderStatus());
+                String failedProducts = bulkValidation.getFailedValidations().stream()
+                    .map(result -> result.getProductId() + ": " + result.getValidationMessage())
+                    .reduce("", (a, b) -> a + "; " + b);
+                throw new ValidationException("Stock validation failed for products: " + failedProducts);
             }
 
             PaymentTransaction paymentTransactionResult = paymentService.processPayment(order, paymentMethodId);
@@ -858,28 +880,31 @@ public class OrderServiceImpl implements IOrderService {
     public void approveOrder(String orderId, String managerId) 
             throws ResourceNotFoundException, OrderException, ValidationException {
         try {
-            OrderEntity order = getOrderDetails(orderId);
-            if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
-                throw new ValidationException("Only orders pending processing can be approved. Current status: " + order.getOrderStatus());
+            // Use OrderStateManagementService for comprehensive approval workflow
+            IOrderStateManagementService.OrderApprovalResult approvalResult;
+            try {
+                approvalResult = orderStateManagementService.approveOrder(orderId, managerId, "Order approved via OrderService");
+            } catch (SQLException e) {
+                throw new OrderException("Database error during order approval: " + e.getMessage());
+            } catch (InventoryException e) {
+                throw new OrderException("Inventory error during order approval: " + e.getMessage());
             }
-
-            // Final inventory check
-            for (OrderItem item : order.getOrderItems()) {
-                Product product = productDAO.getById(item.getProduct().getProductId());
-                if (product == null || product.getQuantityInStock() < item.getQuantity()) {
-                    order.setOrderStatus(OrderStatus.REJECTED);
-                    orderDAO.updateStatus(orderId, order.getOrderStatus());
-                    throw new OrderException("Cannot approve order " + orderId + ". Insufficient stock for product: " +
-                            (product != null ? product.getTitle() : item.getProduct().getProductId()));
-                }
+            
+            if (!approvalResult.isSuccessful()) {
+                throw new OrderException("Order approval failed: " +
+                    approvalResult.getTransitionResult().getTransitionNotes() +
+                    ". Warnings: " + String.join("; ", approvalResult.getApprovalWarnings()));
             }
-
-            order.setOrderStatus(OrderStatus.APPROVED);
-            orderDAO.updateStatus(orderId, OrderStatus.APPROVED);
-            notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(), 
-                OrderStatus.APPROVED.name(), "Order approved by manager " + managerId);
-        } catch (SQLException e) {
-            throw new OrderException("Database error approving order: " + e.getMessage());
+            
+            // Additional notification if needed (OrderStateManagementService handles primary notifications)
+            System.out.println("Order " + orderId + " approved successfully by manager " + managerId + 
+                             " via enhanced OrderStateManagementService");
+                             
+        } catch (Exception e) {
+            if (e instanceof OrderException || e instanceof ValidationException) {
+                throw e;
+            }
+            throw new OrderException("Error during order approval: " + e.getMessage());
         }
     }
 
@@ -887,44 +912,27 @@ public class OrderServiceImpl implements IOrderService {
     public void rejectOrder(String orderId, String managerId, String reason) 
             throws ResourceNotFoundException, OrderException, ValidationException {
         try {
-            OrderEntity order = getOrderDetails(orderId);
-            if (order.getOrderStatus() != OrderStatus.PENDING_PROCESSING) {
-                throw new ValidationException("Only orders pending processing can be rejected. Current status: " + order.getOrderStatus());
+            // Use OrderStateManagementService for comprehensive rejection workflow
+            IOrderStateManagementService.StateTransitionResult rejectionResult;
+            try {
+                rejectionResult = orderStateManagementService.rejectOrder(orderId, managerId, "MANUAL_REVIEW", reason);
+            } catch (SQLException e) {
+                throw new OrderException("Database error during order rejection: " + e.getMessage());
             }
-
-            // Handle refund if payment was made
-            PaymentTransaction refundTransaction = null;
-            List<PaymentTransaction> transactions = order.getPaymentTransactions();
-            if (transactions == null) transactions = new ArrayList<>();
-
-            PaymentTransaction originalPayment = transactions.stream()
-                .filter(t -> t.getTransactionType() == TransactionType.PAYMENT && 
-                           "SUCCESS".equalsIgnoreCase(t.getTransactionStatus()))
-                .findFirst().orElse(null);
-
-            if (originalPayment != null) {
-                refundTransaction = paymentService.processRefund(orderId, originalPayment.getExternalTransactionId(), 
-                    originalPayment.getAmount(), "Order rejected by manager: " + reason);
+            
+            if (!rejectionResult.isSuccessful()) {
+                throw new OrderException("Order rejection failed: " + rejectionResult.getTransitionNotes());
             }
-
-            // Restore stock if payment was made
-            if (originalPayment != null) {
-                for (OrderItem item : order.getOrderItems()) {
-                    try {
-                        productService.updateProductStock(item.getProduct().getProductId(), item.getQuantity());
-                    } catch (Exception e) {
-                        System.err.println("Warning: Order " + orderId + " rejected, but failed to restore stock for product " + 
-                            item.getProduct().getProductId() + ". Reason: " + e.getMessage());
-                    }
-                }
+            
+            // Additional processing if needed (OrderStateManagementService handles primary workflow)
+            System.out.println("Order " + orderId + " rejected successfully by manager " + managerId + 
+                             " via enhanced OrderStateManagementService. Reason: " + reason);
+                             
+        } catch (Exception e) {
+            if (e instanceof OrderException || e instanceof ValidationException) {
+                throw e;
             }
-
-            order.setOrderStatus(OrderStatus.REJECTED);
-            orderDAO.updateStatus(orderId, OrderStatus.REJECTED);
-            notificationService.sendOrderStatusUpdateNotification(order, OrderStatus.PENDING_PROCESSING.name(),
-                OrderStatus.REJECTED.name(), "Order rejected by manager " + managerId + ". Reason: " + reason);
-        } catch (SQLException | PaymentException e) {
-            throw new OrderException("Error during rejection: " + e.getMessage());
+            throw new OrderException("Error during order rejection: " + e.getMessage());
         }
     }
 

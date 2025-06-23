@@ -40,7 +40,7 @@ public class ProductController extends BaseController {
             SearchResult<Product> result = productService.searchProducts(
                 keyword, category, productType, sortBy, sortOrder, page, pageSize);
             
-            return paginatedSuccess(result.getItems(), page, pageSize, result.getTotalCount());
+            return paginatedSuccess(result.results(), page, pageSize, (int) result.totalResults());
             
         } catch (SQLException e) {
             return ResponseEntity.internalServerError().build();
@@ -54,10 +54,11 @@ public class ProductController extends BaseController {
     public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable String id) {
         try {
             Product product = productService.getProductById(id);
+            if (product == null) {
+                return error("Product not found", org.springframework.http.HttpStatus.NOT_FOUND);
+            }
             return success(product, "Product retrieved successfully");
             
-        } catch (ResourceNotFoundException e) {
-            return error("Product not found", org.springframework.http.HttpStatus.NOT_FOUND);
         } catch (SQLException e) {
             return error("Database error occurred", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -80,7 +81,7 @@ public class ProductController extends BaseController {
             SearchResult<Product> result = productService.searchProducts(
                 keyword, category, productType, sortBy, sortOrder, page, pageSize);
             
-            return paginatedSuccess(result.getItems(), page, pageSize, result.getTotalCount());
+            return paginatedSuccess(result.results(), page, pageSize, (int) result.totalResults());
             
         } catch (SQLException e) {
             return ResponseEntity.internalServerError().build();
@@ -105,10 +106,10 @@ public class ProductController extends BaseController {
                 request.getPageSize() != null ? request.getPageSize() : 20
             );
             
-            return paginatedSuccess(result.getItems(), 
-                request.getPage() != null ? request.getPage() : 1, 
-                request.getPageSize() != null ? request.getPageSize() : 20, 
-                result.getTotalCount());
+            return paginatedSuccess(result.results(),
+                request.getPage() != null ? request.getPage() : 1,
+                request.getPageSize() != null ? request.getPageSize() : 20,
+                (int) result.totalResults());
             
         } catch (SQLException e) {
             return ResponseEntity.internalServerError().build();
@@ -132,7 +133,7 @@ public class ProductController extends BaseController {
             SearchResult<Product> result = productService.searchProducts(
                 keyword, category, productType, sortBy, sortOrder, page, pageSize);
             
-            return paginatedSuccess(result.getItems(), page, pageSize, result.getTotalCount());
+            return paginatedSuccess(result.results(), page, pageSize, (int) result.totalResults());
             
         } catch (SQLException e) {
             return ResponseEntity.internalServerError().build();

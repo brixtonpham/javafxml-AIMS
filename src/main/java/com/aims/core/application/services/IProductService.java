@@ -190,15 +190,17 @@ public interface IProductService {
      * Searches products based on various attributes (title, category, etc.).
      * Results are paginated. Prices returned should be inclusive of 10% VAT.
      *
-     * @param searchTerm The term to search for (can be null or empty).
+     * @param keyword The term to search for (can be null or empty).
      * @param category Filter by category (can be null or empty).
+     * @param productType Filter by product type (can be null or empty).
+     * @param sortBy The field to sort by (title, price, category, entryDate, quantity).
+     * @param sortOrder The sort order (ASC or DESC).
      * @param pageNumber The page number for pagination (1-indexed).
      * @param pageSize The number of products per page.
-     * @param sortByPrice "ASC" for ascending, "DESC" for descending, or null for default sorting.
      * @return A SearchResult of matching products (with VAT-inclusive prices).
      * @throws SQLException If a database error occurs.
      */
-    SearchResult<Product> searchProducts(String searchTerm, String category, int pageNumber, int pageSize, String sortByPrice) throws SQLException;
+    SearchResult<Product> searchProducts(String keyword, String category, String productType, String sortBy, String sortOrder, int pageNumber, int pageSize) throws SQLException;
 
     /**
      * Retrieves detailed information for a single product, including subtype details.

@@ -8,6 +8,7 @@ import com.aims.core.shared.exceptions.ResourceNotFoundException;
 import com.aims.core.shared.exceptions.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Implementation of stock reservation service for preventing overselling during checkout.
  * Uses in-memory reservations with cleanup mechanisms for expired reservations.
  */
+@Service
 public class StockReservationServiceImpl implements IStockReservationService {
     
     private static final Logger logger = LoggerFactory.getLogger(StockReservationServiceImpl.class);

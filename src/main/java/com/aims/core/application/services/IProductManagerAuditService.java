@@ -64,4 +64,23 @@ public interface IProductManagerAuditService {
      * @throws SQLException If a database error occurs
      */
     int getPriceUpdateCount(String managerId, String productId, LocalDate date) throws SQLException;
+
+    /**
+     * Gets all operations performed by a manager on a specific date.
+     *
+     * @param managerId The ID of the product manager
+     * @param dateKey The date key in ISO format (yyyy-MM-dd)
+     * @return List of operation keys for that manager and date
+     * @throws SQLException If a database error occurs
+     */
+    java.util.List<String> getManagerOperations(String managerId, String dateKey) throws SQLException;
+
+    /**
+     * Records a single operation performed by a manager.
+     *
+     * @param managerId The ID of the product manager
+     * @param operationKey The operation key to record
+     * @throws SQLException If a database error occurs
+     */
+    void recordOperation(String managerId, String operationKey) throws SQLException;
 }

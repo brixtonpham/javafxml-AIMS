@@ -4,12 +4,14 @@ import com.aims.core.entities.UserAccount;
 import com.aims.core.enums.UserStatus;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.IUserAccountDAO;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+@Repository
 public class UserAccountDAOImpl implements IUserAccountDAO {
 
     private Connection getConnection() throws SQLException {

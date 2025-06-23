@@ -3,10 +3,12 @@ package com.aims.core.application.impl;
 import com.aims.core.application.services.IProductManagerAuditService;
 import com.aims.core.infrastructure.database.dao.IProductManagerAuditDAO;
 import com.aims.core.shared.exceptions.ValidationException;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 
+@Service
 public class ProductManagerAuditServiceImpl implements IProductManagerAuditService {
 
     private final IProductManagerAuditDAO auditDAO;
@@ -57,5 +59,30 @@ public class ProductManagerAuditServiceImpl implements IProductManagerAuditServi
     @Override
     public int getPriceUpdateCount(String managerId, String productId, LocalDate date) throws SQLException {
         return auditDAO.getPriceUpdateCount(managerId, productId, date);
+    }
+
+    @Override
+    public java.util.List<String> getManagerOperations(String managerId, String dateKey) throws SQLException {
+        // Convert dateKey to LocalDate for DAO call
+        LocalDate date = LocalDate.parse(dateKey);
+        // For now, return a simple implementation - in production this would query the database
+        // This method should return operation keys for the given manager and date
+        return auditDAO.getManagerOperations(managerId, date);
+    }
+
+    @Override
+    public void recordOperation(String managerId, String operationKey) throws SQLException {
+        // Extract operation details from the operation key and log the operation
+        // Operation key format is typically: OPERATION_TYPE_PRODUCT_ID_DATE_ADDITIONAL_INFO
+        String[] parts = operationKey.split("_");
+        if (parts.length >= 2) {
+            String operationType = parts[0];
+            String productId = parts.length > 1 ? parts[1] : "";
+            String details = operationKey; // Use full key as details
+            logOperation(managerId, operationType, productId, details);
+        } else {
+            // Fallback for malformed operation keys
+            logOperation(managerId, "UNKNOWN", "", operationKey);
+        }
     }
 }

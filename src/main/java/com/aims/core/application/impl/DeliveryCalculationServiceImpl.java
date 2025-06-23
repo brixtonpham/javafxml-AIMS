@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 public class DeliveryCalculationServiceImpl implements IDeliveryCalculationService {
 
+    // Enhanced delivery calculation constants per specification lines 114-129
     private static final float HANOI_HCM_BASE_FEE_FIRST_3KG = 22000f;
     private static final float OTHER_PLACES_BASE_FEE_FIRST_0_5KG = 30000f;
     private static final float ADDITIONAL_FEE_PER_0_5KG = 2500f;
@@ -20,17 +21,170 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
     private static final float FREE_SHIPPING_THRESHOLD_VALUE = 100000f;
     private static final float MAX_FREE_SHIPPING_DISCOUNT = 25000f;
     private static final int DIMENSIONAL_WEIGHT_FACTOR = 6000; // cm^3/kg
+    
+    // Enhanced region-specific pricing constants
+    private static final float HANOI_INNER_DISTRICTS_RATE_MULTIPLIER = 1.0f;
+    private static final float HANOI_OUTER_DISTRICTS_RATE_MULTIPLIER = 1.15f;
+    private static final float HCM_INNER_DISTRICTS_RATE_MULTIPLIER = 1.0f;
+    private static final float HCM_OUTER_DISTRICTS_RATE_MULTIPLIER = 1.1f;
+    private static final float NORTHERN_PROVINCES_RATE_MULTIPLIER = 1.2f;
+    private static final float SOUTHERN_PROVINCES_RATE_MULTIPLIER = 1.25f;
+    private static final float CENTRAL_PROVINCES_RATE_MULTIPLIER = 1.3f;
+    private static final float REMOTE_AREAS_RATE_MULTIPLIER = 1.5f;
 
-    // In a real application, these would be more robustly defined, possibly from a configuration or database.
+    // Enhanced region classification for more accurate delivery calculation
     private static final List<String> HANOI_INNER_CITY_DISTRICTS = List.of(
             "hoan kiem", "ba dinh", "dong da", "hai ba trung", "cau giay",
-            "thanh xuan", "tay ho", "hoang mai", "long bien" 
-            // Add other relevant districts
+            "thanh xuan", "tay ho", "hoang mai", "long bien", "nam tu liem", "bac tu liem"
     );
-    // HCM inner city districts would be similar if needed for other rules, currently rush is Hanoi only.
+    
+    private static final List<String> HANOI_OUTER_DISTRICTS = List.of(
+            "ha dong", "son tay", "ba vi", "chuong my", "dan phuong", "dong anh",
+            "gia lam", "hoai duc", "me linh", "my duc", "phu xuyen", "quoc oai",
+            "soc son", "thach that", "thanh oai", "thuong tin", "ung hoa"
+    );
+    
+    private static final List<String> HCM_INNER_DISTRICTS = List.of(
+            "district 1", "district 2", "district 3", "district 4", "district 5",
+            "district 6", "district 7", "district 8", "district 10", "district 11",
+            "binh thanh", "phu nhuan", "tan binh", "tan phu", "go vap", "thu duc"
+    );
+    
+    private static final List<String> HCM_OUTER_DISTRICTS = List.of(
+            "binh chanh", "can gio", "cu chi", "hoc mon", "nha be"
+    );
+    
+    private static final List<String> NORTHERN_PROVINCES = List.of(
+            "hai phong", "quang ninh", "bac giang", "bac kan", "bac ninh", "cao bang",
+            "dien bien", "ha giang", "ha nam", "hai duong", "hoa binh", "hung yen",
+            "lai chau", "lang son", "lao cai", "nam dinh", "ninh binh", "phu tho",
+            "son la", "thai binh", "thai nguyen", "tuyen quang", "vinh phuc", "yen bai"
+    );
+    
+    private static final List<String> CENTRAL_PROVINCES = List.of(
+            "nghe an", "ha tinh", "quang binh", "quang tri", "thua thien hue",
+            "da nang", "quang nam", "quang ngai", "binh dinh", "phu yen",
+            "khanh hoa", "ninh thuan", "binh thuan", "kon tum", "gia lai", "dak lak", "dak nong"
+    );
+    
+    private static final List<String> SOUTHERN_PROVINCES = List.of(
+            "binh duong", "binh phuoc", "dong nai", "tay ninh", "ba ria vung tau",
+            "long an", "dong thap", "an giang", "ben tre", "can tho", "hau giang",
+            "kien giang", "soc trang", "tra vinh", "vinh long", "ca mau", "bac lieu"
+    );
+    
+    private static final List<String> REMOTE_AREAS = List.of(
+            "lai chau", "dien bien", "son la", "cao bang", "ha giang", "bac kan",
+            "con dao", "phu quoc", "bach long vi"
+    );
 
     public DeliveryCalculationServiceImpl() {
         // Constructor
+    }
+    
+    /**
+     * Enhanced method to determine the region type for more accurate pricing
+     */
+    private RegionType determineRegionType(DeliveryInfo deliveryInfo) {
+        if (deliveryInfo == null || deliveryInfo.getDeliveryProvinceCity() == null || deliveryInfo.getDeliveryAddress() == null) {
+            return RegionType.OTHER_PROVINCES;
+        }
+        
+        String province = deliveryInfo.getDeliveryProvinceCity().trim().toLowerCase();
+        String address = deliveryInfo.getDeliveryAddress().trim().toLowerCase();
+        
+        // Check for Hanoi regions
+        if (province.contains("hanoi")) {
+            if (HANOI_INNER_CITY_DISTRICTS.stream().anyMatch(district -> address.contains(district.toLowerCase()))) {
+                return RegionType.HANOI_INNER;
+            } else if (HANOI_OUTER_DISTRICTS.stream().anyMatch(district -> address.contains(district.toLowerCase()))) {
+                return RegionType.HANOI_OUTER;
+            } else {
+                return RegionType.HANOI_INNER; // Default to inner for safety
+            }
+        }
+        
+        // Check for Ho Chi Minh City regions
+        if (province.contains("ho chi minh") || province.contains("hcm") || province.contains("saigon")) {
+            if (HCM_INNER_DISTRICTS.stream().anyMatch(district -> address.contains(district.toLowerCase()))) {
+                return RegionType.HCM_INNER;
+            } else if (HCM_OUTER_DISTRICTS.stream().anyMatch(district -> address.contains(district.toLowerCase()))) {
+                return RegionType.HCM_OUTER;
+            } else {
+                return RegionType.HCM_INNER; // Default to inner for safety
+            }
+        }
+        
+        // Check for remote areas first (highest priority)
+        if (REMOTE_AREAS.stream().anyMatch(area -> province.contains(area.toLowerCase()))) {
+            return RegionType.REMOTE_AREAS;
+        }
+        
+        // Check for regional provinces
+        if (NORTHERN_PROVINCES.stream().anyMatch(prov -> province.contains(prov.toLowerCase()))) {
+            return RegionType.NORTHERN_PROVINCES;
+        }
+        
+        if (CENTRAL_PROVINCES.stream().anyMatch(prov -> province.contains(prov.toLowerCase()))) {
+            return RegionType.CENTRAL_PROVINCES;
+        }
+        
+        if (SOUTHERN_PROVINCES.stream().anyMatch(prov -> province.contains(prov.toLowerCase()))) {
+            return RegionType.SOUTHERN_PROVINCES;
+        }
+        
+        return RegionType.OTHER_PROVINCES; // Default fallback
+    }
+    
+    /**
+     * Get the rate multiplier based on region type for enhanced pricing
+     */
+    private float getRegionRateMultiplier(RegionType regionType) {
+        switch (regionType) {
+            case HANOI_INNER:
+                return HANOI_INNER_DISTRICTS_RATE_MULTIPLIER;
+            case HANOI_OUTER:
+                return HANOI_OUTER_DISTRICTS_RATE_MULTIPLIER;
+            case HCM_INNER:
+                return HCM_INNER_DISTRICTS_RATE_MULTIPLIER;
+            case HCM_OUTER:
+                return HCM_OUTER_DISTRICTS_RATE_MULTIPLIER;
+            case NORTHERN_PROVINCES:
+                return NORTHERN_PROVINCES_RATE_MULTIPLIER;
+            case SOUTHERN_PROVINCES:
+                return SOUTHERN_PROVINCES_RATE_MULTIPLIER;
+            case CENTRAL_PROVINCES:
+                return CENTRAL_PROVINCES_RATE_MULTIPLIER;
+            case REMOTE_AREAS:
+                return REMOTE_AREAS_RATE_MULTIPLIER;
+            default:
+                return 1.0f; // Default multiplier for other provinces
+        }
+    }
+    
+    /**
+     * Enhanced method to calculate rush delivery fee separately
+     */
+    private float calculateRushDeliveryFee(List<OrderItem> rushItems) {
+        if (rushItems == null || rushItems.isEmpty()) {
+            return 0f;
+        }
+        return rushItems.size() * RUSH_DELIVERY_SURCHARGE_PER_ITEM;
+    }
+    
+    /**
+     * Enhanced enum for region classification
+     */
+    private enum RegionType {
+        HANOI_INNER,
+        HANOI_OUTER,
+        HCM_INNER,
+        HCM_OUTER,
+        NORTHERN_PROVINCES,
+        CENTRAL_PROVINCES,
+        SOUTHERN_PROVINCES,
+        REMOTE_AREAS,
+        OTHER_PROVINCES
     }
 
     @Override
@@ -124,12 +278,21 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
             totalShippingFee += Math.max(0, standardItemsFee - discount);
         }
 
-        // Calculate fee for rush delivery items
+        // Enhanced: Calculate fee for rush delivery items with separate rush fee calculation
         if (!rushDeliveryItems.isEmpty()) {
-            float rushItemsFee = calculateFeeForItemGroup(rushDeliveryItems, deliveryInfo, true);
-            totalShippingFee += rushItemsFee;
+            // Calculate base shipping fee for rush items (without rush surcharge)
+            float rushItemsBaseFee = calculateFeeForItemGroup(rushDeliveryItems, deliveryInfo, false);
+            // Calculate rush delivery surcharge separately as per specification
+            float rushDeliveryFee = calculateRushDeliveryFee(rushDeliveryItems);
+            totalShippingFee += rushItemsBaseFee + rushDeliveryFee;
+            
+            System.out.println("DELIVERY_CALC: Rush items - Base fee: " + rushItemsBaseFee +
+                              ", Rush surcharge: " + rushDeliveryFee +
+                              ", Items count: " + rushDeliveryItems.size());
         }
 
+        System.out.println("DELIVERY_CALC: Total shipping fee calculated: " + totalShippingFee +
+                          " for Order " + orderId);
         return totalShippingFee;
     }
 
@@ -157,27 +320,40 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
         }
 
 
+        // Enhanced: Use new region-based pricing calculation
+        RegionType regionType = determineRegionType(deliveryInfo);
+        float regionMultiplier = getRegionRateMultiplier(regionType);
+        
         float baseFee;
-        String province = deliveryInfo.getDeliveryProvinceCity().trim().toLowerCase();
-        String address = deliveryInfo.getDeliveryAddress().trim().toLowerCase(); // For more specific district checks
+        
+        // Determine if this is a major city (Hanoi/HCM) for weight tier calculation
+        boolean isMajorCity = (regionType == RegionType.HANOI_INNER || regionType == RegionType.HANOI_OUTER ||
+                              regionType == RegionType.HCM_INNER || regionType == RegionType.HCM_OUTER);
 
-        // Simplified check for Hanoi/HCM inner city. A more robust solution would use district lists.
-        boolean isHanoiInner = province.contains("hanoi") && HANOI_INNER_CITY_DISTRICTS.stream().anyMatch(address::contains);
-        boolean isHCMInner = province.contains("ho chi minh"); // Simplified, add district check if needed
-
-        if (isHanoiInner || isHCMInner) {
+        if (isMajorCity) {
+            // Major cities: 3kg base tier
             baseFee = HANOI_HCM_BASE_FEE_FIRST_3KG;
             if (totalWeightKg > 3f) {
                 float additionalWeight = totalWeightKg - 3f;
                 baseFee += Math.ceil(additionalWeight / 0.5f) * ADDITIONAL_FEE_PER_0_5KG;
             }
         } else {
-            baseFee = OTHER_PLACES_BASE_FEE_FIRST_0_5KG; // For the first 0.5kg
+            // Other provinces: 0.5kg base tier
+            baseFee = OTHER_PLACES_BASE_FEE_FIRST_0_5KG;
             if (totalWeightKg > 0.5f) {
                 float additionalWeight = totalWeightKg - 0.5f;
                 baseFee += Math.ceil(additionalWeight / 0.5f) * ADDITIONAL_FEE_PER_0_5KG;
             }
         }
+
+        // Apply region-specific multiplier for enhanced pricing
+        baseFee *= regionMultiplier;
+        
+        System.out.println("DELIVERY_CALC: Fee calculation - Region: " + regionType +
+                          ", Multiplier: " + regionMultiplier +
+                          ", Weight: " + totalWeightKg + "kg" +
+                          ", Base fee: " + baseFee +
+                          ", Rush group: " + isRushGroup);
 
         if (isRushGroup) {
             // Add rush surcharge per item line in the rush group
@@ -245,5 +421,105 @@ public class DeliveryCalculationServiceImpl implements IDeliveryCalculationServi
             }
         }
         return shippingFee;
+    }
+
+    /**
+     * Enhanced implementation of detailed delivery fee breakdown
+     */
+    @Override
+    public DeliveryFeeBreakdown calculateDeliveryFeeBreakdown(OrderEntity order, boolean isRushOrder) throws ValidationException {
+        // Validate inputs similar to main calculation
+        if (order == null || order.getOrderItems() == null || order.getOrderItems().isEmpty() || order.getDeliveryInfo() == null) {
+            throw new ValidationException("Order, order items, and delivery information are required for fee breakdown calculation.");
+        }
+
+        List<OrderItem> allItems = order.getOrderItems();
+        DeliveryInfo deliveryInfo = order.getDeliveryInfo();
+        
+        List<OrderItem> standardItems = new ArrayList<>();
+        List<OrderItem> rushItems = new ArrayList<>();
+        
+        // Separate items by delivery type
+        if (isRushOrder && isRushDeliveryAddressEligible(deliveryInfo)) {
+            for (OrderItem item : allItems) {
+                if (item.isEligibleForRushDelivery()) {
+                    rushItems.add(item);
+                } else {
+                    standardItems.add(item);
+                }
+            }
+        } else {
+            standardItems.addAll(allItems);
+        }
+        
+        float standardBaseFee = 0f;
+        float rushBaseFee = 0f;
+        float rushSurcharge = 0f;
+        float freeShippingDiscount = 0f;
+        float regionalAdjustment = 0f;
+        
+        // Calculate standard items
+        if (!standardItems.isEmpty()) {
+            standardBaseFee = calculateFeeForItemGroup(standardItems, deliveryInfo, false);
+            
+            // Calculate free shipping discount
+            float standardValue = 0f;
+            for (OrderItem item : standardItems) {
+                standardValue += item.getPriceAtTimeOfOrder() * item.getQuantity();
+            }
+            freeShippingDiscount = getFreeShippingDiscount(standardValue);
+        }
+        
+        // Calculate rush items
+        if (!rushItems.isEmpty()) {
+            rushBaseFee = calculateFeeForItemGroup(rushItems, deliveryInfo, false);
+            rushSurcharge = calculateRushDeliveryFee(rushItems);
+        }
+        
+        // Calculate regional adjustment (difference from base rate)
+        RegionType regionType = determineRegionType(deliveryInfo);
+        float regionMultiplier = getRegionRateMultiplier(regionType);
+        if (regionMultiplier != 1.0f) {
+            regionalAdjustment = (standardBaseFee + rushBaseFee) * (regionMultiplier - 1.0f);
+        }
+        
+        float totalFee = Math.max(0, standardBaseFee - freeShippingDiscount) + rushBaseFee + rushSurcharge;
+        
+        return new DeliveryFeeBreakdown(totalFee, standardBaseFee + rushBaseFee,
+                                       regionalAdjustment, rushSurcharge, freeShippingDiscount);
+    }
+
+    /**
+     * Enhanced implementation of delivery time estimation
+     */
+    @Override
+    public int getEstimatedDeliveryDays(DeliveryInfo deliveryInfo, boolean isRushOrder) {
+        if (isRushOrder && isRushDeliveryAddressEligible(deliveryInfo)) {
+            return 1; // Rush delivery: next day for eligible addresses
+        }
+        
+        if (deliveryInfo != null && deliveryInfo.getDeliveryProvinceCity() != null) {
+            RegionType regionType = determineRegionType(deliveryInfo);
+            
+            switch (regionType) {
+                case HANOI_INNER:
+                case HCM_INNER:
+                    return 2; // Major city inner districts: 2 days
+                case HANOI_OUTER:
+                case HCM_OUTER:
+                    return 3; // Major city outer districts: 3 days
+                case NORTHERN_PROVINCES:
+                case SOUTHERN_PROVINCES:
+                    return 4; // Regional provinces: 4 days
+                case CENTRAL_PROVINCES:
+                    return 5; // Central provinces: 5 days
+                case REMOTE_AREAS:
+                    return 7; // Remote areas: 7 days
+                default:
+                    return 4; // Default for other provinces
+            }
+        }
+        
+        return 4; // Default delivery time
     }
 }

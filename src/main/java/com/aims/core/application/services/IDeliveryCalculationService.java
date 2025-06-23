@@ -63,4 +63,65 @@ public interface IDeliveryCalculationService {
             float heightCm,
             String deliveryProvinceCity,
             boolean isInnerCityHanoiOrHCM) throws ValidationException;
+
+    /**
+     * Enhanced method to calculate delivery fee breakdown for detailed reporting.
+     * Provides separate calculation of base fee, regional adjustments, and rush charges.
+     *
+     * @param order The OrderEntity containing items and delivery destination.
+     * @param isRushOrder A boolean indicating if rush delivery is requested.
+     * @return DeliveryFeeBreakdown object containing detailed fee components.
+     * @throws ValidationException If essential information is missing or invalid.
+     */
+    default DeliveryFeeBreakdown calculateDeliveryFeeBreakdown(OrderEntity order, boolean isRushOrder) throws ValidationException {
+        float totalFee = calculateShippingFee(order, isRushOrder);
+        return new DeliveryFeeBreakdown(totalFee, 0f, 0f, 0f, 0f);
+    }
+
+    /**
+     * Enhanced method to get region-specific delivery time estimates.
+     *
+     * @param deliveryInfo The delivery information containing address details.
+     * @param isRushOrder Whether this is a rush order.
+     * @return Estimated delivery days based on region and order type.
+     */
+    default int getEstimatedDeliveryDays(DeliveryInfo deliveryInfo, boolean isRushOrder) {
+        if (isRushOrder && isRushDeliveryAddressEligible(deliveryInfo)) {
+            return 1; // Rush delivery: next day
+        }
+        
+        if (deliveryInfo != null && deliveryInfo.getDeliveryProvinceCity() != null) {
+            String province = deliveryInfo.getDeliveryProvinceCity().toLowerCase();
+            if (province.contains("hanoi") || province.contains("ho chi minh")) {
+                return 2; // Major cities: 2 days
+            }
+        }
+        return 3; // Other provinces: 3 days
+    }
+
+    /**
+     * Data class for detailed delivery fee breakdown
+     */
+    class DeliveryFeeBreakdown {
+        private final float totalFee;
+        private final float baseFee;
+        private final float regionalAdjustment;
+        private final float rushSurcharge;
+        private final float freeShippingDiscount;
+
+        public DeliveryFeeBreakdown(float totalFee, float baseFee, float regionalAdjustment,
+                                   float rushSurcharge, float freeShippingDiscount) {
+            this.totalFee = totalFee;
+            this.baseFee = baseFee;
+            this.regionalAdjustment = regionalAdjustment;
+            this.rushSurcharge = rushSurcharge;
+            this.freeShippingDiscount = freeShippingDiscount;
+        }
+
+        public float getTotalFee() { return totalFee; }
+        public float getBaseFee() { return baseFee; }
+        public float getRegionalAdjustment() { return regionalAdjustment; }
+        public float getRushSurcharge() { return rushSurcharge; }
+        public float getFreeShippingDiscount() { return freeShippingDiscount; }
+    }
 }

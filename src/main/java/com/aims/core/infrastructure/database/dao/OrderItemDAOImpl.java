@@ -8,6 +8,7 @@ import com.aims.core.infrastructure.database.dao.IOrderItemDAO;
 import com.aims.core.infrastructure.database.dao.IProductDAO; // To fetch Product details
 // Assuming IOrderEntityDAO exists if we need to fetch OrderEntity details, but often not needed for OrderItem mapping
 // import com.aims.infrastructure.database.dao.IOrderEntityDAO;
+import org.springframework.stereotype.Repository;
 
 
 import java.sql.Connection;
@@ -17,6 +18,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class OrderItemDAOImpl implements IOrderItemDAO {
 
     private final IProductDAO productDAO; // Used to reconstruct Product objects

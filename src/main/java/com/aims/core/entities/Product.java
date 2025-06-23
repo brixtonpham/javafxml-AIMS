@@ -96,6 +96,13 @@ public class Product {
         this.productId = productId;
     }
 
+    /**
+     * Alias for getProductId() to maintain compatibility with legacy code
+     */
+    public String getId() {
+        return productId;
+    }
+
     public String getTitle() {
         return title;
     }

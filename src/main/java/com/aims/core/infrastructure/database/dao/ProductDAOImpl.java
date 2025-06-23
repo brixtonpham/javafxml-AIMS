@@ -8,12 +8,14 @@ import com.aims.core.entities.LP;
 import com.aims.core.enums.ProductType;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.utils.DatabaseSchemaValidator;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class ProductDAOImpl implements IProductDAO {
     
     // CRITICAL FIX: Cache table existence at class level to prevent repeated checks

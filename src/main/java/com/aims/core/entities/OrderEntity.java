@@ -50,7 +50,7 @@ public class OrderEntity {
     private Invoice invoice;
     
     // Một Order có thể có nhiều PaymentTransaction (ví dụ: thanh toán, hoàn tiền)
-    @OneToMany(mappedBy = "orderEntity", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<PaymentTransaction> paymentTransactions;
 
     public OrderEntity() {
