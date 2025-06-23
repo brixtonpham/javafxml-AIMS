@@ -2,6 +2,7 @@ package com.aims.core.application.impl;
 
 import com.aims.core.application.services.IVATCalculationService;
 import com.aims.core.entities.OrderItem;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -12,6 +13,7 @@ import java.util.List;
  * Implementation of IVATCalculationService.
  * Handles 10% VAT calculations per problem statement lines 22-23.
  */
+@Service
 public class VATCalculationServiceImpl implements IVATCalculationService {
 
     // Business rule constants from problem statement lines 22-23

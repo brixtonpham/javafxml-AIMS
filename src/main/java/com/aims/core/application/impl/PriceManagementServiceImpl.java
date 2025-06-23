@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IPriceManagementService;
 import com.aims.core.application.services.IProductManagerAuditService;
 import com.aims.core.shared.exceptions.ValidationException;
@@ -15,6 +16,7 @@ import java.util.List;
  * Implementation of IPriceManagementService.
  * Handles price validation and tracking per problem statement requirements.
  */
+@Service
 public class PriceManagementServiceImpl implements IPriceManagementService {
 
     private final IProductManagerAuditService auditService;

@@ -1,5 +1,7 @@
 package com.aims.core.application.impl; // Or com.aims.core.application.services.impl;
 
+import org.springframework.stereotype.Service;
+
 import com.aims.core.application.services.ICartService;
 import com.aims.core.application.services.IStockValidationService;
 import com.aims.core.entities.Cart;
@@ -21,6 +23,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.UUID; // For generating cart session IDs
 
+@Service
 public class CartServiceImpl implements ICartService {
 
     private static final Logger logger = LoggerFactory.getLogger(CartServiceImpl.class);

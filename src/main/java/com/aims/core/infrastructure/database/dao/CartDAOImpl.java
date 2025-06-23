@@ -9,6 +9,8 @@ import com.aims.core.infrastructure.database.dao.ICartDAO;
 import com.aims.core.infrastructure.database.dao.ICartItemDAO; // For delegating item operations
 import com.aims.core.infrastructure.database.dao.IProductDAO; // For fetching product details for CartItem
 import com.aims.core.infrastructure.database.dao.IUserAccountDAO; // For fetching UserAccount if needed
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 
 import java.sql.*;
@@ -17,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class CartDAOImpl implements ICartDAO {
 
     // Optional: Inject CartItemDAO for item-specific operations
@@ -26,6 +29,7 @@ public class CartDAOImpl implements ICartDAO {
     private final IUserAccountDAO userAccountDAO; // To reconstruct UserAccount objects
 
 
+    @Autowired
     public CartDAOImpl(ICartItemDAO cartItemDAO, IProductDAO productDAO, IUserAccountDAO userAccountDAO) {
         this.cartItemDAO = cartItemDAO; // Assume it's injected or instantiated
         this.productDAO = productDAO;

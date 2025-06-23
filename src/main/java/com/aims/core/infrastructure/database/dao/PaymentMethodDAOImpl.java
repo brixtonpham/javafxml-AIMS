@@ -5,16 +5,20 @@ import com.aims.core.entities.CardDetails;
 import com.aims.core.entities.UserAccount;
 import com.aims.core.enums.PaymentMethodType;
 import com.aims.core.infrastructure.database.SQLiteConnector;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class PaymentMethodDAOImpl implements IPaymentMethodDAO {
 
     private final IUserAccountDAO userAccountDAO;
     private final ICardDetailsDAO cardDetailsDAO;
 
+    @Autowired
     public PaymentMethodDAOImpl(IUserAccountDAO userAccountDAO, ICardDetailsDAO cardDetailsDAO) {
         this.userAccountDAO = userAccountDAO;
         this.cardDetailsDAO = cardDetailsDAO;

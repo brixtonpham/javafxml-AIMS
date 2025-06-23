@@ -8,7 +8,8 @@ import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.IPaymentTransactionDAO;
 import com.aims.core.infrastructure.database.dao.IOrderEntityDAO; // To fetch OrderEntity details
 import com.aims.core.infrastructure.database.dao.IPaymentMethodDAO; // To fetch PaymentMethod details
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -16,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
 
     private final IOrderEntityDAO orderEntityDAO; // For reconstructing OrderEntity
@@ -35,6 +37,7 @@ public class PaymentTransactionDAOImpl implements IPaymentTransactionDAO {
         String gatewayResponseData;
     }
 
+    @Autowired
     public PaymentTransactionDAOImpl(IOrderEntityDAO orderEntityDAO, IPaymentMethodDAO paymentMethodDAO) {
         this.orderEntityDAO = orderEntityDAO;
         this.paymentMethodDAO = paymentMethodDAO;

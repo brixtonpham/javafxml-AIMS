@@ -1,5 +1,7 @@
 package com.aims.core.application.impl; // Or com.aims.core.application.services.impl;
 
+import org.springframework.stereotype.Service;
+
 import com.aims.core.application.services.IAuthenticationService;
 import com.aims.core.entities.UserAccount;
 import com.aims.core.entities.Role;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import java.util.Set;
 // import java.util.UUID; // If generating session tokens
 
+@Service
 public class AuthenticationServiceImpl implements IAuthenticationService {
 
     private final IUserAccountDAO userAccountDAO;

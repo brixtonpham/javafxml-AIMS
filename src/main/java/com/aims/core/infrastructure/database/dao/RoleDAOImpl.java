@@ -3,11 +3,13 @@ package com.aims.core.infrastructure.database.dao;
 import com.aims.core.entities.Role;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.IRoleDAO;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class RoleDAOImpl implements IRoleDAO {
 
     private Connection getConnection() throws SQLException {

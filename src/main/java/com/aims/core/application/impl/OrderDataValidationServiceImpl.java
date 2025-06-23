@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IOrderDataValidationService;
 import com.aims.core.application.services.IOrderDataLoaderService;
 import com.aims.core.application.services.ICartDataValidationService;
@@ -20,11 +21,12 @@ import java.util.logging.Level;
 
 /**
  * Enhanced Order Data Validation Service Implementation
- * 
- * Provides comprehensive multi-level validation, detailed error reporting, 
- * and recovery mechanisms to ensure order data integrity throughout 
+ *
+ * Provides comprehensive multi-level validation, detailed error reporting,
+ * and recovery mechanisms to ensure order data integrity throughout
  * the customer journey.
  */
+@Service
 public class OrderDataValidationServiceImpl implements IOrderDataValidationService {
     
     private static final Logger logger = Logger.getLogger(OrderDataValidationServiceImpl.class.getName());

@@ -7,12 +7,14 @@ import com.aims.core.infrastructure.database.dao.IDeliveryInfoDAO;
 // Assuming IOrderEntityDAO exists if we need to fully reconstruct OrderEntity
 // import com.aims.infrastructure.database.dao.IOrderEntityDAO;
 
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException; // Added import
 
+@Repository
 public class DeliveryInfoDAOImpl implements IDeliveryInfoDAO {
 
     // Optional: Inject IOrderEntityDAO if you need to fetch the full OrderEntity object

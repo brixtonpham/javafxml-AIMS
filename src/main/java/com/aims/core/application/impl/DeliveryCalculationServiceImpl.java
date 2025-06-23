@@ -6,11 +6,13 @@ import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.Product;
 import com.aims.core.entities.DeliveryInfo;
 import com.aims.core.shared.exceptions.ValidationException;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Service
 public class DeliveryCalculationServiceImpl implements IDeliveryCalculationService {
 
     // Enhanced delivery calculation constants per specification lines 114-129

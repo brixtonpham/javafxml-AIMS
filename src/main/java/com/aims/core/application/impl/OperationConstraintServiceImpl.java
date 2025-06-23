@@ -9,11 +9,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Service;
 
 /**
  * Implementation of IOperationConstraintService that enforces daily operation constraints.
  * Implements business rules per problem statement lines 16-19.
  */
+@Service
 public class OperationConstraintServiceImpl implements IOperationConstraintService {
 
     private static final int DAILY_OPERATIONS_LIMIT = 30;

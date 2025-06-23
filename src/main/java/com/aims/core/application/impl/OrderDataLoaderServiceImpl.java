@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 /**
  * Enhanced Order Data Loading Service Implementation
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * Provides comprehensive order data loading with proper relationship handling
  * and fallback mechanisms to address lazy loading issues.
  */
+@Service
 public class OrderDataLoaderServiceImpl implements IOrderDataLoaderService {
     
     private static final Logger logger = Logger.getLogger(OrderDataLoaderServiceImpl.class.getName());

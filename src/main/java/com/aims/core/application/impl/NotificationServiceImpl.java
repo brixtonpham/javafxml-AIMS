@@ -7,10 +7,12 @@ import com.aims.core.entities.OrderEntity;
 import com.aims.core.entities.Invoice;
 import com.aims.core.entities.PaymentTransaction;
 import com.aims.core.entities.OrderItem; // For email content
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Service
 public class NotificationServiceImpl implements INotificationService {
 
     private final IEmailSenderAdapter emailSenderAdapter;

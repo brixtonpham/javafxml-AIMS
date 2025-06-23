@@ -5,6 +5,7 @@ import com.aims.core.entities.DeliveryInfo;
 import com.aims.core.entities.OrderItem;
 import com.aims.core.entities.Product;
 import com.aims.core.shared.exceptions.ValidationException;
+import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.List;
  * Implementation of IRushOrderService for handling rush order validation and calculations.
  * Implements business rules for rush delivery per problem statement lines 93-129.
  */
+@Service
 public class RushOrderServiceImpl implements IRushOrderService {
 
     // Hanoi inner districts eligible for rush delivery

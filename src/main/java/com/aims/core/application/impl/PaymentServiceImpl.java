@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IPaymentService;
 import com.aims.core.entities.OrderEntity;
 import com.aims.core.entities.PaymentMethod;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+@Service
 public class PaymentServiceImpl implements IPaymentService {
 
     private static final Logger logger = Logger.getLogger(PaymentServiceImpl.class.getName());

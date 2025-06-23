@@ -7,6 +7,8 @@ import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.ICartDAO; // May not be needed directly if Cart object is passed
 import com.aims.core.infrastructure.database.dao.ICartItemDAO;
 import com.aims.core.infrastructure.database.dao.IProductDAO; // To fetch Product details
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,10 +17,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class CartItemDAOImpl implements ICartItemDAO {
 
     private final IProductDAO productDAO; // Used to reconstruct Product objects
 
+    @Autowired
     public CartItemDAOImpl(IProductDAO productDAO) {
         this.productDAO = productDAO; // Inject ProductDAO
     }

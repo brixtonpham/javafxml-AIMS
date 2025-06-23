@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IOrderService;
 import com.aims.core.application.services.ICartService;
 import com.aims.core.application.services.IDeliveryCalculationService;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class OrderServiceImpl implements IOrderService {
 
     private final IOrderEntityDAO orderDAO;

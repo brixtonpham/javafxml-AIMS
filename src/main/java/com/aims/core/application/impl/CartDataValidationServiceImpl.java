@@ -7,6 +7,7 @@ import com.aims.core.entities.CartItem;
 import com.aims.core.entities.Product;
 import com.aims.core.infrastructure.database.dao.IProductDAO;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
  * Implementation of cart data validation service for comprehensive cart-to-order
  * conversion validation with complete data preservation and integrity checking.
  */
+@Service
 public class CartDataValidationServiceImpl implements ICartDataValidationService {
     
     private final IProductDAO productDAO;

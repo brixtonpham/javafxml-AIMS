@@ -7,11 +7,13 @@ import com.aims.core.infrastructure.database.dao.IInvoiceDAO;
 // Assuming IOrderEntityDAO exists if we need to fully reconstruct OrderEntity
 // import com.aims.infrastructure.database.dao.IOrderEntityDAO;
 
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Repository
 public class InvoiceDAOImpl implements IInvoiceDAO {
 
     // Optional: Inject IOrderEntityDAO if you need to fetch the full OrderEntity object

@@ -14,6 +14,8 @@ import com.aims.core.shared.exceptions.AuthenticationException;
 import com.aims.core.shared.exceptions.AuthorizationException;
 import com.aims.core.shared.exceptions.ValidationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Service
 public class UserAccountServiceImpl implements IUserAccountService {
 
     private final IUserAccountDAO userAccountDAO;
@@ -29,6 +32,7 @@ public class UserAccountServiceImpl implements IUserAccountService {
     private final INotificationService notificationService;
     // private final PasswordUtils passwordUtils; // Injected or static access
 
+    @Autowired
     public UserAccountServiceImpl(IUserAccountDAO userAccountDAO,
                                   IRoleDAO roleDAO,
                                   IUserRoleAssignmentDAO userRoleAssignmentDAO,

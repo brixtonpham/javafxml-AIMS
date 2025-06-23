@@ -3,6 +3,7 @@ package com.aims.core.infrastructure.database.dao;
 import com.aims.core.entities.CardDetails;
 import com.aims.core.entities.PaymentMethod; // For setting the PaymentMethod reference
 import com.aims.core.infrastructure.database.SQLiteConnector;
+import org.springframework.stereotype.Repository;
 // import com.aims.core.infrastructure.database.dao.ICardDetailsDAO; // Unused import
 // Assuming IPaymentMethodDAO exists if we need to fully reconstruct PaymentMethod,
 // but usually not needed when just mapping CardDetails.
@@ -15,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types; // For setNull
 
+@Repository
 public class CardDetailsDAOImpl implements ICardDetailsDAO {
 
     // Optional: Inject IPaymentMethodDAO if you need to fetch the full PaymentMethod object

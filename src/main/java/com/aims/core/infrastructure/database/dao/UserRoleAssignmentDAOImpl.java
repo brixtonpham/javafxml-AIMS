@@ -4,6 +4,7 @@ import com.aims.core.entities.Role;
 import com.aims.core.entities.UserAccount;
 import com.aims.core.entities.UserRoleAssignment;
 import com.aims.core.enums.UserStatus; // Assuming UserStatus enum for UserAccount mapping
+import org.springframework.stereotype.Repository;
 import com.aims.core.infrastructure.database.SQLiteConnector;
 
 import java.sql.Connection;
@@ -15,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Repository
 public class UserRoleAssignmentDAOImpl implements IUserRoleAssignmentDAO {
 
     private Connection getConnection() throws SQLException {

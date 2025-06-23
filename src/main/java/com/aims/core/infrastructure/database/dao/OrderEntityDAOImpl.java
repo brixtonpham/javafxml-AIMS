@@ -10,6 +10,8 @@ import com.aims.core.infrastructure.database.SQLiteConnector;
 import com.aims.core.infrastructure.database.dao.IOrderEntityDAO;
 import com.aims.core.infrastructure.database.dao.IOrderItemDAO; // For loading order items
 import com.aims.core.infrastructure.database.dao.IUserAccountDAO; // For loading user account
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -19,12 +21,14 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+@Repository
 public class OrderEntityDAOImpl implements IOrderEntityDAO {
 
     private final IOrderItemDAO orderItemDAO; // To load associated order items
     private final IUserAccountDAO userAccountDAO; // To load associated user
     // Inject other DAOs as needed (e.g., IDeliveryInfoDAO, IInvoiceDAO)
 
+    @Autowired
     public OrderEntityDAOImpl(IOrderItemDAO orderItemDAO, IUserAccountDAO userAccountDAO) {
         this.orderItemDAO = orderItemDAO;
         this.userAccountDAO = userAccountDAO;

@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IOrderValidationService;
 import com.aims.core.entities.OrderEntity;
 import com.aims.core.entities.OrderItem;
@@ -39,6 +40,7 @@ import java.util.logging.Level;
  * 
  * Focus: 100% validation success rate for valid orders regardless of how they were created.
  */
+@Service
 public class OrderValidationServiceImpl implements IOrderValidationService {
 
     private static final Logger logger = Logger.getLogger(OrderValidationServiceImpl.class.getName());

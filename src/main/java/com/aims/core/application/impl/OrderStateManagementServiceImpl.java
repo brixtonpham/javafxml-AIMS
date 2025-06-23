@@ -1,5 +1,6 @@
 package com.aims.core.application.impl;
 
+import org.springframework.stereotype.Service;
 import com.aims.core.application.services.IOrderStateManagementService;
 import com.aims.core.application.services.IStockValidationService;
 import com.aims.core.application.services.IStockReservationService;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
  * Implementation of IOrderStateManagementService providing comprehensive order state management
  * with product manager approval workflows, stock validation integration, and audit trail.
  */
+@Service
 public class OrderStateManagementServiceImpl implements IOrderStateManagementService {
     
     private static final Logger logger = Logger.getLogger(OrderStateManagementServiceImpl.class.getName());
