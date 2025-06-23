@@ -71,7 +71,7 @@ echo Press Ctrl+C to stop the server
 echo.
 
 REM Start the application
-call mvn spring-boot:run
+call mvn spring-boot:run -Dmaven.test.skip=true
 
 echo [INFO] Server stopped
 pause

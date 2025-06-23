@@ -12,7 +12,8 @@ import org.springframework.context.annotation.ComponentScan;
     "com.aims.core.rest",
     "com.aims.core.application",
     "com.aims.core.infrastructure",
-    "com.aims.core.shared"
+    "com.aims.core.shared",
+    "com.aims.core.config"
 })
 public class AimsWebApiApplication {
 

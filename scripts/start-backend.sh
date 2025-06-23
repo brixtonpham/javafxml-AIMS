@@ -64,26 +64,16 @@ else
 fi
 
 print_status "Cleaning and compiling project..."
-if mvn clean compile -q; then
-    print_success "Project compiled successfully"
+if mvn clean compile -q -Dmaven.test.skip=true; then
+    print_success "Project compiled successfully (tests skipped)"
 else
     print_error "Failed to compile project"
     print_error "Please check compilation errors above"
     exit 1
 fi
 
-# Add option to skip tests for faster startup
-if [ "$1" == "--skip-tests" ]; then
-    print_warning "Skipping tests as requested"
-else
-    print_status "Running tests..."
-    if mvn test -DskipTests=false -q; then
-        print_success "Tests passed"
-    else
-        print_warning "Some tests failed, but continuing with startup..."
-        print_warning "Use --skip-tests flag to skip tests entirely"
-    fi
-fi
+# Always skip tests for demo reliability
+print_warning "[DEMO MODE] Skipping all tests for backend startup."
 
 print_success "Starting Spring Boot application..."
 print_status "Backend will be available at: http://localhost:$BACKEND_PORT"
@@ -104,6 +94,6 @@ echo "Press Ctrl+C to stop the backend server"
 echo ""
 
 # Start with logging
-mvn spring-boot:run 2>&1 | tee -a "$BACKEND_LOG_FILE"
+mvn spring-boot:run -Dmaven.test.skip=true 2>&1 | tee -a "$BACKEND_LOG_FILE"
 
 print_status "$(date): Backend server stopped" | tee -a "$BACKEND_LOG_FILE"

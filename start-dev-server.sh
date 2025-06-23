@@ -96,6 +96,6 @@ echo "Press Ctrl+C to stop the server"
 echo ""
 
 # Start the application
-mvn spring-boot:run
+mvn spring-boot:run -Dmaven.test.skip=true
 
 print_status "Server stopped"

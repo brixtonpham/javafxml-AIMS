@@ -166,26 +166,34 @@ fi
 
 print_success "Ports $BACKEND_PORT and $FRONTEND_PORT are available"
 
+# DEBUG mode: set to 1 to run backend/FE in background for troubleshooting
+DEBUG=1
+
 # Start Backend in new terminal
 print_status "Starting Spring Boot backend in new terminal..."
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS - Use Terminal.app
-    osascript -e "
-        tell application \"Terminal\"
-            do script \"cd '$PWD' && ./scripts/start-backend.sh\"
-            set custom title of front window to \"AIMS Backend (Port $BACKEND_PORT)\"
-        end tell
-    " &
-elif command -v gnome-terminal &> /dev/null; then
-    # Linux with GNOME Terminal
-    gnome-terminal --title="AIMS Backend (Port $BACKEND_PORT)" --working-directory="$PWD" -- bash -c "./scripts/start-backend.sh; exec bash" &
-elif command -v xterm &> /dev/null; then
-    # Fallback to xterm
-    xterm -title "AIMS Backend (Port $BACKEND_PORT)" -e "cd '$PWD' && ./scripts/start-backend.sh; bash" &
-else
-    # Fallback - run in background
-    print_warning "No terminal emulator detected, running backend in background"
+if [[ "$DEBUG" == "1" ]]; then
+    print_warning "[DEBUG MODE] Running backend in background for troubleshooting"
     ./scripts/start-backend.sh > "$BACKEND_LOG_FILE" 2>&1 &
+else
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS - Use Terminal.app
+        osascript -e "
+            tell application \"Terminal\"
+                do script \"cd '$PWD' && ./scripts/start-backend.sh\"
+                set custom title of front window to \"AIMS Backend (Port $BACKEND_PORT)\"
+            end tell
+        " &
+    elif command -v gnome-terminal &> /dev/null; then
+        # Linux with GNOME Terminal
+        gnome-terminal --title="AIMS Backend (Port $BACKEND_PORT)" --working-directory="$PWD" -- bash -c "./scripts/start-backend.sh; exec bash" &
+    elif command -v xterm &> /dev/null; then
+        # Fallback to xterm
+        xterm -title "AIMS Backend (Port $BACKEND_PORT)" -e "cd '$PWD' && ./scripts/start-backend.sh; bash" &
+    else
+        # Fallback - run in background
+        print_warning "No terminal emulator detected, running backend in background"
+        ./scripts/start-backend.sh > "$BACKEND_LOG_FILE" 2>&1 &
+    fi
 fi
 
 # Start Frontend in new terminal
@@ -250,5 +258,7 @@ echo -e "${CYAN}║${NC}  💡 Use './stop-aims.sh' to shutdown all services    
 echo -e "${CYAN}║${NC}  📊 Use './health-check.sh' to check system status                         ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
+echo -e "${YELLOW}To view backend logs: tail -f $BACKEND_LOG_FILE${NC}"
+echo -e "${YELLOW}To view frontend logs: tail -f $FRONTEND_LOG_FILE${NC}"
 
 print_status "$(date): AIMS Project startup completed successfully" | tee -a "$STARTUP_LOG_FILE"
