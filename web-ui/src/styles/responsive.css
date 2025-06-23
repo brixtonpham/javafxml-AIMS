@@ -1,0 +1,480 @@
+/* ==========================================================================
+   AIMS - Mobile-First Responsive Design System
+   ========================================================================== */
+
+@layer base {
+  /* Base mobile-first responsive typography */
+  html {
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+
+  /* Mobile-first container system */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Responsive container breakpoints */
+  @media (min-width: 640px) {
+    .container {
+      max-width: 640px;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      max-width: 768px;
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1024px;
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      max-width: 1536px;
+    }
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     Mobile-First Grid System
+     ========================================================================== */
+  
+  .responsive-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile: 1 column */
+  @media (min-width: 320px) {
+    .responsive-grid {
+      gap: 0.75rem;
+    }
+  }
+
+  /* Small tablets: 2 columns */
+  @media (min-width: 640px) {
+    .responsive-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  /* Tablets: 3 columns */
+  @media (min-width: 768px) {
+    .responsive-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+  }
+
+  /* Desktop: 4 columns */
+  @media (min-width: 1024px) {
+    .responsive-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  /* Large desktop: 5 columns */
+  @media (min-width: 1440px) {
+    .responsive-grid {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2rem;
+    }
+  }
+
+  /* ==========================================================================
+     Touch-Friendly Components
+     ========================================================================== */
+
+  /* Minimum 44px touch targets for mobile accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Enhanced button styles for touch */
+  .btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn-touch:active {
+    transform: scale(0.98);
+  }
+
+  /* Mobile-optimized form inputs */
+  .input-touch {
+    @apply w-full px-4 py-3 text-base rounded-lg border border-gray-300;
+    min-height: 44px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  .input-touch:focus {
+    @apply ring-2 ring-primary-500 border-primary-500 outline-none;
+  }
+
+  /* ==========================================================================
+     Responsive Navigation
+     ========================================================================== */
+
+  .nav-mobile {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-40;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .nav-mobile-item {
+    @apply flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors duration-200;
+    min-height: 44px;
+  }
+
+  .nav-desktop {
+    @apply hidden lg:flex items-center space-x-6;
+  }
+
+  /* ==========================================================================
+     Responsive Typography
+     ========================================================================== */
+
+  .text-responsive-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .text-responsive-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .text-responsive-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
+  .text-responsive-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+
+  .text-responsive-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  .text-responsive-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  .text-responsive-3xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+
+  /* Mobile typography scaling */
+  @media (min-width: 768px) {
+    .text-responsive-lg {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+    }
+
+    .text-responsive-xl {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+
+    .text-responsive-2xl {
+      font-size: 1.875rem;
+      line-height: 2.25rem;
+    }
+
+    .text-responsive-3xl {
+      font-size: 2.25rem;
+      line-height: 2.5rem;
+    }
+  }
+
+  /* ==========================================================================
+     Responsive Spacing
+     ========================================================================== */
+
+  .spacing-responsive-xs {
+    padding: 0.5rem;
+  }
+
+  .spacing-responsive-sm {
+    padding: 0.75rem;
+  }
+
+  .spacing-responsive-md {
+    padding: 1rem;
+  }
+
+  .spacing-responsive-lg {
+    padding: 1.5rem;
+  }
+
+  .spacing-responsive-xl {
+    padding: 2rem;
+  }
+
+  /* Tablet and desktop spacing increases */
+  @media (min-width: 768px) {
+    .spacing-responsive-md {
+      padding: 1.5rem;
+    }
+
+    .spacing-responsive-lg {
+      padding: 2rem;
+    }
+
+    .spacing-responsive-xl {
+      padding: 3rem;
+    }
+  }
+
+  /* ==========================================================================
+     Mobile-First Card Components
+     ========================================================================== */
+
+  .card-responsive {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+    padding: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .card-responsive {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .card-responsive {
+      padding: 2rem;
+    }
+  }
+
+  /* ==========================================================================
+     Responsive Utilities
+     ========================================================================== */
+
+  /* Show/hide utilities for different screen sizes */
+  .mobile-only {
+    @apply block;
+  }
+
+  .tablet-up {
+    @apply hidden;
+  }
+
+  .desktop-up {
+    @apply hidden;
+  }
+
+  @media (min-width: 640px) {
+    .mobile-only {
+      @apply hidden;
+    }
+
+    .tablet-up {
+      @apply block;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .tablet-up {
+      @apply hidden;
+    }
+
+    .desktop-up {
+      @apply block;
+    }
+  }
+
+  /* Responsive flex utilities */
+  .flex-responsive {
+    @apply flex flex-col space-y-4;
+  }
+
+  @media (min-width: 768px) {
+    .flex-responsive {
+      @apply flex-row space-y-0 space-x-6;
+    }
+  }
+
+  /* Safe area utilities for modern mobile devices */
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .safe-area-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* ==========================================================================
+   Touch and Gesture Optimizations
+   ========================================================================== */
+
+@layer utilities {
+  /* Disable touch callouts and selection on UI elements */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Enable touch scrolling with momentum */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+
+  /* Smooth touch interactions */
+  .touch-smooth {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s ease-out;
+  }
+
+  .touch-smooth:active {
+    transform: scale(0.98);
+  }
+
+  /* Responsive aspect ratios */
+  .aspect-responsive-square {
+    aspect-ratio: 1 / 1;
+  }
+
+  .aspect-responsive-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .aspect-responsive-photo {
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Mobile-first image optimization */
+  .img-responsive {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: cover;
+  }
+
+  /* Responsive overflow handling */
+  .overflow-responsive {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile-friendly table styles */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    min-width: 600px;
+  }
+
+  /* Responsive text truncation */
+  .text-truncate-responsive {
+    @apply truncate;
+  }
+
+  @media (min-width: 768px) {
+    .text-truncate-responsive {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+  }
+}
+
+/* ==========================================================================
+   Device-Specific Optimizations
+   ========================================================================== */
+
+/* iOS specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  .ios-scroll-fix {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ios-input-fix {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* Android specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .android-tap-highlight {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+  }
+}

@@ -1,0 +1,444 @@
+name: 🚀 AIMS Production Deployment Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web-ui/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web-ui/**'
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: aims-web-app
+
+jobs:
+  # Quality Assurance Phase
+  quality-checks:
+    name: 🔍 Quality & Security Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: web-ui
+        run: npm ci --prefer-offline
+
+      - name: 🔍 Code Linting
+        working-directory: web-ui
+        run: npm run lint
+
+      - name: 🎨 Code Formatting Check
+        working-directory: web-ui
+        run: npx prettier --check "src/**/*.{ts,tsx,js,jsx,css,md}"
+
+      - name: 🔒 Security Audit
+        working-directory: web-ui
+        run: |
+          npm audit --audit-level high
+          npx audit-ci --config audit-ci.json
+
+      - name: 🕷️ License Check
+        working-directory: web-ui
+        run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC'
+
+      - name: 📊 Upload Quality Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: |
+            web-ui/lint-results.json
+            web-ui/audit-results.json
+
+  # Testing Phase
+  comprehensive-testing:
+    name: 🧪 Comprehensive Testing Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality-checks
+    
+    strategy:
+      matrix:
+        test-suite: [unit, integration, accessibility, performance]
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: web-ui
+        run: npm ci --prefer-offline
+
+      - name: 🧪 Run Unit Tests
+        if: matrix.test-suite == 'unit'
+        working-directory: web-ui
+        run: |
+          npm run test:unit -- --coverage --reporter=verbose
+          npm run test:coverage
+
+      - name: 🔗 Run Integration Tests
+        if: matrix.test-suite == 'integration'
+        working-directory: web-ui
+        run: npm run test:integration
+
+      - name: ♿ Run Accessibility Tests
+        if: matrix.test-suite == 'accessibility'
+        working-directory: web-ui
+        run: npm run test:accessibility
+
+      - name: ⚡ Run Performance Tests
+        if: matrix.test-suite == 'performance'
+        working-directory: web-ui
+        run: npm run test:performance
+
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            web-ui/coverage/
+            web-ui/test-results/
+            web-ui/lighthouse-reports/
+
+  # End-to-End Testing
+  e2e-testing:
+    name: 🎭 End-to-End Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality-checks
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: web-ui
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build Application
+        working-directory: web-ui
+        run: npm run build
+
+      - name: 🎭 Install Playwright
+        working-directory: web-ui
+        run: npx playwright install --with-deps
+
+      - name: 🚀 Start Application
+        working-directory: web-ui
+        run: |
+          npm run preview &
+          sleep 10
+
+      - name: 🧪 Run E2E Tests
+        working-directory: web-ui
+        run: npm run test:e2e
+
+      - name: 📊 Upload E2E Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            web-ui/test-results/
+            web-ui/playwright-report/
+
+  # Build & Security Scan
+  build-and-scan:
+    name: 🏗️ Build & Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [comprehensive-testing, e2e-testing]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: web-ui
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build Application
+        working-directory: web-ui
+        run: |
+          npm run build
+          npm run build:analyze
+
+      - name: 📊 Bundle Analysis
+        working-directory: web-ui
+        run: |
+          npm run perf:bundle-size
+          ls -la dist/
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and Push Docker Image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web-ui
+          file: ./web-ui/docker/Dockerfile.production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+
+      - name: 🔒 Run Container Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📊 Upload Security Scan Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 📦 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            web-ui/dist/
+            web-ui/reports/
+            trivy-results.sarif
+
+  # Performance Testing
+  performance-testing:
+    name: ⚡ Performance Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build-and-scan
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: 📦 Install Dependencies
+        working-directory: web-ui
+        run: npm ci --prefer-offline
+
+      - name: 🏗️ Build Application
+        working-directory: web-ui
+        run: npm run build
+
+      - name: 🚀 Start Application
+        working-directory: web-ui
+        run: |
+          npm run preview &
+          sleep 10
+
+      - name: ⚡ Run Lighthouse CI
+        working-directory: web-ui
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun
+
+      - name: 📊 Upload Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: web-ui/.lighthouseci/
+
+  # Staging Deployment
+  staging-deployment:
+    name: 🚧 Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-and-scan, performance-testing]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://staging.aims.com
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🚧 Deploy to Staging
+        run: |
+          echo "🚧 Deploying to staging environment..."
+          echo "Image: ${{ needs.build-and-scan.outputs.image-tag }}"
+          # Add actual deployment commands here
+          
+      - name: 🔍 Staging Health Check
+        run: |
+          sleep 30
+          curl -f https://staging.aims.com/health || exit 1
+          
+      - name: 📊 Staging Smoke Tests
+        run: |
+          echo "🧪 Running staging smoke tests..."
+          # Add smoke test commands here
+
+  # Production Deployment
+  production-deployment:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [staging-deployment]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://aims.com
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "Image: ${{ needs.build-and-scan.outputs.image-tag }}"
+          # Add actual deployment commands here
+          
+      - name: 🔍 Production Health Check
+        run: |
+          sleep 60
+          curl -f https://aims.com/health || exit 1
+          
+      - name: 📊 Production Smoke Tests
+        run: |
+          echo "🧪 Running production smoke tests..."
+          # Add smoke test commands here
+
+      - name: 📈 Update Monitoring
+        run: |
+          echo "📈 Updating monitoring and alerts..."
+          # Add monitoring update commands here
+
+  # Post-Deployment Verification
+  post-deployment:
+    name: ✅ Post-Deployment Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: production-deployment
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📊 Performance Verification
+        run: |
+          echo "📊 Verifying application performance..."
+          # Add performance checks here
+          
+      - name: 🔍 Security Verification
+        run: |
+          echo "🔍 Verifying security posture..."
+          # Add security checks here
+          
+      - name: 📈 Monitoring Verification
+        run: |
+          echo "📈 Verifying monitoring and alerts..."
+          # Add monitoring checks here
+
+      - name: 📬 Deployment Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 AIMS Production Deployment Completed!
+            
+            📋 **Deployment Summary:**
+            • **Version**: ${{ github.sha }}
+            • **Branch**: ${{ github.ref_name }}
+            • **Environment**: Production
+            • **Status**: ${{ job.status }}
+            
+            🔗 **Links:**
+            • [Application](https://aims.com)
+            • [Monitoring](https://monitoring.aims.com)
+            • [Logs](https://logs.aims.com)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
+
+  # Cleanup
+  cleanup:
+    name: 🧹 Cleanup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [post-deployment]
+    if: always()
+    
+    steps:
+      - name: 🧹 Cleanup Old Images
+        run: |
+          echo "🧹 Cleaning up old container images..."
+          # Add cleanup commands here
+          
+      - name: 📊 Archive Reports
+        run: |
+          echo "📊 Archiving deployment reports..."
+          # Add archival commands here

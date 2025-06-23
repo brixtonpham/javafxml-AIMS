@@ -1,0 +1,440 @@
+/* Checkout Flow Mobile-Responsive Styles */
+
+/* Base styles for checkout components */
+.checkout-wizard {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 640px) {
+  .checkout-wizard {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .checkout-wizard {
+    max-width: 768px;
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .checkout-wizard {
+    max-width: 1024px;
+  }
+}
+
+/* Progress indicator mobile styles */
+.checkout-progress {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.checkout-progress-step {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .checkout-progress {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .checkout-progress-step {
+    min-width: auto;
+    text-align: left;
+    padding: 0.75rem;
+    border-left: 3px solid transparent;
+  }
+  
+  .checkout-progress-step.active {
+    border-left-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+  
+  .checkout-progress-step.completed {
+    border-left-color: #10b981;
+    background-color: #f0fdf4;
+  }
+}
+
+/* Delivery options mobile layout */
+.delivery-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .delivery-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .delivery-options-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Time preference options mobile-first */
+.time-preferences {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .time-preferences {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .time-preferences {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Order summary responsive layout */
+.order-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .order-summary-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Order items mobile layout */
+.order-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.order-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .order-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .order-item-image {
+    align-self: center;
+  }
+  
+  .order-item-details {
+    text-align: center;
+  }
+}
+
+/* Delivery info form mobile styles */
+.delivery-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .delivery-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Address fields full width on mobile */
+.address-field {
+  grid-column: 1 / -1;
+}
+
+/* Mobile-friendly form inputs */
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-input {
+    padding: 1rem;
+    font-size: 1.125rem; /* Prevent zoom on iOS */
+  }
+}
+
+/* Price breakdown responsive design */
+.price-breakdown {
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.price-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.price-breakdown-item:last-child {
+  border-bottom: none;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+@media (max-width: 640px) {
+  .price-breakdown-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .price-breakdown-item .amount {
+    align-self: flex-end;
+    font-weight: 600;
+  }
+}
+
+/* Navigation buttons mobile layout */
+.checkout-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .checkout-navigation {
+    flex-direction: column-reverse;
+  }
+  
+  .checkout-navigation .btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Cards responsive padding */
+.checkout-card {
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .checkout-card {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .checkout-card {
+    padding: 2rem;
+  }
+}
+
+/* Free shipping progress bar */
+.shipping-progress {
+  background: #f3f4f6;
+  border-radius: 9999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+
+.shipping-progress-bar {
+  background: #3b82f6;
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Rush delivery badge */
+.rush-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background: #10b981;
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rush-badge.unavailable {
+  background: #6b7280;
+}
+
+/* Mobile-specific animations */
+@media (max-width: 640px) {
+  .card-enter {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* Error states mobile styling */
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+.warning-message {
+  background: #fffbeb;
+  border: 1px solid #fed7aa;
+  color: #d97706;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+.success-message {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+/* Loading states */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Touch-friendly button sizing */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 44px; /* iOS touch target minimum */
+    padding: 1rem 1.5rem;
+  }
+  
+  .btn-small {
+    min-height: 36px;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus states for keyboard navigation */
+.form-input:focus,
+.btn:focus,
+.radio-option:focus,
+.checkbox:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .checkout-card {
+    border-width: 2px;
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+  
+  .form-input {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .shipping-progress-bar,
+  .card-enter,
+  .loading-spinner {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Dark mode support (if needed) */
+@media (prefers-color-scheme: dark) {
+  .checkout-card {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .form-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .price-breakdown {
+    background: #111827;
+  }
+}

@@ -1,0 +1,267 @@
+# AIMS Web Application - Prometheus Alerting Rules
+groups:
+  # Critical Application Alerts
+  - name: aims_critical_alerts
+    interval: 30s
+    rules:
+      - alert: AIMSServiceDown
+        expr: up{job=~"aims-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "AIMS service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on instance {{ $labels.instance }} has been down for more than 1 minute."
+          runbook: "https://docs.aims.com/runbooks/service-down"
+          dashboard: "https://grafana.aims.com/d/aims-overview"
+
+      - alert: AIMSHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job=~"aims-.*",status=~"5.."}[5m]) /
+            rate(http_requests_total{job=~"aims-.*"}[5m])
+          ) * 100 > 5
+        for: 3m
+        labels:
+          severity: critical
+          team: development
+        annotations:
+          summary: "High error rate detected in AIMS application"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.job }}"
+          runbook: "https://docs.aims.com/runbooks/high-error-rate"
+
+      - alert: AIMSHighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job=~"aims-.*"}[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          team: development
+        annotations:
+          summary: "High response time in AIMS application"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.job }}"
+          runbook: "https://docs.aims.com/runbooks/high-response-time"
+
+  # Infrastructure Alerts
+  - name: aims_infrastructure_alerts
+    interval: 60s
+    rules:
+      - alert: AIMSHighCPUUsage
+        expr: |
+          100 - (avg by(instance) (
+            irate(node_cpu_seconds_total{mode="idle"}[5m])
+          ) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage on AIMS infrastructure"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook: "https://docs.aims.com/runbooks/high-cpu"
+
+      - alert: AIMSHighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 3m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "High memory usage on AIMS infrastructure"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook: "https://docs.aims.com/runbooks/high-memory"
+
+      - alert: AIMSLowDiskSpace
+        expr: |
+          (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / 
+                node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Low disk space on AIMS infrastructure"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook: "https://docs.aims.com/runbooks/low-disk-space"
+
+  # Business Logic Alerts
+  - name: aims_business_alerts
+    interval: 60s
+    rules:
+      - alert: AIMSLowOrderVolume
+        expr: |
+          rate(orders_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: warning
+          team: business
+        annotations:
+          summary: "Low order volume detected"
+          description: "Order rate is {{ $value }} orders per second (below threshold)"
+          runbook: "https://docs.aims.com/runbooks/low-order-volume"
+
+      - alert: AIMSHighCartAbandonmentRate
+        expr: |
+          (
+            rate(cart_abandonments_total[1h]) /
+            rate(cart_creations_total[1h])
+          ) * 100 > 70
+        for: 15m
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "High cart abandonment rate"
+          description: "Cart abandonment rate is {{ $value | humanizePercentage }}"
+          runbook: "https://docs.aims.com/runbooks/high-cart-abandonment"
+
+      - alert: AIMSPaymentFailureRate
+        expr: |
+          (
+            rate(payment_failures_total[15m]) /
+            rate(payment_attempts_total[15m])
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: critical
+          team: payment
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanizePercentage }}"
+          runbook: "https://docs.aims.com/runbooks/payment-failures"
+
+  # Security Alerts
+  - name: aims_security_alerts
+    interval: 30s
+    rules:
+      - alert: AIMSHighFailedLoginAttempts
+        expr: |
+          rate(authentication_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "{{ $value }} failed login attempts per second"
+          runbook: "https://docs.aims.com/runbooks/failed-logins"
+
+      - alert: AIMSSuspiciousTraffic
+        expr: |
+          rate(http_requests_total{status="403"}[5m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Suspicious traffic pattern detected"
+          description: "High rate of 403 responses: {{ $value }} per second"
+          runbook: "https://docs.aims.com/runbooks/suspicious-traffic"
+
+      - alert: AIMSUnauthorizedAPIAccess
+        expr: |
+          rate(http_requests_total{status="401"}[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of unauthorized API access attempts"
+          description: "{{ $value }} unauthorized attempts per second"
+          runbook: "https://docs.aims.com/runbooks/unauthorized-access"
+
+  # Database Alerts
+  - name: aims_database_alerts
+    interval: 60s
+    rules:
+      - alert: AIMSDatabaseConnectionsHigh
+        expr: |
+          database_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Active database connections: {{ $value }}"
+          runbook: "https://docs.aims.com/runbooks/high-db-connections"
+
+      - alert: AIMSDatabaseSlowQueries
+        expr: |
+          rate(database_query_duration_seconds{quantile="0.95"}[5m]) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time: {{ $value }}s"
+          runbook: "https://docs.aims.com/runbooks/slow-queries"
+
+  # Performance Alerts  
+  - name: aims_performance_alerts
+    interval: 60s
+    rules:
+      - alert: AIMSHighPageLoadTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(page_load_duration_seconds_bucket[5m])
+          ) > 3.0
+        for: 5m
+        labels:
+          severity: warning
+          team: frontend
+        annotations:
+          summary: "High page load times detected"
+          description: "95th percentile page load time: {{ $value }}s"
+          runbook: "https://docs.aims.com/runbooks/slow-page-loads"
+
+      - alert: AIMSLowThroughput
+        expr: |
+          rate(http_requests_total{job=~"aims-.*"}[5m]) < 10
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Low application throughput"
+          description: "Request rate is {{ $value }} requests per second"
+          runbook: "https://docs.aims.com/runbooks/low-throughput"
+
+  # Capacity Planning Alerts
+  - name: aims_capacity_alerts
+    interval: 300s
+    rules:
+      - alert: AIMSHighLoadPredicted
+        expr: |
+          predict_linear(
+            rate(http_requests_total{job=~"aims-.*"}[1h])[4h:1h], 
+            2 * 3600
+          ) > 1000
+        for: 15m
+        labels:
+          severity: warning
+          team: capacity
+        annotations:
+          summary: "High load predicted in next 2 hours"
+          description: "Predicted request rate: {{ $value }} requests per second"
+          runbook: "https://docs.aims.com/runbooks/capacity-scaling"
+
+      - alert: AIMSScalingRecommended
+        expr: |
+          avg_over_time(
+            rate(http_requests_total{job=~"aims-.*"}[5m])[30m:5m]
+          ) > 500
+        for: 15m
+        labels:
+          severity: info
+          team: capacity
+        annotations:
+          summary: "Consider scaling AIMS infrastructure"
+          description: "Sustained high load: {{ $value }} requests per second"
+          runbook: "https://docs.aims.com/runbooks/scaling-guide"

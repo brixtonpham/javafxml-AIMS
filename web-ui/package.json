@@ -1,0 +1,98 @@
+{
+  "name": "web-ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:analyze": "npm run build && npx vite-bundle-analyzer dist",
+    "build:stats": "tsc -b && vite build --mode analyze",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:unit": "vitest run --reporter=verbose --coverage src/tests/unit",
+    "test:integration": "vitest run --reporter=verbose src/tests/integration",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:performance": "vitest run src/tests/performance",
+    "test:accessibility": "vitest run src/tests/accessibility",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:performance && npm run test:accessibility",
+    "perf:lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./reports/lighthouse.html",
+    "perf:bundle-size": "npm run build && bundlesize",
+    "perf:ci": "lhci autorun"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.1.1",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@tanstack/react-query": "^5.81.2",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.10.0",
+    "framer-motion": "^12.18.1",
+    "postcss": "^8.5.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.58.1",
+    "react-router-dom": "^7.6.2",
+    "tailwindcss": "^4.1.10",
+    "zod": "^3.25.67",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.9.0",
+    "@eslint/js": "^9.25.0",
+    "@playwright/test": "^1.48.0",
+    "@tailwindcss/postcss": "^4.1.10",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^24.0.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/coverage-v8": "^2.1.6",
+    "@vitest/ui": "^2.1.6",
+    "axe-core": "^4.10.2",
+    "bundlesize": "^0.18.1",
+    "eslint": "^9.25.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "happy-dom": "^15.11.6",
+    "lighthouse": "^12.2.1",
+    "@lhci/cli": "^0.14.0",
+    "msw": "^2.6.6",
+    "playwright": "^1.48.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.13",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.5",
+    "vite-bundle-analyzer": "^0.11.0",
+    "vitest": "^2.1.6"
+  },
+  "bundlesize": [
+    {
+      "path": "./dist/js/index-*.js",
+      "maxSize": "200 KB"
+    },
+    {
+      "path": "./dist/js/vendor-react-*.js",
+      "maxSize": "150 KB"
+    },
+    {
+      "path": "./dist/js/vendor-ui-*.js",
+      "maxSize": "100 KB"
+    },
+    {
+      "path": "./dist/css/*.css",
+      "maxSize": "50 KB"
+    }
+  ]
+}

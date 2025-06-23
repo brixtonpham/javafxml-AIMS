@@ -1,0 +1,233 @@
+# AIMS Web Application - Production Docker Compose Configuration
+# This configuration is optimized for production deployment with monitoring and security
+
+version: '3.8'
+
+services:
+  # Main web application
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      args:
+        - NODE_ENV=production
+        - BUILD_DATE=${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        - VCS_REF=${VCS_REF:-$(git rev-parse --short HEAD)}
+    image: aims-web:${TAG:-latest}
+    container_name: aims-web-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NODE_ENV=production
+      - NGINX_WORKER_PROCESSES=auto
+      - NGINX_WORKER_CONNECTIONS=4096
+    volumes:
+      # SSL certificates (update paths for production)
+      - ./ssl:/etc/ssl/certs:ro
+      # Nginx logs
+      - ./logs/nginx:/var/log/nginx
+      # Custom nginx configuration overrides
+      - ./nginx-overrides:/etc/nginx/conf.d/overrides:ro
+    networks:
+      - aims-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.aims.service=web"
+      - "com.aims.environment=production"
+      - "traefik.enable=true"
+      - "traefik.http.routers.aims-web.rule=Host(`aims.com`)"
+      - "traefik.http.routers.aims-web.tls=true"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
+
+  # Load balancer and reverse proxy (alternative to built-in nginx)
+  load-balancer:
+    image: nginx:alpine
+    container_name: aims-lb-prod
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./load-balancer.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/lb:/var/log/nginx
+    networks:
+      - aims-network
+    depends_on:
+      - web
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.aims.service=load-balancer"
+      - "com.aims.environment=production"
+
+  # Monitoring and metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aims-prometheus-prod
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    networks:
+      - aims-network
+    labels:
+      - "com.aims.service=monitoring"
+      - "com.aims.environment=production"
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: aims-grafana-prod
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-secure_password_change_me}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - aims-network
+    depends_on:
+      - prometheus
+    labels:
+      - "com.aims.service=monitoring"
+      - "com.aims.environment=production"
+
+  # Log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: aims-loki-prod
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - aims-network
+    labels:
+      - "com.aims.service=logging"
+      - "com.aims.environment=production"
+
+  # Log shipping
+  promtail:
+    image: grafana/promtail:latest
+    container_name: aims-promtail-prod
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - aims-network
+    depends_on:
+      - loki
+    labels:
+      - "com.aims.service=logging"
+      - "com.aims.environment=production"
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:alpine
+    container_name: aims-redis-prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - aims-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "com.aims.service=cache"
+      - "com.aims.environment=production"
+
+  # Backup service
+  backup:
+    image: alpine:latest
+    container_name: aims-backup-prod
+    restart: "no"
+    volumes:
+      - ./backups:/backups
+      - ./data:/data:ro
+      - ./scripts/backup.sh:/backup.sh:ro
+    command: ["/bin/sh", "/backup.sh"]
+    networks:
+      - aims-network
+    labels:
+      - "com.aims.service=backup"
+      - "com.aims.environment=production"
+
+# Networks
+networks:
+  aims-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes for persistent data
+volumes:
+  prometheus-data:
+    driver: local
+    labels:
+      - "com.aims.volume=prometheus-data"
+  grafana-data:
+    driver: local
+    labels:
+      - "com.aims.volume=grafana-data"
+  loki-data:
+    driver: local
+    labels:
+      - "com.aims.volume=loki-data"
+  redis-data:
+    driver: local
+    labels:
+      - "com.aims.volume=redis-data"
+
+# Secrets (use Docker secrets in production)
+secrets:
+  ssl_certificate:
+    external: true
+  ssl_private_key:
+    external: true
+  grafana_password:
+    external: true

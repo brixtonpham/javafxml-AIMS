@@ -1,0 +1,669 @@
+/* ==========================================================================
+   AIMS - WCAG 2.1 AA Accessibility Compliance System
+   ========================================================================== */
+
+@layer base {
+  /* ==========================================================================
+     Core Accessibility Base Styles
+     ========================================================================== */
+
+  /* Ensure proper focus visibility */
+  *:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Remove default focus styles only when we provide custom ones */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Enhanced focus for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --text-color: #000000;
+      --bg-color: #ffffff;
+      --border-color: #000000;
+      --link-color: #0000ee;
+      --visited-color: #551a8b;
+    }
+  }
+
+  /* Dark mode accessibility */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text-color: #ffffff;
+      --bg-color: #000000;
+      --border-color: #ffffff;
+      --link-color: #6699ff;
+      --visited-color: #cc99ff;
+    }
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     Screen Reader Only Content
+     ========================================================================== */
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .sr-only-focusable:focus,
+  .sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background-color: #1f2937;
+    color: #ffffff;
+    border: 2px solid #3b82f6;
+    border-radius: 0.375rem;
+    z-index: 9999;
+  }
+
+  /* ==========================================================================
+     Skip Links for Keyboard Navigation
+     ========================================================================== */
+
+  .skip-link {
+    @apply sr-only-focusable;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    background-color: #1f2937;
+    color: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-weight: 600;
+    z-index: 9999;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  /* ==========================================================================
+     Accessible Form Controls
+     ========================================================================== */
+
+  .form-control-accessible {
+    @apply w-full px-3 py-2 border rounded-lg transition-colors duration-200;
+    border-color: #d1d5db;
+    background-color: #ffffff;
+  }
+
+  .form-control-accessible:focus {
+    @apply ring-2 ring-primary-500 border-primary-500 outline-none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .form-control-accessible:invalid {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+  }
+
+  .form-control-accessible:invalid:focus {
+    @apply ring-2 ring-red-500 border-red-500;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+
+  .form-control-accessible[aria-describedby] {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Form labels */
+  .form-label-accessible {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+    cursor: pointer;
+  }
+
+  .form-label-accessible.required::after {
+    content: " *";
+    color: #ef4444;
+    font-weight: bold;
+  }
+
+  /* Error messages */
+  .form-error-accessible {
+    @apply text-sm text-red-600 mt-1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .form-error-accessible::before {
+    content: "⚠";
+    font-weight: bold;
+  }
+
+  /* Help text */
+  .form-help-accessible {
+    @apply text-sm text-gray-500 mt-1;
+  }
+
+  /* ==========================================================================
+     Accessible Buttons
+     ========================================================================== */
+
+  .btn-accessible {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    min-height: 44px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    position: relative;
+  }
+
+  .btn-accessible:focus {
+    @apply outline-none ring-2 ring-offset-2;
+  }
+
+  .btn-accessible:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    pointer-events: none;
+  }
+
+  .btn-accessible[aria-pressed="true"] {
+    @apply bg-primary-600;
+  }
+
+  /* Primary button */
+  .btn-primary-accessible {
+    @apply btn-accessible bg-primary-500 text-white;
+  }
+
+  .btn-primary-accessible:hover:not(:disabled) {
+    @apply bg-primary-600;
+  }
+
+  .btn-primary-accessible:focus {
+    @apply ring-primary-500;
+  }
+
+  .btn-primary-accessible:active {
+    @apply bg-primary-700;
+    transform: translateY(1px);
+  }
+
+  /* Secondary button */
+  .btn-secondary-accessible {
+    @apply btn-accessible bg-gray-200 text-gray-900;
+    border-color: #d1d5db;
+  }
+
+  .btn-secondary-accessible:hover:not(:disabled) {
+    @apply bg-gray-300;
+  }
+
+  .btn-secondary-accessible:focus {
+    @apply ring-gray-500;
+  }
+
+  /* Danger button */
+  .btn-danger-accessible {
+    @apply btn-accessible bg-red-500 text-white;
+  }
+
+  .btn-danger-accessible:hover:not(:disabled) {
+    @apply bg-red-600;
+  }
+
+  .btn-danger-accessible:focus {
+    @apply ring-red-500;
+  }
+
+  /* ==========================================================================
+     Accessible Navigation
+     ========================================================================== */
+
+  .nav-accessible {
+    @apply flex flex-wrap items-center;
+  }
+
+  .nav-item-accessible {
+    @apply relative;
+  }
+
+  .nav-link-accessible {
+    @apply block px-4 py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-gray-100 transition-colors duration-200;
+    text-decoration: none;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-link-accessible:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  .nav-link-accessible[aria-current="page"] {
+    @apply bg-primary-100 text-primary-700 font-medium;
+  }
+
+  /* Breadcrumb navigation */
+  .breadcrumb-accessible {
+    @apply flex flex-wrap items-center space-x-2 text-sm;
+    aria-label: "Breadcrumb";
+  }
+
+  .breadcrumb-item-accessible {
+    @apply flex items-center;
+  }
+
+  .breadcrumb-item-accessible:not(:last-child)::after {
+    content: "/";
+    @apply text-gray-400 ml-2;
+    aria-hidden: "true";
+  }
+
+  .breadcrumb-link-accessible {
+    @apply text-primary-600 hover:text-primary-700 underline;
+    text-decoration: none;
+  }
+
+  .breadcrumb-link-accessible:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-1 rounded;
+  }
+
+  /* ==========================================================================
+     Accessible Cards and Containers
+     ========================================================================== */
+
+  .card-accessible {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    position: relative;
+  }
+
+  .card-accessible:focus-within {
+    @apply ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  .card-interactive-accessible {
+    @apply card-accessible cursor-pointer transition-all duration-200;
+  }
+
+  .card-interactive-accessible:hover {
+    @apply shadow-md border-gray-300;
+  }
+
+  .card-interactive-accessible:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* ==========================================================================
+     Accessible Tables
+     ========================================================================== */
+
+  .table-accessible {
+    @apply w-full border-collapse;
+    border-spacing: 0;
+  }
+
+  .table-accessible th,
+  .table-accessible td {
+    @apply px-4 py-3 text-left border-b border-gray-200;
+  }
+
+  .table-accessible th {
+    @apply bg-gray-50 font-medium text-gray-900;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .table-accessible tbody tr:hover {
+    @apply bg-gray-50;
+  }
+
+  .table-accessible tbody tr:focus-within {
+    @apply bg-primary-50 ring-2 ring-primary-500 ring-inset;
+  }
+
+  /* Sortable table headers */
+  .table-sort-accessible {
+    @apply cursor-pointer select-none;
+    background-image: none;
+  }
+
+  .table-sort-accessible:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-inset;
+  }
+
+  .table-sort-accessible[aria-sort="ascending"]::after {
+    content: " ↑";
+    @apply text-primary-600;
+  }
+
+  .table-sort-accessible[aria-sort="descending"]::after {
+    content: " ↓";
+    @apply text-primary-600;
+  }
+
+  .table-sort-accessible[aria-sort="none"]::after {
+    content: " ↕";
+    @apply text-gray-400;
+  }
+
+  /* ==========================================================================
+     Accessible Modals and Overlays
+     ========================================================================== */
+
+  .modal-overlay-accessible {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content-accessible {
+    @apply bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-content-accessible:focus {
+    @apply outline-none;
+  }
+
+  .modal-header-accessible {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .modal-title-accessible {
+    @apply text-lg font-semibold text-gray-900;
+  }
+
+  .modal-close-accessible {
+    @apply p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .modal-close-accessible:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-1;
+  }
+
+  /* ==========================================================================
+     Accessible Status and Notifications
+     ========================================================================== */
+
+  .status-accessible {
+    @apply flex items-center gap-2 px-4 py-3 rounded-lg;
+  }
+
+  .status-success-accessible {
+    @apply status-accessible bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .status-warning-accessible {
+    @apply status-accessible bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+
+  .status-error-accessible {
+    @apply status-accessible bg-red-100 text-red-800 border border-red-200;
+  }
+
+  .status-info-accessible {
+    @apply status-accessible bg-blue-100 text-blue-800 border border-blue-200;
+  }
+
+  /* Status icons */
+  .status-icon-accessible {
+    @apply flex-shrink-0 w-5 h-5;
+  }
+
+  /* Live regions for dynamic content */
+  .live-region-accessible {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* ==========================================================================
+     Color Contrast Utilities
+     ========================================================================== */
+
+  /* High contrast text combinations */
+  .text-high-contrast {
+    color: #000000;
+    background-color: #ffffff;
+  }
+
+  .text-high-contrast-inverse {
+    color: #ffffff;
+    background-color: #000000;
+  }
+
+  /* WCAG AA compliant color combinations */
+  .text-contrast-aa {
+    color: #1f2937; /* 4.5:1 ratio on white */
+  }
+
+  .text-contrast-aa-large {
+    color: #4b5563; /* 3:1 ratio on white for large text */
+  }
+
+  /* Error states with sufficient contrast */
+  .text-error-contrast {
+    color: #b91c1c; /* 4.5:1 ratio on white */
+  }
+
+  .bg-error-contrast {
+    background-color: #fef2f2;
+    color: #b91c1c;
+  }
+
+  /* Success states with sufficient contrast */
+  .text-success-contrast {
+    color: #065f46; /* 4.5:1 ratio on white */
+  }
+
+  .bg-success-contrast {
+    background-color: #f0fdf4;
+    color: #065f46;
+  }
+
+  /* Warning states with sufficient contrast */
+  .text-warning-contrast {
+    color: #92400e; /* 4.5:1 ratio on white */
+  }
+
+  .bg-warning-contrast {
+    background-color: #fffbeb;
+    color: #92400e;
+  }
+}
+
+/* ==========================================================================
+   Focus Management and Keyboard Navigation
+   ========================================================================== */
+
+@layer utilities {
+  /* Focus trap for modals and dropdowns */
+  .focus-trap {
+    position: relative;
+  }
+
+  .focus-trap::before,
+  .focus-trap::after {
+    content: "";
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+  }
+
+  /* Skip to content functionality */
+  .skip-to-content {
+    @apply sr-only-focusable;
+    position: fixed;
+    top: -40px;
+    left: 6px;
+    background: #000000;
+    color: #ffffff;
+    padding: 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: top 0.3s;
+    z-index: 9999;
+  }
+
+  .skip-to-content:focus {
+    top: 6px;
+  }
+
+  /* Landmark regions */
+  .landmark-region {
+    scroll-margin-top: 2rem;
+  }
+
+  /* Accessible hiding */
+  .accessible-hidden {
+    @apply sr-only;
+  }
+
+  .accessible-hidden-mobile {
+    @apply sr-only sm:not-sr-only sm:block;
+  }
+
+  /* Focus indicators for different interaction methods */
+  .focus-keyboard-only:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .focus-keyboard-only:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Touch target sizing */
+  .touch-target-accessible {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Loading states with accessibility */
+  .loading-accessible {
+    position: relative;
+  }
+
+  .loading-accessible::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #e5e7eb;
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Reduced motion alternative */
+  @media (prefers-reduced-motion: reduce) {
+    .loading-accessible::after {
+      animation: none;
+      background: linear-gradient(90deg, #e5e7eb 0%, #3b82f6 50%, #e5e7eb 100%);
+      background-size: 200% 100%;
+      animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+      100% {
+        background-position: 200% 0;
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   Print Accessibility
+   ========================================================================== */
+
+@media print {
+  /* Ensure good contrast in print */
+  * {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Show URLs for links */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666666;
+  }
+
+  /* Hide non-essential elements */
+  .no-print,
+  nav,
+  .btn-accessible,
+  .modal-overlay-accessible {
+    display: none !important;
+  }
+
+  /* Ensure sufficient spacing */
+  .print-spacing {
+    margin-bottom: 1rem !important;
+  }
+}
