@@ -26,7 +26,7 @@ import java.util.HashMap;
  */
 @RestController
 @RequestMapping("/api/admin/products")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class AdminProductController extends BaseController {
 
     private final IProductService productService;

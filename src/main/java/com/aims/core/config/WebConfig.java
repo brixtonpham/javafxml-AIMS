@@ -48,19 +48,12 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Configure CORS mappings (additional to CorsConfig)
+     * CORS configuration is handled by CorsConfig.java to avoid conflicts
+     * This method intentionally left empty to prevent duplicate CORS configuration
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOriginPatterns(
-                    "http://localhost:3000", "http://127.0.0.1:3000",
-                    "http://localhost:3001", "http://127.0.0.1:3001"
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
+        // CORS configuration is handled by CorsConfig.java
     }
 
     /**

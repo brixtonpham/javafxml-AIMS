@@ -23,7 +23,7 @@ import java.util.HashMap;
  */
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class UserController extends BaseController {
 
     private final IUserAccountService userAccountService;

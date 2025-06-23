@@ -43,14 +43,20 @@ public class SecurityConfig {
             
             // Configure authorization rules
             .authorizeHttpRequests(authz -> authz
-                // Allow all API endpoints for now (can be refined later)
+                // Explicitly allow cart endpoints (HIGH PRIORITY FIX)
+                .requestMatchers("/api/cart/**").permitAll()
+                
+                // Explicitly allow order endpoints (HIGH PRIORITY FIX)
+                .requestMatchers("/api/orders/**").permitAll()
+                
+                // Allow all other API endpoints for now (can be refined later)
                 .requestMatchers("/api/**").permitAll()
                 
                 // Allow health check and actuator endpoints
                 .requestMatchers("/actuator/**").permitAll()
                 
                 // Allow Swagger/OpenAPI documentation
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs").permitAll()
                 
                 // Allow static resources
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()

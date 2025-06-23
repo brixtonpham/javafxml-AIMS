@@ -21,7 +21,7 @@ import java.util.HashMap;
  */
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "http://localhost:3000")
+
 public class PaymentController extends BaseController {
 
     private final IPaymentService paymentService;

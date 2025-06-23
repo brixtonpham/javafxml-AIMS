@@ -8,47 +8,57 @@ import type {
 export const cartService = {
   // Get current cart for session
   async getCart(sessionId?: string): Promise<Cart> {
-    const params = sessionId ? { sessionId } : {};
-    const response = await api.get<Cart>('/cart', { params });
+    if (!sessionId) {
+      sessionId = await this.ensureCartSession();
+    }
+    const response = await api.get<Cart>(`/cart/${sessionId}`);
     return response.data;
   },
 
   // Add item to cart
   async addToCart(productId: string, quantity: number, sessionId?: string): Promise<Cart> {
-    const response = await api.post<Cart>('/cart/items', {
+    if (!sessionId) {
+      sessionId = await this.ensureCartSession();
+    }
+    const response = await api.post<Cart>(`/cart/${sessionId}/items`, {
       productId,
-      quantity,
-      sessionId
+      quantity
     });
     return response.data;
   },
 
   // Update item quantity in cart
   async updateItemQuantity(productId: string, quantity: number, sessionId?: string): Promise<Cart> {
-    const response = await api.put<Cart>(`/cart/items/${productId}`, {
-      quantity,
-      sessionId
+    if (!sessionId) {
+      sessionId = await this.ensureCartSession();
+    }
+    const response = await api.put<Cart>(`/cart/${sessionId}/items/${productId}`, {
+      quantity
     });
     return response.data;
   },
 
   // Remove item from cart
   async removeFromCart(productId: string, sessionId?: string): Promise<Cart> {
-    const params = sessionId ? { sessionId } : {};
-    const response = await api.delete<Cart>(`/cart/items/${productId}`, { params });
+    if (!sessionId) {
+      sessionId = await this.ensureCartSession();
+    }
+    const response = await api.delete<Cart>(`/cart/${sessionId}/items/${productId}`);
     return response.data;
   },
 
   // Clear entire cart
   async clearCart(sessionId?: string): Promise<Cart> {
-    const params = sessionId ? { sessionId } : {};
-    const response = await api.delete<Cart>('/cart', { params });
+    if (!sessionId) {
+      sessionId = await this.ensureCartSession();
+    }
+    const response = await api.delete<Cart>(`/cart/${sessionId}`);
     return response.data;
   },
 
   // Associate guest cart with user after login
   async associateCartWithUser(sessionId: string): Promise<Cart> {
-    const response = await api.post<Cart>('/cart/associate', { sessionId });
+    const response = await api.post<Cart>(`/cart/${sessionId}/associate`);
     return response.data;
   },
 

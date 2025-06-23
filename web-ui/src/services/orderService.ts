@@ -10,7 +10,7 @@ import type {
 export const orderService = {
   // Create order from cart
   async createOrderFromCart(cartSessionId: string): Promise<Order> {
-    const response = await api.post<Order>('/orders', {
+    const response = await api.post<Order>('/orders/from-cart', {
       cartSessionId
     });
     return response.data;
@@ -23,8 +23,10 @@ export const orderService = {
   },
 
   // Get orders for current user
-  async getUserOrders(page = 1, pageSize = 20): Promise<PaginatedResponse<Order>> {
-    return paginatedRequest<Order>('/orders/user', {
+  async getUserOrders(userId?: string, page = 1, pageSize = 20): Promise<PaginatedResponse<Order>> {
+    // If userId is provided, use it; otherwise, the backend should handle getting current user's orders
+    const endpoint = userId ? `/orders/user/${userId}` : '/orders/user';
+    return paginatedRequest<Order>(endpoint, {
       page,
       pageSize
     });

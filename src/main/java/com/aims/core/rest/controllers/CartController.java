@@ -16,10 +16,10 @@ import java.util.HashMap;
 
 /**
  * REST controller for cart management operations
+ * CORS configuration is handled globally by CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/cart")
-@CrossOrigin(origins = "http://localhost:3000")
 public class CartController extends BaseController {
 
     private final ICartService cartService;

@@ -20,10 +20,10 @@ import java.util.HashMap;
 
 /**
  * REST controller for order management operations
+ * CORS configuration is handled globally by CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/orders")
-@CrossOrigin(origins = "http://localhost:3000")
 public class OrderController extends BaseController {
 
     private final IOrderService orderService;

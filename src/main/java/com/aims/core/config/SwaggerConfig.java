@@ -21,6 +21,7 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI aimsOpenAPI() {
         return new OpenAPI()
+                .openapi("3.0.1")
                 .info(new Info()
                         .title("AIMS Web API")
                         .description("RESTful API for the AIMS (Advanced Inventory Management System) web application")
