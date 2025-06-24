@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// Get API base URL for health checks
+const API_BASE_URL = typeof window !== 'undefined' 
+  ? (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080/api')
+  : 'http://localhost:8080/api';
+
 export interface NetworkStatus {
   online: boolean;
   downlink?: number;
@@ -63,7 +68,7 @@ const useNetworkStatus = (): NetworkStatusHook => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch('/api/health-check', {
+      const response = await fetch(`${API_BASE_URL}/health-check`, {
         method: 'HEAD',
         cache: 'no-cache',
         signal: controller.signal,

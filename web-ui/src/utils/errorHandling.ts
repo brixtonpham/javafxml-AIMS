@@ -1,5 +1,10 @@
 import type { AxiosError } from 'axios';
 
+// Import API_BASE_URL to construct correct URLs
+const API_BASE_URL = typeof window !== 'undefined' 
+  ? (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080/api')
+  : 'http://localhost:8080/api';
+
 export interface ErrorReport {
   errorId: string;
   message: string;
@@ -224,7 +229,7 @@ export const reportError = async (errorReport: ErrorReport): Promise<void> => {
 
     // In production, send to error reporting service
     // TODO: Integrate with actual error reporting service (e.g., Sentry, LogRocket)
-    const response = await fetch('/api/errors/report', {
+    const response = await fetch(`${API_BASE_URL}/errors/report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

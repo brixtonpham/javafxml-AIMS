@@ -33,14 +33,15 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
     setInputValue(currentQuantity.toString());
   }, [currentQuantity]);
 
+  const productStock = product.quantityInStock ?? product.quantity ?? 0;
   const maxAllowed = Math.min(
-    maxQuantity || product.quantity,
-    product.quantity
+    maxQuantity ?? productStock,
+    productStock
   );
 
   const canDecrease = quantity > 1 && !disabled;
   const canIncrease = quantity < maxAllowed && !disabled;
-  const isOutOfStock = product.quantity === 0;
+  const isOutOfStock = productStock === 0;
 
   const handleDecrease = () => {
     if (canDecrease) {
@@ -82,7 +83,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Allow only numbers and control keys
-    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    if (!/\d/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       e.preventDefault();
     }
   };
@@ -163,16 +164,16 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
       </div>
 
       {/* Stock warning */}
-      {quantity > product.quantity && (
+      {quantity > productStock && (
         <div className="text-xs text-red-500 mt-1">
-          Only {product.quantity} available
+          Only {productStock} available
         </div>
       )}
 
       {/* Low stock warning */}
-      {product.quantity <= 5 && product.quantity > 0 && (
+      {productStock <= 5 && productStock > 0 && (
         <div className="text-xs text-orange-500 mt-1">
-          {product.quantity} left in stock
+          {productStock} left in stock
         </div>
       )}
     </div>

@@ -196,7 +196,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const canAddToCart = (product: Product, quantity: number = 1): boolean => {
     const currentQuantity = getItemQuantity(product.id);
     const totalRequestedQuantity = currentQuantity + quantity;
-    return totalRequestedQuantity <= product.quantity && product.quantity > 0;
+    const productStock = product.quantityInStock ?? product.quantity ?? 0;
+    return totalRequestedQuantity <= productStock && productStock > 0;
   };
 
   const contextValue: CartContextType = {

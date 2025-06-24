@@ -1,5 +1,6 @@
 package com.aims.core.infrastructure.database.dao;
 
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Repository;
  * This provides compatibility for tests that expect IOrderDAO.
  */
 @Repository
+@Primary
 public class OrderDAOImpl extends OrderEntityDAOImpl implements IOrderDAO {
     
     public OrderDAOImpl(IOrderItemDAO orderItemDAO, IUserAccountDAO userAccountDAO) {

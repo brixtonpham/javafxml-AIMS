@@ -119,7 +119,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   // Query for user orders with filters
   const ordersQuery = useQuery({
     queryKey: ['orders', 'user', state.filters],
-    queryFn: () => orderService.getUserOrders(state.filters.page, state.filters.pageSize)
+    queryFn: () => orderService.getUserOrders(undefined, state.filters.page, state.filters.pageSize)
   });
 
   // Query for single order details
@@ -192,7 +192,9 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
   // Calculate order stats from current orders
   const calculateStats = useCallback((orders: Order[]): OrderStatusStats => {
-    const stats = orders.reduce((acc, order) => {
+    // Safety check: ensure orders is an array
+    const ordersArray = orders || [];
+    const stats = ordersArray.reduce((acc, order) => {
       acc.total++;
       switch (order.status) {
         case 'PENDING':
@@ -230,8 +232,10 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
 
   // Update stats when orders change
   React.useEffect(() => {
-    const stats = calculateStats(state.orders);
-    dispatch({ type: 'SET_STATS', payload: stats });
+    if (state.orders) {
+      const stats = calculateStats(state.orders);
+      dispatch({ type: 'SET_STATS', payload: stats });
+    }
   }, [state.orders, calculateStats]);
 
   const value: OrderContextValue = {

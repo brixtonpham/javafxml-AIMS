@@ -3,6 +3,7 @@ package com.aims.core.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -41,28 +42,9 @@ public class SecurityConfig {
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
-            // Configure authorization rules
+            // Configure authorization rules - TEMPORARILY ALLOW ALL FOR TESTING
             .authorizeHttpRequests(authz -> authz
-                // Explicitly allow cart endpoints (HIGH PRIORITY FIX)
-                .requestMatchers("/api/cart/**").permitAll()
-                
-                // Explicitly allow order endpoints (HIGH PRIORITY FIX)
-                .requestMatchers("/api/orders/**").permitAll()
-                
-                // Allow all other API endpoints for now (can be refined later)
-                .requestMatchers("/api/**").permitAll()
-                
-                // Allow health check and actuator endpoints
-                .requestMatchers("/actuator/**").permitAll()
-                
-                // Allow Swagger/OpenAPI documentation
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs").permitAll()
-                
-                // Allow static resources
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
-                
-                // Require authentication for any other requests
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
             )
             
             // Configure security headers

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { vnpayService } from '../services/VNPayService';
+import { API_BASE_URL } from '../services/api';
 import type {
   PaymentContextState,
   PaymentContextValue,
@@ -117,7 +118,7 @@ export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) =>
       dispatch({ type: 'SET_ERROR', payload: null });
 
       // Get order details for payment (this would come from your order service)
-      const orderResponse = await fetch(`/api/orders/${orderId}`);
+      const orderResponse = await fetch(`${API_BASE_URL}/orders/${orderId}`);
       const order = await orderResponse.json();
 
       if (!order) {
@@ -263,7 +264,7 @@ export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) =>
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
 
       // Send notification through API
-      await fetch('/api/notifications/payment', {
+      await fetch(`${API_BASE_URL}/notifications/payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

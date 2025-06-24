@@ -18,27 +18,49 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Products API has a different response structure
+export interface ProductsApiResponse<T> {
+  success: boolean;
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  message: string;
+}
+
 // Product Types
 export interface Product {
   id: string;
+  productId: string; // Backend uses productId
   title: string;
   description: string;
   category: string;
   price: number; // VAT-inclusive for customers
-  value: number; // Base value for calculations
-  quantity: number;
+  valueAmount: number; // Backend uses valueAmount
+  quantityInStock: number; // Backend uses quantityInStock
+  quantity?: number; // Keep for compatibility, will be derived from quantityInStock
   imageUrl?: string;
   productType: ProductType;
   entryDate: string;
   // Subtype-specific fields
   author?: string; // For books
-  artists?: string; // For CDs
+  artists?: string; // For CDs/LPs
   director?: string; // For DVDs
-  tracklist?: string; // For LPs
   publisher?: string; // For books
-  genre?: string; // For media
-  runtime?: number; // For DVDs
   language?: string; // For books/DVDs
+  genre?: string; // For all media types
+  runtime?: number; // For DVDs (minutes)
+  studio?: string; // For CDs/DVDs
+  tracklist?: string; // For LPs
+  // Additional backend fields
+  barcode?: string;
+  dimensionsCm?: string;
+  weightKg?: number;
 }
 
 export const ProductType = {
@@ -371,4 +393,85 @@ export interface Notification {
     label: string;
     onClick: () => void;
   };
+}
+
+// Stock Validation Types for Phase 2
+export interface StockValidationResult {
+  isValid: boolean;
+  productId: string;
+  productTitle: string;
+  requestedQuantity: number;
+  actualStock: number;
+  reservedStock: number;
+  availableStock: number;
+  message: string;
+  reasonCode: string;
+  shortfallQuantity?: number;
+}
+
+export interface BulkStockValidationResult {
+  isAllValid: boolean;
+  individualResults: StockValidationResult[];
+  failedValidations: StockValidationResult[];
+  totalProductsChecked: number;
+  totalFailedProducts: number;
+  overallMessage: string;
+}
+
+export interface StockValidationNotification {
+  title: string;
+  message: string;
+  productMessages: string[];
+  suggestedActions: Record<string, string>;
+  canProceedWithAvailableStock: boolean;
+}
+
+// Enhanced Rush Delivery Types for Phase 2
+export interface RushDeliveryEligibilityResult {
+  isEligible: boolean;
+  message: string;
+  reasonCode: string;
+  eligibleDistricts: string[];
+}
+
+export interface RushDeliveryTimeEstimate {
+  deliveryHours: number;
+  timeWindow: string;
+  cutoffTime: string;
+  availableToday: boolean;
+}
+
+export interface RushOrderValidationResult {
+  isValid: boolean;
+  message: string;
+  addressEligibility: RushDeliveryEligibilityResult;
+  itemEligibility: RushDeliveryEligibilityResult;
+  rushFee: number;
+  timeEstimate?: RushDeliveryTimeEstimate;
+}
+
+// Enhanced Business Rules for Phase 2
+export interface VATCalculationResult {
+  basePrice: number;
+  vatAmount: number;
+  totalPrice: number;
+  vatRate: number;
+  isValid: boolean;
+}
+
+export interface DeliveryFeeBreakdown {
+  totalFee: number;
+  baseFee: number;
+  regionalAdjustment: number;
+  rushSurcharge: number;
+  freeShippingDiscount: number;
+}
+
+export interface PaymentFlowState {
+  step: 'DELIVERY' | 'PAYMENT_METHOD' | 'PAYMENT_PROCESSING' | 'CONFIRMATION';
+  canProceed: boolean;
+  validationErrors: string[];
+  deliveryValidated: boolean;
+  stockValidated: boolean;
+  paymentMethodSelected: boolean;
 }

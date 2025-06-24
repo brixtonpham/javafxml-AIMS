@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -13,52 +13,54 @@ import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import AppLayout from '../components/layout/AppLayout';
 import { Card, Button } from '../components/ui';
 import AddToCartButton from '../components/cart/AddToCartButton';
-import { useProducts } from '../hooks/useProducts';
-import type { Product } from '../types';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { productService } from '../services/productService';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Mock data for demonstration - replace with actual API call
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Fetch product data using React Query with aggressive refresh strategy
+  const {
+    data: product,
+    isLoading: loading,
+    error,
+    refetch: refetchProduct
+  } = useQuery({
+    queryKey: ['product', id],
+    queryFn: () => productService.getProductById(id!),
+    enabled: !!id,
+    staleTime: 0, // Always fetch fresh data for detail page
+    gcTime: 2 * 60 * 1000, // 2 minutes garbage collection
+    retry: 1,
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchOnMount: 'always', // Always refetch on mount
+  });
 
-  useEffect(() => {
+  // Force invalidate product list cache when this page loads to ensure consistency
+  React.useEffect(() => {
     if (id) {
-      // Mock product fetch - replace with actual API call
-      const fetchProduct = async () => {
-        setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockProduct: Product = {
-          id: id,
-          title: "The Great Gatsby",
-          description: "A classic American novel set in the summer of 1922, exploring themes of wealth, love, idealism, and moral decay against the backdrop of the Jazz Age.",
-          category: "Fiction",
-          price: 299000,
-          value: 271818, // Price without 10% VAT
-          quantity: 15,
-          imageUrl: "/api/placeholder/400/400",
-          productType: "BOOK",
-          entryDate: "2024-01-15",
-          author: "F. Scott Fitzgerald",
-          publisher: "Scribner",
-          language: "English"
-        };
-        
-        setProduct(mockProduct);
-        setLoading(false);
-      };
-
-      fetchProduct();
+      // Invalidate all related product queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', id] });
     }
-  }, [id]);
+  }, [id, queryClient]);
+
+  // Force refetch when navigating back from cart or other pages
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && id) {
+        refetchProduct();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [id, refetchProduct]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -191,7 +193,7 @@ const ProductDetailPage: React.FC = () => {
               <div className="aspect-square bg-gray-200 rounded-lg"></div>
               <div className="flex space-x-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-16 h-16 bg-gray-200 rounded"></div>
+                  <div key={`skeleton-${i}`} className="w-16 h-16 bg-gray-200 rounded"></div>
                 ))}
               </div>
             </div>
@@ -201,10 +203,31 @@ const ProductDetailPage: React.FC = () => {
               <div className="h-6 bg-gray-200 rounded w-1/2"></div>
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-4 bg-gray-200 rounded"></div>
+                  <div key={`skeleton-detail-${i}`} className="h-4 bg-gray-200 rounded"></div>
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout title="Error">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Failed to Load Product</h1>
+          <p className="text-gray-600 mb-6">
+            {error instanceof Error ? error.message : 'Unable to load product details.'}
+          </p>
+          <div className="flex justify-center gap-4">
+            <Button onClick={() => navigate('/products')}>
+              Browse Products
+            </Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
           </div>
         </div>
       </AppLayout>
@@ -347,7 +370,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="text-right">
                   <div className="text-sm text-gray-500">VAT Included</div>
                   <div className="text-sm text-gray-500">
-                    Base Price: {formatPrice(product.value)}
+                    Base Price: {formatPrice(product.valueAmount)}
                   </div>
                 </div>
               </div>
@@ -355,11 +378,11 @@ const ProductDetailPage: React.FC = () => {
 
             {/* Stock Status */}
             <div className="flex items-center space-x-2">
-              {product.quantity > 0 ? (
+              {(product.quantityInStock ?? product.quantity ?? 0) > 0 ? (
                 <>
                   <CheckCircleIcon className="w-5 h-5 text-green-500" />
                   <span className="text-green-700 font-medium">In Stock</span>
-                  <span className="text-gray-500">({product.quantity} available)</span>
+                  <span className="text-gray-500">({product.quantityInStock ?? product.quantity ?? 0} available)</span>
                 </>
               ) : (
                 <>
@@ -373,7 +396,7 @@ const ProductDetailPage: React.FC = () => {
             <div className="space-y-3">
               <AddToCartButton
                 product={product}
-                disabled={product.quantity === 0}
+                disabled={(product.quantityInStock ?? product.quantity ?? 0) === 0}
                 className="w-full"
                 size="lg"
               />

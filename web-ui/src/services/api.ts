@@ -5,7 +5,12 @@ import { handleApiError, withRetry } from '../utils/errorHandling';
 import { toast } from '../components/common/Toast';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// In development, use proxy '/api' (handled by Vite proxy)
+// In production, use the full API URL
+export const API_BASE_URL = import.meta.env.DEV 
+  ? '/api'  // Use proxy in development
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api');
+
 const API_TIMEOUT = 10000; // 10 seconds
 
 // Create axios instance with default configuration
@@ -14,7 +19,9 @@ const apiClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true, // Enable credentials for CORS
 });
 
 // Request interceptor to add auth token
@@ -86,10 +93,6 @@ export async function apiRequest<T>(
           userFriendlyError.message,
           {
             duration: 8000,
-            action: userFriendlyError.action ? {
-              label: userFriendlyError.action.label,
-              onClick: userFriendlyError.action.handler,
-            } : undefined,
           }
         );
       }
@@ -99,11 +102,10 @@ export async function apiRequest<T>(
         throw error.response.data;
       }
       
-      throw {
-        success: false,
-        message: userFriendlyError.message,
-        errors: [userFriendlyError.message],
-      };
+      const apiError = new Error(userFriendlyError.message);
+      (apiError as any).success = false;
+      (apiError as any).errors = [userFriendlyError.message];
+      throw apiError;
     }
   };
 
@@ -139,8 +141,35 @@ export async function paginatedRequest<T>(
   url: string,
   params?: Record<string, any>
 ): Promise<PaginatedResponse<T>> {
-  const response = await api.get<PaginatedResponse<T>>(url, { params });
+  const response = await apiClient.get<PaginatedResponse<T>>(url, { params });
   return response.data;
+}
+
+// Products API specific request function (different response structure)
+export async function productsRequest<T>(
+  url: string,
+  params?: Record<string, any>
+): Promise<PaginatedResponse<T>> {
+  console.log(`[${new Date().toISOString()}] productsRequest called with:`, { url, params });
+  try {
+    const response = await apiClient.get<import('../types').ProductsApiResponse<T>>(url, { params });
+    console.log(`[${new Date().toISOString()}] productsRequest response:`, response.data);
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'API request failed');
+    }
+    
+    const result = {
+      items: response.data.items,
+      pagination: response.data.pagination,
+    };
+    
+    console.log(`[${new Date().toISOString()}] productsRequest returning:`, result);
+    return result;
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] productsRequest error:`, error);
+    throw error;
+  }
 }
 
 export default apiClient;

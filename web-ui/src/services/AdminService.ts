@@ -1,4 +1,4 @@
-import { api, paginatedRequest } from './api';
+import { api, paginatedRequest, API_BASE_URL } from './api';
 import type {
   AdminMetrics,
   SystemActivity,
@@ -256,7 +256,7 @@ class AdminService {
   }
 
   async downloadExport(exportId: string): Promise<Blob> {
-    const response = await fetch(`/api/admin/export/${exportId}/download`, {
+    const response = await fetch(`${API_BASE_URL}/admin/export/${exportId}/download`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
       },

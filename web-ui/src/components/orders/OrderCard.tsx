@@ -91,7 +91,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Items:</span>
           <span className="font-medium">
-            {order.items.reduce((total, item) => total + item.quantity, 0)} item(s)
+            {(order.items || []).reduce((total, item) => total + item.quantity, 0)} item(s)
           </span>
         </div>
         

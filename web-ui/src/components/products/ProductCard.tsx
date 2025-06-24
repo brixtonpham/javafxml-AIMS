@@ -32,7 +32,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onAddToCart?.(product.id);
+    if ((product.quantityInStock || product.quantity || 0) > 0) {
+      onAddToCart?.(product.id);
+    }
   };
 
   const handleViewDetails = () => {
@@ -159,11 +161,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </button>
 
           {/* Stock Badge */}
-          {product.quantity === 0 && (
-            <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
-              Out of Stock
-            </div>
-          )}
+          {(() => {
+            if (product.quantity === 0) {
+              return (
+                <div className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
+                  Out of Stock
+                </div>
+              );
+            } else if ((product.quantityInStock || product.quantity || 0) <= 5) {
+              return (
+                <div className="absolute top-2 left-2 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded">
+                  Low Stock ({product.quantity})
+                </div>
+              );
+            } else {
+              return (
+                <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                  In Stock ({product.quantity})
+                </div>
+              );
+            }
+          })()}
           
           {/* Product Type Badge */}
           <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-60 text-white text-xs font-medium rounded">

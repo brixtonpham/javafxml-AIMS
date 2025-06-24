@@ -3,12 +3,14 @@ import Card from './ui/Card';
 import Button from './ui/Button';
 import { useCartContext } from '../contexts/CartContext';
 import { deliveryService } from '../services/DeliveryService';
+import { stockValidationService } from '../services/stockValidationService';
+import { Clock, MapPin, AlertCircle, CheckCircle, Info, Truck } from 'lucide-react';
 import type {
   DeliveryOptions,
   CheckoutDeliveryInfo,
   DeliveryCalculationResult
 } from '../types/checkout';
-import type { OrderItem } from '../types';
+import type { OrderItem, RushDeliveryEligibilityResult } from '../types';
 
 interface DeliveryOptionsSelectorProps {
   deliveryInfo: CheckoutDeliveryInfo;
@@ -41,6 +43,8 @@ const DeliveryOptionsSelector: React.FC<DeliveryOptionsSelectorProps> = ({
   const [calculationResult, setCalculationResult] = useState<DeliveryCalculationResult | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [rushAvailable, setRushAvailable] = useState(false);
+  const [rushEligibilityResult, setRushEligibilityResult] = useState<RushDeliveryEligibilityResult | null>(null);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
 
   // Check if rush delivery is available for the location
   useEffect(() => {
@@ -60,12 +64,60 @@ const DeliveryOptionsSelector: React.FC<DeliveryOptionsSelectorProps> = ({
     }
   }, [deliveryInfo.province, deliveryInfo.city]);
 
+  // Check rush delivery eligibility for cart items
+  useEffect(() => {
+    if (items.length > 0 && rushAvailable) {
+      checkRushDeliveryEligibility();
+    }
+  }, [items, rushAvailable]);
+
   // Calculate delivery fee whenever options change
   useEffect(() => {
     if (deliveryInfo.province && deliveryInfo.city && items.length > 0) {
       calculateDeliveryFee();
     }
   }, [options.isRushOrder, deliveryInfo, items]);
+
+  const checkRushDeliveryEligibility = async () => {
+    if (!items.length || !rushAvailable) return;
+
+    setIsCheckingEligibility(true);
+    try {
+      const productIds = items.map(item => item.productId);
+      const serviceResult = await stockValidationService.checkRushDeliveryEligibility(productIds);
+      
+      // Map service result to expected RushDeliveryEligibilityResult format
+      const eligibilityResult: RushDeliveryEligibilityResult = {
+        isEligible: serviceResult.isEligible,
+        message: serviceResult.isEligible
+          ? "All items are eligible for rush delivery"
+          : `${serviceResult.ineligibleProducts.length} item(s) not eligible for rush delivery`,
+        reasonCode: serviceResult.isEligible ? 'ELIGIBLE' : 'INELIGIBLE_PRODUCTS',
+        eligibleDistricts: rushAvailable && deliveryInfo.province === 'Hanoi'
+          ? ['Ba Đình', 'Hoàn Kiếm', 'Hai Bà Trưng', 'Đống Đa', 'Tây Hồ', 'Cầu Giấy', 'Thanh Xuân']
+          : rushAvailable && deliveryInfo.province === 'Ho Chi Minh City'
+          ? ['District 1', 'District 3', 'District 5', 'Bình Thạnh', 'Phú Nhuận']
+          : []
+      };
+      
+      setRushEligibilityResult(eligibilityResult);
+
+      // If rush delivery is not eligible for some products, show warnings
+      if (!serviceResult.isEligible && serviceResult.ineligibleProducts.length > 0) {
+        const warnings = serviceResult.ineligibleProducts.map(productId => {
+          const item = items.find(i => i.productId === productId);
+          const reason = serviceResult.reasons[productId];
+          return `${item?.product.title || productId}: ${reason}`;
+        });
+        setErrors(prev => [...prev, ...warnings]);
+      }
+    } catch (error) {
+      console.error('Failed to check rush delivery eligibility:', error);
+      setErrors(prev => [...prev, 'Failed to check rush delivery eligibility']);
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  };
 
   const calculateDeliveryFee = async () => {
     if (!deliveryInfo.province || !deliveryInfo.city || items.length === 0) {
@@ -146,32 +198,108 @@ const DeliveryOptionsSelector: React.FC<DeliveryOptionsSelectorProps> = ({
               id="rushDelivery"
               checked={options.isRushOrder}
               onChange={(e) => handleOptionChange('isRushOrder', e.target.checked)}
-              disabled={!rushAvailable}
+              disabled={!rushAvailable || (rushEligibilityResult?.isEligible === false)}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
             />
             <div className="flex-1">
-              <label
-                htmlFor="rushDelivery"
-                className={`text-sm font-medium ${rushAvailable ? 'text-gray-900' : 'text-gray-400'}`}
-              >
-                Rush Delivery - Same Day
+              <div className="flex items-center">
+                <label
+                  htmlFor="rushDelivery"
+                  className={`text-sm font-medium ${rushAvailable ? 'text-gray-900' : 'text-gray-400'}`}
+                >
+                  <Truck className="inline w-4 h-4 mr-2" />
+                  Rush Delivery - Same Day
+                </label>
                 {rushAvailable && (
                   <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <CheckCircle className="w-3 h-3 mr-1" />
                     Available
                   </span>
                 )}
-              </label>
-              <p className={`text-sm ${rushAvailable ? 'text-gray-600' : 'text-gray-400'}`}>
-                {rushAvailable
-                  ? 'Get your order delivered on the same day for an additional fee'
-                  : 'Only available for inner districts of Hanoi and Ho Chi Minh City'
-                }
-              </p>
-              {options.isRushOrder && calculationResult && (
-                <p className="text-sm text-blue-600 mt-1">
-                  Rush delivery fee: +{deliveryService.formatDeliveryFee(calculationResult.rushDeliveryFee)}
+                {isCheckingEligibility && (
+                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <Clock className="w-3 h-3 mr-1 animate-spin" />
+                    Checking...
+                  </span>
+                )}
+              </div>
+              
+              <div className="mt-2 space-y-2">
+                <p className={`text-sm ${rushAvailable ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {rushAvailable
+                    ? 'Get your order delivered on the same day for an additional fee'
+                    : 'Only available for inner districts of Hanoi and Ho Chi Minh City'
+                  }
                 </p>
-              )}
+
+                {/* District Information for Hanoi */}
+                {deliveryInfo.province === 'Hanoi' && rushAvailable && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600 mr-2" />
+                      <span className="text-sm font-medium text-blue-900">
+                        Hanoi Rush Delivery Districts
+                      </span>
+                    </div>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      <p><strong>Inner Districts:</strong> Ba Đình, Hoàn Kiếm, Hai Bà Trưng, Đống Đa</p>
+                      <p><strong>Extended Areas:</strong> Tây Hồ, Cầu Giấy, Thanh Xuân</p>
+                      <p className="text-blue-600 mt-2">
+                        <Info className="inline w-3 h-3 mr-1" />
+                        Current location: {deliveryInfo.city} -
+                        {rushEligibilityResult?.eligibleDistricts.includes(deliveryInfo.city)
+                          ? ' ✅ Eligible'
+                          : ' ⚠️ Please verify eligibility'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* District Information for Ho Chi Minh City */}
+                {deliveryInfo.province === 'Ho Chi Minh City' && rushAvailable && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600 mr-2" />
+                      <span className="text-sm font-medium text-blue-900">
+                        Ho Chi Minh City Rush Delivery Districts
+                      </span>
+                    </div>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      <p><strong>Central Districts:</strong> District 1, District 3, District 5</p>
+                      <p><strong>Extended Areas:</strong> Bình Thạnh, Phú Nhuận</p>
+                      <p className="text-blue-600 mt-2">
+                        <Info className="inline w-3 h-3 mr-1" />
+                        Current location: {deliveryInfo.city} -
+                        {rushEligibilityResult?.eligibleDistricts.includes(deliveryInfo.city)
+                          ? ' ✅ Eligible'
+                          : ' ⚠️ Please verify eligibility'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rush Eligibility Status */}
+                {rushEligibilityResult && (
+                  <div className={`p-3 rounded-lg ${rushEligibilityResult.isEligible ? 'bg-green-50' : 'bg-orange-50'}`}>
+                    <div className="flex items-center">
+                      {rushEligibilityResult.isEligible ? (
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-orange-600 mr-2" />
+                      )}
+                      <span className={`text-sm font-medium ${rushEligibilityResult.isEligible ? 'text-green-900' : 'text-orange-900'}`}>
+                        {rushEligibilityResult.message}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {options.isRushOrder && calculationResult && (
+                  <p className="text-sm text-blue-600 mt-1">
+                    Rush delivery fee: +{deliveryService.formatDeliveryFee(calculationResult.rushDeliveryFee)}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

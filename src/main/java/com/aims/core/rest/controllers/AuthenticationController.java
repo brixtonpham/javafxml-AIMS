@@ -1,12 +1,11 @@
 package com.aims.core.rest.controllers;
 
-import com.aims.core.application.services.IAuthenticationService;
 import com.aims.core.application.services.IUserAccountService;
 import com.aims.core.entities.UserAccount;
+import com.aims.core.shared.ServiceFactory;
 import com.aims.core.shared.exceptions.AuthenticationException;
 import com.aims.core.shared.exceptions.ResourceNotFoundException;
 import com.aims.core.shared.exceptions.ValidationException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,18 +15,17 @@ import java.util.Map;
 
 /**
  * REST Controller for authentication endpoints
- * TEMPORARILY DISABLED: Missing IAuthenticationService implementation
  */
-// @RestController
-// @RequestMapping("/api/auth")
-// @CrossOrigin(origins = "http://localhost:3000")
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 public class AuthenticationController extends BaseController {
     
-    @Autowired
-    private IAuthenticationService authenticationService;
+    private final IUserAccountService userAccountService;
     
-    @Autowired
-    private IUserAccountService userAccountService;
+    public AuthenticationController() {
+        this.userAccountService = ServiceFactory.getUserAccountService();
+    }
     
     /**
      * Login endpoint

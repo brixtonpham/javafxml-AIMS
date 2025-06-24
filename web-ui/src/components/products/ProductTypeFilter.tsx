@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '../ui';
 import { useProductTypes } from '../../hooks';
-import { ProductType } from '../../types';
 
 interface ProductTypeFilterProps {
   selectedType?: string;
@@ -19,9 +18,9 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
   if (isLoading) {
     return (
       <div className={`flex flex-wrap gap-2 ${className}`}>
-        {[...Array(4)].map((_, index) => (
+        {Array.from({ length: 4 }, (_, index) => (
           <div
-            key={index}
+            key={`loading-skeleton-${index}`}
             className="h-10 w-16 bg-gray-200 animate-pulse rounded-md"
           />
         ))}
@@ -37,32 +36,18 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
     );
   }
 
-  const types = productTypes || Object.values(ProductType);
-
-  const getTypeDisplayName = (type: string) => {
-    switch (type) {
-      case 'BOOK':
-        return 'Books';
-      case 'CD':
-        return 'CDs';
-      case 'DVD':
-        return 'DVDs';
-      case 'LP':
-        return 'LPs';
-      default:
-        return type;
-    }
-  };
+  // Backend returns display names, use them directly
+  const types = productTypes || [];
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'BOOK':
+      case 'Books':
         return '📚';
-      case 'CD':
+      case 'CDs':
         return '💿';
-      case 'DVD':
+      case 'DVDs':
         return '📀';
-      case 'LP':
+      case 'LP Records':
         return '🎵';
       default:
         return '📦';
@@ -71,9 +56,9 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <label className="block text-sm font-medium text-gray-700">
+      <h4 className="block text-sm font-medium text-gray-700">
         Product Type
-      </label>
+      </h4>
       
       <div className="flex flex-wrap gap-2">
         {/* All Types Button */}
@@ -97,7 +82,7 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
             className="flex items-center gap-2 transition-all duration-200 hover:scale-105"
           >
             <span className="text-base">{getTypeIcon(type)}</span>
-            <span>{getTypeDisplayName(type)}</span>
+            <span>{type}</span>
           </Button>
         ))}
       </div>
@@ -124,7 +109,7 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
               className="flex items-center justify-center gap-2 py-3"
             >
               <span className="text-base">{getTypeIcon(type)}</span>
-              <span className="text-xs">{getTypeDisplayName(type)}</span>
+              <span className="text-xs">{type}</span>
             </Button>
           ))}
         </div>
@@ -134,7 +119,7 @@ const ProductTypeFilter: React.FC<ProductTypeFilterProps> = ({
       {selectedType && (
         <div className="flex items-center gap-2 text-sm text-blue-600">
           <span>📍</span>
-          <span>Filtered by: {getTypeDisplayName(selectedType)}</span>
+          <span>Filtered by: {selectedType}</span>
           <button
             onClick={() => onTypeChange(undefined)}
             className="text-gray-400 hover:text-gray-600 ml-1"

@@ -2,7 +2,6 @@ import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { CartProvider } from '../contexts/CartContext';
 import { TestCartProvider } from './TestCartProvider';
 import { vi } from 'vitest';
 
@@ -144,14 +143,15 @@ export { customRender as render };
 // Helper functions for testing
 export const createMockProduct = (overrides = {}) => ({
   id: 'test-product-1',
+  productId: 'TEST001',
   title: 'Test Product',
   productType: 'BOOK' as const,
   price: 100000,
-  quantity: 10,
+  quantityInStock: 10,
   description: 'Test product description',
   imageUrl: '/test-image.jpg',
   category: 'Test Category',
-  value: 100000,
+  valueAmount: 100000,
   entryDate: '2024-01-15T10:00:00Z',
   metadata: {
     author: 'Test Author',

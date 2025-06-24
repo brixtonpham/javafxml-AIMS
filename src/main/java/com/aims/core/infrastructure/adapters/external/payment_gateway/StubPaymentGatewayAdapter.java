@@ -5,12 +5,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.stereotype.Component;
+
 import com.aims.core.entities.OrderEntity;
 import com.aims.core.entities.PaymentMethod;
 import com.aims.core.entities.CardDetails;
 import com.aims.core.shared.exceptions.PaymentException;
 import com.aims.core.shared.exceptions.ValidationException;
 
+@Component
 public class StubPaymentGatewayAdapter implements IPaymentGatewayAdapter {
 
     private static final Map<String, String> FIELD_MAPPINGS = new HashMap<>();

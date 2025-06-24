@@ -354,4 +354,7 @@ export const toast = {
   },
 };
 
+// Export showToast as an alias for toast for backward compatibility
+export const showToast = toast;
+
 export default toast;

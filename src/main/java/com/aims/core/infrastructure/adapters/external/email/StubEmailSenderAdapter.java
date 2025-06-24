@@ -1,9 +1,12 @@
 package com.aims.core.infrastructure.adapters.external.email;
 
+import org.springframework.stereotype.Component;
+
 /**
  * Stub implementation of email sender adapter for testing/development.
  * This implementation just logs email details instead of actually sending emails.
  */
+@Component
 public class StubEmailSenderAdapter implements IEmailSenderAdapter {
 
     @Override

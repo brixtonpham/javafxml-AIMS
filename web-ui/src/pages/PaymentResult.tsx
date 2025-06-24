@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePaymentContext } from '../contexts/PaymentContext';
 import { useOrderContext } from '../contexts/OrderContext';
 import { VNPayValidation } from '../utils/vnpayValidation';
+import { API_BASE_URL } from '../services/api';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AppLayout from '../components/layout/AppLayout';
@@ -57,7 +58,7 @@ const PaymentResult: React.FC = () => {
         // Get order details if payment was successful
         if (success && processedTransaction.orderId) {
           try {
-            const orderResponse = await fetch(`/api/orders/${processedTransaction.orderId}`);
+            const orderResponse = await fetch(`${API_BASE_URL}/orders/${processedTransaction.orderId}`);
             const orderData = await orderResponse.json();
             setOrder(orderData);
             

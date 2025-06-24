@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartService } from '../services';
-import type { Cart, CartItem } from '../types';
+import { stockValidationService } from '../services/stockValidationService';
+import type { Cart, CartItem, StockValidationResult, BulkStockValidationResult } from '../types';
 
 export const useCart = (sessionId?: string) => {
   const queryClient = useQueryClient();
@@ -25,8 +26,12 @@ export const useCart = (sessionId?: string) => {
       quantity: number; 
       sessionId?: string;
     }) => cartService.addToCart(productId, quantity, sid || sessionId),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.setQueryData(['cart', sessionId], data);
+      // Invalidate related product caches to ensure fresh stock data
+      queryClient.invalidateQueries({ queryKey: ['product', variables.productId] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      
       // Update cart session ID if received from server
       if (data.sessionId && data.sessionId !== sessionId) {
         cartService.setCartSessionId(data.sessionId);
@@ -45,8 +50,11 @@ export const useCart = (sessionId?: string) => {
       quantity: number; 
       sessionId?: string;
     }) => cartService.updateItemQuantity(productId, quantity, sid || sessionId),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.setQueryData(['cart', sessionId], data);
+      // Invalidate related product caches to ensure fresh stock data
+      queryClient.invalidateQueries({ queryKey: ['product', variables.productId] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error) => {
       console.error('Failed to update cart item quantity:', error);
@@ -59,8 +67,11 @@ export const useCart = (sessionId?: string) => {
       productId: string; 
       sessionId?: string;
     }) => cartService.removeFromCart(productId, sid || sessionId),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.setQueryData(['cart', sessionId], data);
+      // Invalidate related product caches to ensure fresh stock data
+      queryClient.invalidateQueries({ queryKey: ['product', variables.productId] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error) => {
       console.error('Failed to remove item from cart:', error);
@@ -73,6 +84,11 @@ export const useCart = (sessionId?: string) => {
       cartService.clearCart(sid || sessionId),
     onSuccess: (data) => {
       queryClient.setQueryData(['cart', sessionId], data);
+      // Invalidate all product caches when cart is cleared
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'product' 
+      });
     },
     onError: (error) => {
       console.error('Failed to clear cart:', error);
@@ -95,6 +111,30 @@ export const useCart = (sessionId?: string) => {
     return removeFromCartMutation.mutateAsync({ productId, sessionId });
   };
 
+  // Stock validation mutation
+  const validateStockMutation = useMutation({
+    mutationFn: async (cartItems: CartItem[]) => {
+      return stockValidationService.validateCartStock(cartItems);
+    },
+    onError: (error) => {
+      console.error('Failed to validate cart stock:', error);
+    }
+  });
+
+  // Reserve stock mutation
+  const reserveStockMutation = useMutation({
+    mutationFn: async ({ cartItems, sessionId: sid }: {
+      cartItems: CartItem[];
+      sessionId?: string;
+    }) => {
+      const validSessionId = sid || sessionId || '';
+      return stockValidationService.reserveStock(cartItems, validSessionId);
+    },
+    onError: (error) => {
+      console.error('Failed to reserve stock:', error);
+    }
+  });
+
   const clearCart = () => {
     return clearCartMutation.mutateAsync({ sessionId });
   };
@@ -116,6 +156,30 @@ export const useCart = (sessionId?: string) => {
     return (cart?.stockWarnings?.length || 0) > 0;
   };
 
+  // Stock validation helper functions
+  const validateStock = (cartItems?: CartItem[]) => {
+    const itemsToValidate = cartItems || cart?.items || [];
+    if (itemsToValidate.length === 0) return;
+    
+    return validateStockMutation.mutateAsync(itemsToValidate);
+  };
+
+  const reserveStock = (cartItems?: CartItem[]) => {
+    const itemsToReserve = cartItems || cart?.items || [];
+    if (itemsToReserve.length === 0) return;
+    
+    return reserveStockMutation.mutateAsync({
+      cartItems: itemsToReserve,
+      sessionId
+    });
+  };
+
+  const canProceedToCheckout = (): boolean => {
+    if (!cart || cart.items.length === 0) return false;
+    if (hasStockWarnings()) return false;
+    return true;
+  };
+
   return {
     // Data
     cart,
@@ -133,6 +197,8 @@ export const useCart = (sessionId?: string) => {
     isUpdatingQuantity: updateQuantityMutation.isPending,
     isRemovingFromCart: removeFromCartMutation.isPending,
     isClearingCart: clearCartMutation.isPending,
+    isValidatingStock: validateStockMutation.isPending,
+    isReservingStock: reserveStockMutation.isPending,
     
     // Actions
     addToCart,
@@ -140,6 +206,11 @@ export const useCart = (sessionId?: string) => {
     removeFromCart,
     clearCart,
     refetch,
+    
+    // Stock validation actions
+    validateStock,
+    reserveStock,
+    canProceedToCheckout,
     
     // Helpers
     getItemQuantity,

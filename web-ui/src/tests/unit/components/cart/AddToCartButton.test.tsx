@@ -41,7 +41,8 @@ vi.mock('../../../../contexts/CartContext', () => ({
       if (!product) return false;
       const currentQuantity = 0; // Mock current quantity in cart
       const totalRequestedQuantity = currentQuantity + quantity;
-      return totalRequestedQuantity <= product.quantity && product.quantity > 0;
+      const productStock = product.quantityInStock ?? product.quantity ?? 0;
+      return totalRequestedQuantity <= productStock && productStock > 0;
     }),
   }),
 }));
@@ -69,7 +70,7 @@ describe('AddToCartButton', () => {
     id: 'test-product-1',
     title: 'Test Product',
     price: 100000,
-    quantity: 10,
+    quantityInStock: 10,
   });
 
   const defaultProps = {
@@ -96,7 +97,7 @@ describe('AddToCartButton', () => {
     });
 
     it('should render as disabled when product is out of stock', () => {
-      const outOfStockProduct = { ...mockProduct, quantity: 0 };
+      const outOfStockProduct = { ...mockProduct, quantityInStock: 0 };
       render(
         <TestWrapper>
           <AddToCartButton {...defaultProps} product={outOfStockProduct} />
@@ -203,7 +204,7 @@ describe('AddToCartButton', () => {
 
   describe('Stock Validation', () => {
     it('should show stock warning for low stock items', () => {
-      const lowStockProduct = { ...mockProduct, quantity: 3 };
+      const lowStockProduct = { ...mockProduct, quantityInStock: 3 };
       
       render(
         <TestWrapper>
@@ -215,7 +216,7 @@ describe('AddToCartButton', () => {
     });
 
     it('should disable button when requested quantity exceeds stock', () => {
-      const limitedProduct = { ...mockProduct, quantity: 5 };
+      const limitedProduct = { ...mockProduct, quantityInStock: 5 };
       
       render(
         <TestWrapper>

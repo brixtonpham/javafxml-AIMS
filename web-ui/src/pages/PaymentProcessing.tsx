@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePaymentContext } from '../contexts/PaymentContext';
 import { useOrderContext } from '../contexts/OrderContext';
+import { API_BASE_URL } from '../services/api';
 import VNPayProcessor from '../components/VNPayProcessor';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -45,7 +46,7 @@ const PaymentProcessing: React.FC = () => {
           setOrderData(state.orderData);
         } else {
           // Fetch order data from API
-          const response = await fetch(`/api/orders/${state.orderId}`);
+          const response = await fetch(`${API_BASE_URL}/orders/${state.orderId}`);
           if (!response.ok) {
             throw new Error('Failed to load order data');
           }

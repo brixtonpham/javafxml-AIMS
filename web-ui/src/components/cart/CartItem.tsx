@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrashIcon,
   HeartIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { Button } from '../ui';
@@ -94,10 +93,11 @@ const CartItem: React.FC<CartItemProps> = ({
   };
 
   // Check for stock issues
-  const isOutOfStock = item.product.quantity === 0;
-  const hasStockIssue = item.quantity > item.product.quantity;
+  const productStock = item.product.quantityInStock ?? item.product.quantity ?? 0;
+  const isOutOfStock = productStock === 0;
+  const hasStockIssue = item.quantity > productStock;
   const stockWarning = hasStockIssue
-    ? `Only ${item.product.quantity} available`
+    ? `Only ${productStock} available`
     : null;
 
   return (
@@ -113,7 +113,7 @@ const CartItem: React.FC<CartItemProps> = ({
         <div className="flex-shrink-0">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden">
             <img
-              src={item.product.imageUrl || '/api/placeholder/100/100'}
+              src={item.product.imageUrl ?? '/api/placeholder/100/100'}
               alt={item.product.title}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -199,7 +199,7 @@ const CartItem: React.FC<CartItemProps> = ({
                 disabled={isUpdatingQuantity || isOutOfStock}
                 size="sm"
                 showLabel={false}
-                maxQuantity={item.product.quantity}
+                maxQuantity={productStock}
               />
 
               {/* Remove Button */}

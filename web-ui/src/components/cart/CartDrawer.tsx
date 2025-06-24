@@ -10,7 +10,7 @@ interface CartDrawerProps {
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { items, totalItems, totalPrice, clearCart } = useCart();
+  const { items, totalItems, clearCart, cart } = useCart();
 
   return (
     <motion.div
@@ -46,7 +46,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         {/* Footer */}
         {totalItems > 0 && (
           <div className="p-4 border-t">
-            <CartSummary totalPrice={totalPrice} />
+            <CartSummary cart={cart || null} />
             <button
               onClick={clearCart}
               className="w-full mt-4 bg-red-500 text-white py-2 rounded hover:bg-red-600 transition"

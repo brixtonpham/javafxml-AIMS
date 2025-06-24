@@ -58,7 +58,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const currentQuantityInCart = getItemQuantity(product.id);
   const isInCart = isItemInCart(product.id);
   const canAdd = canAddToCart(product, quantity);
-  const isOutOfStock = product.quantity === 0;
+  const productStock = product.quantityInStock ?? product.quantity ?? 0;
+  const isOutOfStock = productStock === 0;
   const isInvalidQuantity = quantity <= 0;
   const isDisabled = disabled || isOutOfStock || !canAdd || isAddingToCart || isInvalidQuantity;
 
@@ -111,8 +112,8 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     if (isOutOfStock) return null;
     
     const totalRequestedQuantity = currentQuantityInCart + quantity;
-    if (totalRequestedQuantity > product.quantity) {
-      const available = product.quantity - currentQuantityInCart;
+    if (totalRequestedQuantity > productStock) {
+      const available = productStock - currentQuantityInCart;
       if (available <= 0) {
         return `Maximum quantity reached`;
       }
@@ -166,9 +167,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       )}
 
       {/* Low stock indicator */}
-      {!isOutOfStock && product.quantity <= 5 && (
+      {!isOutOfStock && productStock <= 5 && (
         <div className="text-xs text-orange-600 mt-1 text-center">
-          Only {product.quantity} left in stock
+          Only {productStock} left in stock
         </div>
       )}
 

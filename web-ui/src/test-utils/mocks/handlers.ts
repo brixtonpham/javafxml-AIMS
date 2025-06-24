@@ -1,15 +1,16 @@
 import { http, HttpResponse } from 'msw';
-import type { Product, CartItem, Order, User, OrderStatus, PaymentMethodType, ProductType } from '../../types';
+import type { Product, CartItem, Order, User, OrderStatus } from '../../types';
 
 // Mock data
 const mockProducts: Product[] = [
   {
     id: 'book-1',
+    productId: 'BOOK001',
     title: 'Harry Potter và Hòn đá Phù thủy',
     productType: 'BOOK',
     price: 150000,
-    value: 150000,
-    quantity: 50,
+    valueAmount: 150000,
+    quantityInStock: 50,
     description: 'Cuốn sách đầu tiên trong series Harry Potter',
     category: 'Fiction',
     imageUrl: '/images/harry-potter-1.jpg',
@@ -20,11 +21,12 @@ const mockProducts: Product[] = [
   },
   {
     id: 'cd-1',
+    productId: 'CD001',
     title: 'Best of Sơn Tùng M-TP',
     productType: 'CD',
     price: 200000,
-    value: 200000,
-    quantity: 30,
+    valueAmount: 200000,
+    quantityInStock: 30,
     description: 'Album tuyển tập những ca khúc hay nhất',
     category: 'Music',
     imageUrl: '/images/son-tung-best.jpg',
@@ -34,11 +36,12 @@ const mockProducts: Product[] = [
   },
   {
     id: 'dvd-1',
+    productId: 'DVD001',
     title: 'Avengers: Endgame',
     productType: 'DVD',
     price: 120000,
-    value: 120000,
-    quantity: 25,
+    valueAmount: 120000,
+    quantityInStock: 25,
     description: 'Phim Marvel Studios',
     category: 'Movies',
     imageUrl: '/images/avengers-endgame.jpg',
@@ -186,12 +189,8 @@ export const handlers = [
 
   http.post('http://localhost:8080/api/cart/create', async ({ request }) => {
     try {
-      // Handle empty body case for cart creation
-      let body = {};
-      const text = await request.text();
-      if (text && text.trim()) {
-        body = JSON.parse(text);
-      }
+      // Handle cart creation request
+      await request.text(); // Consume the request body
 
       // Return empty cart for cart creation
       return HttpResponse.json({
