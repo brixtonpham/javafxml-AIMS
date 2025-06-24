@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DeliveryInfoForm from './forms/DeliveryInfoForm';
 import DeliveryOptionsSelector from './DeliveryOptionsSelector';
 import OrderSummary from './OrderSummary';
+import OrderPlacement from './checkout/OrderPlacement';
 import CheckoutProgress from './CheckoutProgress';
 import Card from './ui/Card';
 import Button from './ui/Button';
@@ -19,7 +20,7 @@ import type {
 
 const CheckoutWizard: React.FC = () => {
   const navigate = useNavigate();
-  const { items, totalItems } = useCartContext();
+  const { totalItems } = useCartContext();
   
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(() => {
     // Restore step from sessionStorage if available
@@ -99,8 +100,16 @@ const CheckoutWizard: React.FC = () => {
       id: 'order_summary',
       title: 'Order Summary',
       description: 'Review your order',
-      isComplete: false,
+      isComplete: !!formData.deliveryInfo && !!formData.deliveryOptions && !!calculationResult,
       isActive: currentStep === 'order_summary',
+      isValid: !!formData.deliveryInfo && !!formData.deliveryOptions && !!calculationResult
+    },
+    {
+      id: 'place_order',
+      title: 'Place Order',
+      description: 'Confirm and place your order',
+      isComplete: false,
+      isActive: currentStep === 'place_order',
       isValid: !!formData.deliveryInfo && !!formData.deliveryOptions && !!calculationResult
     }
   ];
@@ -142,21 +151,17 @@ const CheckoutWizard: React.FC = () => {
     }
   };
 
-  const handleProceedToPayment = () => {
+  const handleProceedToOrderPlacement = () => {
     if (!formData.deliveryInfo || !formData.deliveryOptions || !calculationResult) {
       setErrors(['Please complete all required steps']);
       return;
     }
+    setCurrentStep('place_order');
+  };
 
-    // Navigate to payment page with checkout data
-    navigate('/payment', {
-      state: {
-        deliveryInfo: formData.deliveryInfo,
-        deliveryOptions: formData.deliveryOptions,
-        calculationResult,
-        items
-      }
-    });
+  const handleOrderPlaced = (orderId: string) => {
+    // Navigate to order confirmation page
+    navigate(`/order-confirmation/${orderId}`);
   };
 
   const renderStepContent = () => {
@@ -230,9 +235,36 @@ const CheckoutWizard: React.FC = () => {
             deliveryInfo={formData.deliveryInfo}
             deliveryOptions={formData.deliveryOptions}
             calculationResult={calculationResult}
-            onNext={handleProceedToPayment}
+            onNext={handleProceedToOrderPlacement}
             onBack={() => setCurrentStep('delivery_options')}
             onEdit={handleEditSection}
+          />
+        );
+
+      case 'place_order':
+        if (!formData.deliveryInfo || !formData.deliveryOptions || !calculationResult) {
+          return (
+            <Card>
+              <div className="p-6 text-center">
+                <p className="text-gray-600">Please complete all previous steps.</p>
+                <Button
+                  onClick={() => setCurrentStep('delivery_info')}
+                  className="mt-4"
+                >
+                  Start Over
+                </Button>
+              </div>
+            </Card>
+          );
+        }
+        
+        return (
+          <OrderPlacement
+            deliveryInfo={formData.deliveryInfo}
+            deliveryOptions={formData.deliveryOptions}
+            calculationResult={calculationResult}
+            onBack={() => setCurrentStep('order_summary')}
+            onOrderPlaced={handleOrderPlaced}
           />
         );
 

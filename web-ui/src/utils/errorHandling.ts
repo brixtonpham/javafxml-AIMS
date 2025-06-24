@@ -50,6 +50,19 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   },
 };
 
+// Enhanced retry configuration specifically for 500-level errors
+const SERVER_ERROR_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 5,
+  delay: 1000,
+  backoffMultiplier: 2.5,
+  retryCondition: (error) => {
+    if (!error.response) return true; // Network error
+    const status = error.response.status;
+    // More aggressive retry for server errors
+    return status >= 500 && status < 600;
+  },
+};
+
 // Error classification
 export const classifyError = (error: any): { severity: ErrorReport['severity']; category: ErrorReport['category'] } => {
   // Network errors
@@ -79,6 +92,69 @@ export const classifyError = (error: any): { severity: ErrorReport['severity']; 
       return { severity: 'high', category: 'runtime' };
     default:
       return { severity: 'medium', category: 'unknown' };
+  }
+};
+
+// Create specific messages for server errors (500-level)
+const createServerErrorMessage = (status: number, error: any, context?: Record<string, any>): UserFriendlyError => {
+  const baseRetryHandler = async () => {
+    // Enhanced retry logic for server errors
+    if (context?.retryFn && typeof context.retryFn === 'function') {
+      return await context.retryFn();
+    }
+    return true;
+  };
+
+  switch (status) {
+    case 500:
+      return {
+        title: 'Server Error',
+        message: 'Our server is experiencing technical difficulties. We\'re working to fix this quickly.',
+        recovery: {
+          label: 'Try Again',
+          handler: baseRetryHandler,
+        },
+      };
+    
+    case 502:
+      return {
+        title: 'Service Temporarily Down',
+        message: 'Our service is temporarily unavailable due to maintenance or high traffic. Please try again in a few moments.',
+        recovery: {
+          label: 'Retry',
+          handler: baseRetryHandler,
+        },
+      };
+    
+    case 503:
+      return {
+        title: 'Service Unavailable',
+        message: 'Our service is currently under maintenance. We\'ll be back shortly. Thank you for your patience.',
+        recovery: {
+          label: 'Try Again',
+          handler: baseRetryHandler,
+        },
+      };
+    
+    case 504:
+      return {
+        title: 'Request Timeout',
+        message: 'Your request is taking longer than expected. This might be due to high server load.',
+        recovery: {
+          label: 'Retry',
+          handler: baseRetryHandler,
+        },
+      };
+    
+    default:
+      return {
+        title: 'Server Error',
+        message: `We're experiencing server issues (Error ${status}). Our team has been notified and is working on a fix.`,
+        recovery: {
+          label: 'Try Again',
+          handler: baseRetryHandler,
+        },
+      };
   }
 };
 
@@ -156,6 +232,11 @@ export const createUserFriendlyError = (error: any, context?: Record<string, any
         };
       }
       
+      // Enhanced 500-level error handling
+      if (status >= 500) {
+        return createServerErrorMessage(status, error, context);
+      }
+      
       return {
         title: 'Something Went Wrong',
         message: 'We encountered an unexpected error. Our team has been notified.',
@@ -214,7 +295,7 @@ export const generateErrorReport = (error: any, context: Record<string, any> = {
 export const reportError = async (errorReport: ErrorReport): Promise<void> => {
   try {
     // In development, just log to console
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.group(`🚨 Error Report [${errorReport.errorId}]`);
       console.error('Severity:', errorReport.severity);
       console.error('Category:', errorReport.category);
@@ -285,6 +366,48 @@ export const withRetry = async <T>(
     }
   }
 
+  throw lastError;
+};
+
+// Specialized retry function for server errors with enhanced retry logic
+export const withServerErrorRetry = async <T>(
+  fn: () => Promise<T>,
+  config: Partial<RetryConfig> = {}
+): Promise<T> => {
+  const retryConfig = { ...SERVER_ERROR_RETRY_CONFIG, ...config };
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry if this is the last attempt
+      if (attempt === retryConfig.maxRetries) {
+        break;
+      }
+      
+      // Check if we should retry this error
+      if (retryConfig.retryCondition && !retryConfig.retryCondition(error)) {
+        break;
+      }
+      
+      // Enhanced delay calculation for server errors
+      const baseDelay = retryConfig.delay;
+      const exponentialDelay = baseDelay * Math.pow(retryConfig.backoffMultiplier, attempt);
+      
+      // Add jitter to prevent thundering herd
+      const jitter = Math.random() * 0.1 * exponentialDelay;
+      const delay = Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
+      
+      console.info(`🔄 Retrying server request (attempt ${attempt + 1}/${retryConfig.maxRetries}) after ${Math.round(delay)}ms`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
   throw lastError;
 };
 
@@ -403,9 +526,11 @@ export default {
   generateErrorReport,
   reportError,
   withRetry,
+  withServerErrorRetry,
   setupGlobalErrorHandling,
   handleErrorBoundaryError,
   handleApiError,
   handleValidationError,
   retryPendingErrorReports,
+  SERVER_ERROR_RETRY_CONFIG,
 };

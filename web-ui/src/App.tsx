@@ -21,6 +21,7 @@ const ProductListPage = createLazyComponent(() => import('./pages/ProductListPag
 const ProductDetailPage = createLazyComponent(() => import('./pages/ProductDetailPage').then(m => ({ default: m.default })));
 const CartPage = createLazyComponent(() => import('./pages/CartPage').then(m => ({ default: m.default })));
 const CheckoutPage = createLazyComponent(() => import('./pages/CheckoutPage').then(m => ({ default: m.default })));
+const OrderConfirmationComponent = createLazyComponent(() => import('./components/OrderConfirmation').then(m => ({ default: m.default })));
 const OrdersPage = createLazyComponent(() => import('./pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
 const OrderDetailPage = createLazyComponent(() => import('./pages/OrderDetailPage').then(m => ({ default: m.OrderDetailPage })));
 const PaymentProcessing = createLazyComponent(() => import('./pages/PaymentProcessing').then(m => ({ default: m.default })));
@@ -325,6 +326,16 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/order-confirmation/:orderId"
+        element={
+          <ProtectedRoute requireAuth={false}>
+            <LazyWrapper {...LazyWrapperPresets.page}>
+              <OrderConfirmationComponent />
+            </LazyWrapper>
+          </ProtectedRoute>
+        }
+      />
       
       {/* Payment Routes */}
       <Route
@@ -395,7 +406,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary
-      showDetails={process.env.NODE_ENV === 'development'}
+      showDetails={import.meta.env.DEV}
       recovery={{ enabled: true, maxRetries: 3, resetTimeoutMs: 5000 }}
       onError={(error, errorInfo, errorId) => {
         // Report to analytics/monitoring service

@@ -75,7 +75,7 @@ export interface DeliveryFeeBreakdown {
 }
 
 // Checkout Step Types
-export type CheckoutStep = 'delivery_info' | 'delivery_options' | 'order_summary' | 'payment' | 'confirmation';
+export type CheckoutStep = 'delivery_info' | 'delivery_options' | 'order_summary' | 'place_order' | 'payment' | 'confirmation';
 
 export interface CheckoutStepConfig {
   id: CheckoutStep;

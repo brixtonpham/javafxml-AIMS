@@ -67,7 +67,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     setError(null);
     
     try {
-      await addToCart(product.id, quantity);
+      await addToCart(product.id, quantity, product);
       
       // Show success state
       setShowSuccess(true);

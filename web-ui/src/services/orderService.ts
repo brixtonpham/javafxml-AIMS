@@ -2,17 +2,61 @@ import { api, paginatedRequest } from './api';
 import type { 
   Order, 
   OrderStatus, 
-  DeliveryFormData,
+  DeliveryInfo,
   PaymentResult,
   PaginatedResponse 
 } from '../types';
 
+// Request/Response types for order operations
+export interface CreateOrderFromCartRequest {
+  cartSessionId: string;
+  userId?: string;
+}
+
+export interface PlaceOrderRequest {
+  cartSessionId: string;
+  deliveryInfo: DeliveryInfo;
+  isRushOrder: boolean;
+  deliveryInstructions?: string;
+  paymentMethodId?: string;
+}
+
+export interface AddDeliveryInfoRequest {
+  deliveryInfo: DeliveryInfo;
+  isRushOrder: boolean;
+}
+
+export interface CalculateShippingRequest {
+  deliveryInfo: DeliveryInfo;
+  isRushOrder: boolean;
+}
+
+export interface ShippingFeeResponse {
+  shippingFee: number;
+  rushFee?: number;
+  totalShipping: number;
+}
+
+export interface OrderTotalResponse {
+  total: number;
+  subtotal: number;
+  vatAmount: number;
+  shippingFee: number;
+}
+
 export const orderService = {
-  // Create order from cart
-  async createOrderFromCart(cartSessionId: string): Promise<Order> {
+  // Create order from cart (draft state)
+  async createOrderFromCart(cartSessionId: string, userId?: string): Promise<Order> {
     const response = await api.post<Order>('/orders/from-cart', {
-      cartSessionId
+      cartSessionId,
+      userId
     });
+    return response.data;
+  },
+
+  // Place final order with all details
+  async placeOrder(request: PlaceOrderRequest): Promise<Order> {
+    const response = await api.post<Order>('/orders/place', request);
     return response.data;
   },
 
@@ -46,14 +90,20 @@ export const orderService = {
   },
 
   // Update delivery information
-  async updateDeliveryInfo(orderId: string, deliveryData: DeliveryFormData): Promise<Order> {
-    const response = await api.put<Order>(`/orders/${orderId}/delivery`, deliveryData);
+  async updateDeliveryInfo(orderId: string, request: AddDeliveryInfoRequest): Promise<Order> {
+    const response = await api.post<Order>(`/orders/${orderId}/delivery`, request);
     return response.data;
   },
 
-  // Calculate shipping fee preview
-  async calculateShippingFee(deliveryData: DeliveryFormData): Promise<{ fee: number; rushFee?: number }> {
-    const response = await api.post<{ fee: number; rushFee?: number }>('/orders/shipping-preview', deliveryData);
+  // Calculate shipping fee for order
+  async calculateShippingFee(orderId: string, request: CalculateShippingRequest): Promise<ShippingFeeResponse> {
+    const response = await api.post<ShippingFeeResponse>(`/orders/${orderId}/shipping-fee`, request);
+    return response.data;
+  },
+
+  // Calculate shipping fee preview (without order)
+  async calculateShippingFeePreview(request: CalculateShippingRequest): Promise<ShippingFeeResponse> {
+    const response = await api.post<ShippingFeeResponse>('/orders/shipping-preview', request);
     return response.data;
   },
 

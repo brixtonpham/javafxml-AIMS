@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiResponse, PaginatedResponse } from '../types';
-import { handleApiError, withRetry } from '../utils/errorHandling';
+import { handleApiError, withRetry, withServerErrorRetry } from '../utils/errorHandling';
 import { toast } from '../components/common/Toast';
 
 // API Configuration
@@ -109,13 +109,25 @@ export async function apiRequest<T>(
     }
   };
 
-  // Apply retry logic for non-POST requests or when explicitly enabled
+  // Enhanced retry logic with server error handling
   if (enableRetry && (method === 'GET' || method === 'PUT' || method === 'DELETE')) {
-    return withRetry(makeRequest, {
-      maxRetries: method === 'GET' ? 3 : 1,
-      delay: 1000,
-      backoffMultiplier: 2,
-    });
+    // First, try with server error retry for better 500 handling
+    try {
+      return await withServerErrorRetry(makeRequest, {
+        maxRetries: method === 'GET' ? 5 : 3, // More retries for server errors
+      });
+    } catch (error: any) {
+      // If server error retry fails and it's not a 500-level error,
+      // fall back to regular retry for other error types
+      if (!error.response || error.response.status < 500) {
+        return withRetry(makeRequest, {
+          maxRetries: method === 'GET' ? 2 : 1,
+          delay: 1000,
+          backoffMultiplier: 2,
+        });
+      }
+      throw error;
+    }
   }
 
   return makeRequest();

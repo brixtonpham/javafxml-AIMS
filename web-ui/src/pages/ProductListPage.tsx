@@ -252,6 +252,8 @@ const ProductListPage: React.FC<ProductListPageProps> = ({
   const handleAddToCart = async (productId: string) => {
     setLoadingProducts(prev => [...prev, productId]);
     try {
+      // Note: We don't have the full product object here, so optimistic updates
+      // will be skipped and we'll rely on the server response
       await addToCart(productId, 1);
       forceRefreshProduct(productId);
       showToast.success('Success', 'Product added to cart successfully!');
